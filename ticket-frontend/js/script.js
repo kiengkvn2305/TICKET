@@ -26,3 +26,11 @@ window.onclick = function () {
   const menu = document.getElementById("menu");
   if (menu) menu.classList.remove("show");
 };
+
+
+function logout() {
+    window.location.href = "login.html";
+}
+
+
+fetch("http://localhost:8080/api/taikhoan")

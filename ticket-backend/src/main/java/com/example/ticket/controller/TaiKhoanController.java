@@ -4,6 +4,8 @@ import java.util.List;
 import com.example.ticket.model.*;
 import com.example.ticket.service.*;
 
+
+@CrossOrigin(origins = "http://localhost:5051")
 @RestController
 @RequestMapping("/api/taikhoan")
 public class TaiKhoanController {

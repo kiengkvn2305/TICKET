@@ -19,7 +19,7 @@ public class TaiKhoanServiceImple implements TaiKhoanService {
     public TaiKhoan register(TaiKhoan taiKhoan) {
 
         // check trùng username
-        if (taiKhoanRepository.findByUsername(taiKhoan.getTenTaiKhoan()).isPresent()) {
+        if (taiKhoanRepository.findByTenTaiKhoan(taiKhoan.getTenTaiKhoan()).isPresent()) {
             throw new RuntimeException("Username already exists");
         }
 
@@ -30,7 +30,7 @@ public class TaiKhoanServiceImple implements TaiKhoanService {
     @Override
     public TaiKhoan login(String username, String password) {
 
-        TaiKhoan tk = taiKhoanRepository.findByUsername(username)
+        TaiKhoan tk = taiKhoanRepository.findByTenTaiKhoan(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!tk.getMatKhau().equals(password)) {
