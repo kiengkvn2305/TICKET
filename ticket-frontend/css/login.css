@@ -299,3 +299,52 @@ body {
 .dropdown-content.show {
   display: block;
 }
+
+.rectangle-parent {
+  align-self: stretch;
+
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+
+  padding: 30px;
+
+  background: linear-gradient(
+    135deg,
+    #d79c9c,
+    #d79c9c
+  );
+
+  border-radius: 20px;
+
+  margin: 30px;
+
+  box-shadow:
+    0 8px 20px rgba(0,0,0,0.08);
+
+  box-sizing: border-box;
+}
+
+.rectangle-parent button {
+  flex: 1 1 220px;
+
+  min-height: 120px;
+
+  border: none;
+  border-radius: 18px;
+
+  background: white;
+
+  font-size: 20px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.08);
+}
+

@@ -22,9 +22,14 @@ function toggleMenu(event) {
 }
 
 // click ngoài → đóng
-window.onclick = function () {
-  const menu = document.getElementById("menu");
-  if (menu) menu.classList.remove("show");
+window.onclick = function (event) {
+  if (!event.target.closest(".dropdown")) {
+    const menu = document.getElementById("menu");
+
+    if (menu) {
+      menu.classList.remove("show");
+    }
+  }
 };
 
 

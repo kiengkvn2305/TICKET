@@ -35,8 +35,6 @@
 
             <div id="menu" class="dropdown-content">
                 <a href="#">Hồ sơ tài khoản</a>
-                <a href="#">Quản lý phát hành vé</a>
-                <a href="#">Quản lý sự kiện</a>
                 <a href="#">Đổi mật khẩu</a>
                 <a href="#" onclick="logout()">Đăng xuất</a>
             </div>
@@ -47,8 +45,18 @@
     </header>
 
     <section class="rectangle-parent">
-      <div class="frame-child"></div>
-      <h3 class="th-loi">Thể loại</h3>
+          <button type="button" onclick="openPopup()">
+            Quản lý phát hành vé
+          </button>
+          <button type="button" onclick="openPopup()">
+           Quản lý sự kiện
+          </button>
+          <button type="button" onclick="openPopup()">
+            Quản lý khuyến mãi
+          </button>
+          <button type="button" onclick="openPopup()">
+            Theo dõi doanh thu
+          </button>
     </section>
   </div>
 
