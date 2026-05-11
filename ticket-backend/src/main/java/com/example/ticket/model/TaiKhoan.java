@@ -22,8 +22,9 @@ public class TaiKhoan {
         
     }
     
-    public TaiKhoan(Long maTaiKhoan, String loaiTaiKhoan, String matKhau){
+    public TaiKhoan(Long maTaiKhoan, String tenTaiKhoan, String loaiTaiKhoan, String matKhau){
         this.maTaiKhoan = maTaiKhoan;
+        this.tenTaiKhoan = tenTaiKhoan;
         this.loaiTaiKhoan = loaiTaiKhoan;
         this.matKhau = matKhau;
     }
@@ -57,5 +58,14 @@ public class TaiKhoan {
     
     public void setMatKhau(String matKhau){
         this.matKhau = matKhau;
+    }
+    
+    @Override
+    public String toString() {
+        return "TaiKhoan{" +
+                "maTaiKhoan=" + maTaiKhoan +
+                ", tenTaiKhoan='" + tenTaiKhoan + '\'' +
+                ", loaiTaiKhoan='" + loaiTaiKhoan + '\'' +
+                '}';
     }
 }

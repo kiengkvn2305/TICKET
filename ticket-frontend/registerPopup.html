@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1, width=device-width" />
+
+    <link rel="stylesheet" href="css/loginpopup.css" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="login-box">
+        <h2>Đăng ký</h2>
+
+        <div class="form-group">
+          <label>Tên đăng nhập</label>
+          <input type="text", id="username">
+        </div>
+
+        <div class="form-group">
+          <label>Mật khẩu</label>
+          <input type="password", id="password">
+        </div>
+
+        <div class="form-group">
+            <label>Vai trò: </label>
+        </div>
+        <div>
+            <label>
+            <input type="radio" name="role" value="customer">
+            Khách hàng
+            </label>
+
+            <label>
+            <input type="radio" name="role" value="creator">
+            Nhà tổ chức sự kiện
+            </label>
+            
+        </div>
+
+        <div class="actions">
+          <button class="btn-login" onclick="acceptRegister()">Xác nhận</button>
+          <button class="btn-cancel" onclick="cancelRF()">Hủy</button>
+        </div>
+
+      </div>
+    </div>
+
+    <script src="js/script.js"></script>
+  </body>
+</html>

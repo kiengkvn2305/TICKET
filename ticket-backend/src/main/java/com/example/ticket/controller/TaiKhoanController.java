@@ -3,9 +3,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import com.example.ticket.model.*;
 import com.example.ticket.service.*;
+import org.springframework.http.ResponseEntity;
 
 
-@CrossOrigin(origins = "http://localhost:5051")
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/taikhoan")
 public class TaiKhoanController {
@@ -20,10 +21,26 @@ public class TaiKhoanController {
         return service.getAll();
     }
 
+    
+    @PostMapping("/login")
+    public TaiKhoan login(@RequestBody TaiKhoan tk) {
+        return service.login(
+            tk.getTenTaiKhoan(),
+            tk.getMatKhau()
+        );
+    }
+    
     @PostMapping
-    public TaiKhoan create(@RequestBody TaiKhoan tk) {
-        System.out.println("RECEIVED: " + tk);
-        return tk;
-        //return service.save(tk);
+    public ResponseEntity<?> create(@RequestBody TaiKhoan tk) {
+        try {
+            TaiKhoan created =
+                service.register(tk);
+            return ResponseEntity.ok(created);
+        }
+        catch (Exception e) {
+            return ResponseEntity
+                .badRequest()
+                .body(e.getMessage());
+        }
     }
 }

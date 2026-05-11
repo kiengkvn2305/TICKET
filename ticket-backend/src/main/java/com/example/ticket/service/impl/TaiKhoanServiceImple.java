@@ -27,15 +27,20 @@ public class TaiKhoanServiceImple implements TaiKhoanService {
     }
 
     // Đăng nhập
+    
     @Override
     public TaiKhoan login(String username, String password) {
 
-        TaiKhoan tk = taiKhoanRepository.findByTenTaiKhoan(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        System.out.println("USERNAME: " + username);
+        System.out.println("PASSWORD: " + password);
 
-        if (!tk.getMatKhau().equals(password)) {
-            throw new RuntimeException("Wrong password");
-        }
+        TaiKhoan tk = taiKhoanRepository
+            .findByTenTaiKhoanAndMatKhau(username, password)
+            .orElseThrow(() ->
+                new RuntimeException("Sai tài khoản hoặc mật khẩu"));
+
+        System.out.println("FOUND USER: " + tk.getTenTaiKhoan());
+        System.out.println("ROLE: " + tk.getLoaiTaiKhoan());
 
         return tk;
     }
