@@ -1,8 +1,8 @@
 package com.example.ticket.service.impl;
 
-import com.example.ticket.model.TaiKhoan;
-import com.example.ticket.repository.TaiKhoanRepository;
-import com.example.ticket.service.TaiKhoanService;
+import com.example.ticket.model.*;
+import com.example.ticket.repository.*;
+import com.example.ticket.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,16 +14,56 @@ public class TaiKhoanServiceImple implements TaiKhoanService {
     @Autowired
     private TaiKhoanRepository taiKhoanRepository;
 
+    @Autowired
+    private KhachHangRepository khachHangRepository;
+
+    @Autowired
+    private NhaToChucRepository nhaToChucRepository;
+    
+    
     // Đăng ký
     @Override
     public TaiKhoan register(TaiKhoan taiKhoan) {
 
-        // check trùng username
-        if (taiKhoanRepository.findByTenTaiKhoan(taiKhoan.getTenTaiKhoan()).isPresent()) {
-            throw new RuntimeException("Username already exists");
+        // check username
+        if (taiKhoanRepository
+                .findByTenTaiKhoan(taiKhoan.getTenTaiKhoan()).isPresent()){
+
+            throw new RuntimeException(
+                "Username already exists"
+            );
         }
 
-        return taiKhoanRepository.save(taiKhoan);
+        // lưu tài khoản trước
+        TaiKhoan savedTaiKhoan = taiKhoanRepository.save(taiKhoan);
+
+        // nếu customer
+        if (savedTaiKhoan.getLoaiTaiKhoan().equals("customer")) {
+            KhachHang kh = new KhachHang();
+            kh.setMaTaiKhoan(
+                savedTaiKhoan.getMaTaiKhoan()
+            );
+
+            khachHangRepository.save(kh);
+
+        }
+
+        // nếu creator
+        else if (savedTaiKhoan.getLoaiTaiKhoan()
+                .equals("creator")) {
+
+            NhaToChuc ntc =
+                    new NhaToChuc();
+
+            ntc.setMaTaiKhoan(
+                savedTaiKhoan.getMaTaiKhoan()
+            );
+
+            nhaToChucRepository.save(ntc);
+
+        }
+
+        return savedTaiKhoan;
     }
 
     // Đăng nhập

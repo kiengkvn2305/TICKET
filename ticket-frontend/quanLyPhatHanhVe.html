@@ -26,7 +26,7 @@
           <h3 class="bn-cn-tm">Bạn cần tìm gì</h3>
         </div>
 
-        <input class="search-area"/>
+        <input class="search-area" type="text" />
 
         <div class="dropdown">
             <button class="btn" onclick="toggleMenu(event)">
@@ -38,39 +38,15 @@
                 <a href="#">Đổi mật khẩu</a>
                 <a href="#" onclick="logout()">Đăng xuất</a>
             </div>
-
         </div>
 
       </div>
     </header>
 
     <section class="rectangle-parent">
-      <div class="action-buttons">
-          <button type="button" onclick="loadTickets()">
-            Quản lý phát hành vé
-          </button>
 
-          <button type="button" onclick="loadEvents()">
-           Quản lý sự kiện
-          </button>
-         
-          <button type="button" onclick="loadVouchers()">
-            Quản lý khuyến mãi
-          </button>
-
-          <button type="button" onclick="followIncome()">
-            Theo dõi doanh thu
-          </button>
-        </div>
     </section>
-
-    <div class="content-area">
-        <div id="ticketList"></div> 
-        <div id="eventList"></div>
-    </div>
- 
-
-  
+  </div>
 
 
   <script src="js/script.js"></script>
