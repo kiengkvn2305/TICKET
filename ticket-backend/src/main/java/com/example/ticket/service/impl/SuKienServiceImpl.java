@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class SuKienServiceImple implements SuKienService{
+public class SuKienServiceImpl implements SuKienService{
 
     @Autowired
     private SuKienRepository suKienRepository;

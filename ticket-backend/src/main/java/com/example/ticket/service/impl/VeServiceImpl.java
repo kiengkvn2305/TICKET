@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class VeServiceImple implements VeService{
+public class VeServiceImpl implements VeService{
 
     @Autowired
     private VeRepository veRepository;
