@@ -9,4 +9,5 @@ public interface SuKienService{
     SuKien create(SuKien suKien);
     SuKien update(Long id, SuKien suKien);
     void delete(Long id);
+    List<SuKien> getByCreator(Long maTaiKhoan);
 }

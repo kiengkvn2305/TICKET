@@ -257,6 +257,12 @@ function login() {
 
     console.log("DATA:", data);
 
+    // LƯU USER TRƯỚC
+    localStorage.setItem(
+      "user",
+      JSON.stringify(data)
+    );
+
     alert("Đăng nhập thành công");
 
     // role customer
@@ -380,90 +386,122 @@ function forgetPassword() {
 }
 
 /* =========================
+   CLEAR CONTENT
+========================= */
+
+function clearContent() {
+
+    document.getElementById("ticketList")
+        .innerHTML = "";
+
+    document.getElementById("eventList")
+        .innerHTML = "";
+
+    document.getElementById("voucherList")
+        .innerHTML = "";
+
+}
+
+/* =========================
    LOAD DANH SÁCH VÉ
 ========================= */
 
 function loadTickets() {
 
-  fetch("http://localhost:8080/api/ve")
-
-  .then(response => {
-
-    if (!response.ok) {
-
-      throw new Error(
-        "Không lấy được danh sách vé"
-      );
-
-    }
-
-    return response.json();
-
-  })
-
-  .then(data => {
-
-    console.log(data);
+    clearContent();
 
     const ticketList =
-      document.getElementById("ticketList");
+        document.getElementById("ticketList");
 
-    ticketList.innerHTML = "";
+    // nút tạo vé
+    ticketList.innerHTML = `
 
-    // không có dữ liệu
-    if (data.length === 0) {
+        <div class="top-actions">
 
-      ticketList.innerHTML = `
-        <p>Không có vé nào</p>
-      `;
+            <button
+                class="create-btn"
+                onclick="openCreateTicket()">
 
-      return;
+                Tạo vé
 
-    }
-
-    data.forEach(ve => {
-
-      ticketList.innerHTML += `
-
-        <div class="ticket-card">
-
-          <h2>${ve.tenVe}</h2>
-
-          <p>
-            Loại vé:
-            ${ve.loaiVe}
-          </p>
-
-          <p>
-            Giá:
-            ${ve.gia}
-          </p>
-
-          <p>
-            Trạng thái:
-            ${ve.trangThai}
-          </p>
-
-          <p>
-            Mô tả:
-            ${ve.moTa}
-          </p>
+            </button>
 
         </div>
 
-      `;
+    `;
+
+    fetch("http://localhost:8080/api/ve")
+
+    .then(response => {
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Không lấy được danh sách vé"
+            );
+
+        }
+
+        return response.json();
+
+    })
+
+    .then(data => {
+
+        // không có dữ liệu
+        if (data.length === 0) {
+
+            ticketList.innerHTML += `
+                <p>Không có vé nào</p>
+            `;
+
+            return;
+
+        }
+
+        data.forEach(ve => {
+
+            ticketList.innerHTML += `
+
+                <div class="ticket-card">
+
+                    <h2>${ve.tenVe}</h2>
+
+                    <p>
+                        Loại vé:
+                        ${ve.loaiVe}
+                    </p>
+
+                    <p>
+                        Giá:
+                        ${ve.gia}
+                    </p>
+
+                    <p>
+                        Trạng thái:
+                        ${ve.trangThai}
+                    </p>
+
+                    <p>
+                        Mô tả:
+                        ${ve.moTa}
+                    </p>
+
+                </div>
+
+            `;
+
+        });
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        alert(error.message);
 
     });
-
-  })
-
-  .catch(error => {
-
-    console.error(error);
-
-    alert(error.message);
-
-  });
 
 }
 
@@ -473,139 +511,431 @@ function loadTickets() {
 
 function loadEvents() {
 
-  fetch("http://localhost:8080/api/sukien")
-
-  .then(response => {
-
-    if (!response.ok) {
-
-      throw new Error(
-        "Không lấy được sự kiện"
-      );
-
-    }
-
-    return response.json();
-
-  })
-
-  .then(data => {
+    clearContent();
 
     const eventList =
-      document.getElementById("eventList");
+        document.getElementById("eventList");
 
-    eventList.innerHTML = "";
+    // nút tạo sự kiện
+    eventList.innerHTML = `
 
-    // không có dữ liệu
-    if (data.length === 0) {
-
-      eventList.innerHTML = `
-        <p>Không có sự kiện nào</p>
-      `;
-
-      return;
-
-    }
-
-    data.forEach(sk => {
-
-      eventList.innerHTML += `
-
-        <div class="event-card">
-
-          <h2>
-            ${sk.tenSuKien}
-          </h2>
-
-          <p>
-            Mô tả:
-            ${sk.moTa}
-          </p>
-
-          <p>
-            Thời gian bắt đầu:
-            ${sk.thoiGianBatDau}
-          </p>
-
-          <p>
-            Thời gian kết thúc:
-            ${sk.thoiGianKetThuc}
-          </p>
-
-          <div class="event-actions">
+        <div class="top-actions">
 
             <button
-              class="edit-btn"
-              onclick="editEvent(${sk.maSuKien})">
+                class="create-btn"
+                onclick="openCreateEvent()">
 
-              Chỉnh sửa
-
-            </button>
-
-            <button
-              class="delete-btn"
-              onclick="deleteEvent(${sk.maSuKien})">
-
-              Xóa
+                Tạo sự kiện
 
             </button>
-
-          </div>
 
         </div>
 
-      `;
+    `;
+
+    const currentUser =
+        JSON.parse(
+            localStorage.getItem("user")
+        );
+
+    fetch(
+        `http://localhost:8080/api/sukien/creator/${currentUser.maTaiKhoan}`
+    )
+
+    .then(response => {
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Không lấy được sự kiện"
+            );
+
+        }
+
+        return response.json();
+
+    })
+
+    .then(data => {
+
+        // không có event
+        if (data.length === 0) {
+
+            eventList.innerHTML += `
+                <p>Không có sự kiện nào</p>
+            `;
+
+            return;
+
+        }
+
+        data.forEach(sk => {
+
+            eventList.innerHTML += `
+
+                <div class="event-card">
+
+                    <h2>
+                        ${sk.tenSuKien}
+                    </h2>
+
+                    <p>
+                        ${sk.moTa}
+                    </p>
+
+                    <p>
+                        ${sk.thoiGianBatDau}
+                    </p>
+
+                    <p>
+                        ${sk.thoiGianKetThuc}
+                    </p>
+
+                    <div class="event-actions">
+
+                        <button
+                            class="edit-btn"
+                            onclick="editEvent(${sk.maSuKien})">
+
+                            Chỉnh sửa
+
+                        </button>
+
+                        <button
+                            class="delete-btn"
+                            onclick="deleteEvent(${sk.maSuKien})">
+
+                            Xóa
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        });
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        alert(error.message);
 
     });
 
-  })
-
-  .catch(error => {
-
-    console.error(error);
-
-    alert(error.message);
-
-  });
-
 }
+
+/* =========================
+   DELETE EVENT
+========================= */
 
 function deleteEvent(maSuKien) {
 
-  const confirmDelete =
-    confirm("Bạn có chắc muốn xóa?");
+    const confirmDelete =
+        confirm("Bạn có chắc muốn xóa?");
 
-  if (!confirmDelete) {
+    if (!confirmDelete) {
 
-    return;
+        return;
 
-  }
-
-  fetch(
-    `http://localhost:8080/api/sukien/${maSuKien}`,
-    {
-      method: "DELETE"
     }
-  )
 
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(
-        "Xóa thất bại"
-      );
-    }
-    alert("Xóa thành công");
-    loadEvents();
-  })
+    fetch(
+        `http://localhost:8080/api/sukien/${maSuKien}`,
+        {
+            method: "DELETE"
+        }
+    )
 
-  .catch(error => {
-    console.error(error);
-    alert(error.message);
-  });
+    .then(response => {
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Xóa thất bại"
+            );
+
+        }
+
+        alert("Xóa thành công");
+
+        loadEvents();
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        alert(error.message);
+
+    });
+
 }
 
+/* =========================
+   EDIT EVENT
+========================= */
+
 function editEvent(maSuKien) {
-  alert(
-    "Chỉnh sửa sự kiện ID: " + maSuKien
-  );
+
+    alert(
+        "Chỉnh sửa sự kiện ID: " +
+        maSuKien
+    );
+
+}
+
+/* =========================
+   LOAD VOUCHER
+========================= */
+
+function loadVouchers() {
+
+    clearContent();
+
+    const voucherList =
+        document.getElementById("voucherList");
+
+    // nút tạo voucher
+    voucherList.innerHTML = `
+
+        <div class="top-actions">
+
+            <button
+                class="create-btn"
+                onclick="openCreateVoucher()">
+
+                Tạo khuyến mãi
+
+            </button>
+
+        </div>
+
+    `;
+
+    const currentUser =
+        JSON.parse(
+            localStorage.getItem("user")
+        );
+
+    fetch(
+        `http://localhost:8080/api/voucher/creator/${currentUser.maTaiKhoan}`
+    )
+
+    .then(response => {
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Không lấy được voucher"
+            );
+
+        }
+
+        return response.json();
+
+    })
+
+    .then(data => {
+
+        // không có voucher
+        if (data.length === 0) {
+
+            voucherList.innerHTML += `
+                <p>Không có khuyến mãi nào</p>
+            `;
+
+            return;
+
+        }
+
+        data.forEach(voucher => {
+
+            voucherList.innerHTML += `
+
+                <div class="event-card">
+
+                    <h2>
+                        ${voucher.maCode}
+                    </h2>
+
+                    <p>
+                        Điều kiện:
+                        ${voucher.dieuKien}
+                    </p>
+
+                    <p>
+                        Mức giảm:
+                        ${voucher.mucKhuyenMai}
+                    </p>
+
+                    <p>
+                        Trạng thái:
+                        ${voucher.trangThai}
+                    </p>
+
+                    <p>
+                        Lượt sử dụng:
+                        ${voucher.luotSuDung}
+                    </p>
+
+                </div>
+
+            `;
+
+        });
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        alert(error.message);
+
+    });
+
+}
+
+/* =========================
+   CREATE BUTTONS
+========================= */
+
+function openCreateTicket() {
+
+    alert("Mở form tạo vé");
+
+}
+
+function openCreateEvent() {
+
+    alert("Mở form tạo sự kiện");
+
+}
+
+function openCreateVoucher() {
+
+    alert("Mở form tạo khuyến mãi");
+
+}
+
+function openCreateEvent() {
+
+    window.location.href =
+        "taoSuKien.html";
+
+}
+
+function createEvent() {
+
+    const tenSuKien =
+        document.getElementById(
+            "tenSuKien"
+        ).value.trim();
+
+    const moTa =
+        document.getElementById(
+            "moTa"
+        ).value.trim();
+
+    const thoiGianBatDau =
+        document.getElementById(
+            "thoiGianBatDau"
+        ).value;
+
+    const thoiGianKetThuc =
+        document.getElementById(
+            "thoiGianKetThuc"
+        ).value;
+
+    if (
+        tenSuKien === "" ||
+        moTa === "" ||
+        thoiGianBatDau === "" ||
+        thoiGianKetThuc === ""
+    ) {
+
+        alert("Vui lòng nhập đầy đủ");
+
+        return;
+
+    }
+
+    const currentUser =
+        JSON.parse(
+            localStorage.getItem("user")
+        );
+
+    fetch(
+        "http://localhost:8080/api/sukien",
+        {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type":
+                    "application/json"
+            },
+
+            body: JSON.stringify({
+
+                tenSuKien:
+                    tenSuKien,
+
+                moTa:
+                    moTa,
+
+                thoiGianBatDau:
+                    thoiGianBatDau,
+
+                thoiGianKetThuc:
+                    thoiGianKetThuc,
+
+                maCongTy:
+                    currentUser.maTaiKhoan
+
+            })
+
+        }
+    )
+
+    .then(async response => {
+
+        const message =
+            await response.text();
+
+        if (!response.ok) {
+
+            throw new Error(message);
+
+        }
+
+        return JSON.parse(message);
+
+    })
+
+    .then(data => {
+
+        console.log(data);
+
+        alert("Tạo sự kiện thành công");
+
+        window.location.href =
+            "loginCreator.html";
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        alert(error.message);
+
+    });
+
 }

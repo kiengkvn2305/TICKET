@@ -40,4 +40,9 @@ public class SuKienController {
         suKienService.delete(id);
         return "Xóa sự kiện thành công";
     }
+    
+    @GetMapping("/creator/{maTaiKhoan}")
+    public List<SuKien> getByCreator(@PathVariable Long maTaiKhoan) {
+        return suKienService.getByCreator(maTaiKhoan);
+    }
 }
