@@ -1,13 +1,21 @@
 package com.example.ticket.service;
 
-import com.example.ticket.model.SuKien;
+import com.example.ticket.dto.request.SuKienRequest;
+import com.example.ticket.dto.response.SuKienResponse;
+
 import java.util.List;
 
-public interface SuKienService{
-    List<SuKien> getAll();
-    SuKien getById(Long id);
-    SuKien create(SuKien suKien);
-    SuKien update(Long id, SuKien suKien);
+public interface SuKienService {
+
+    List<SuKienResponse> getAll();
+    
+    SuKienResponse getById(Long id);
+    
+    SuKienResponse create(SuKienRequest request);
+    
+    SuKienResponse update(Long id, SuKienRequest request);
+    
     void delete(Long id);
-    List<SuKien> getByCreator(Long maTaiKhoan);
+    
+    List<SuKienResponse> getByCreator(Long maTaiKhoan);
 }

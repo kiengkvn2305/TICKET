@@ -1,44 +1,22 @@
-package com.example.ticket.model;
+package com.example.ticket.dto.response;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
 
-@Entity
-@Table(name = "SUKIEN")
+public class SuKienResponse {
 
-public class SuKien {
-
-    @Id
-    @GeneratedValue(
-        strategy = GenerationType.SEQUENCE,
-        generator = "sukien_seq"
-    )
-
-    @SequenceGenerator(
-        name = "sukien_seq",
-        sequenceName = "SUKIEN_SEQ",
-        allocationSize = 1
-    )
-
-    @Column(name = "MASUKIEN")
     private Long maSuKien;
 
-    @Column(name = "TENSUKIEN", nullable = false)
     private String tenSuKien;
 
-    @Column(name = "MOTA")
     private String moTa;
 
-    @Column(name = "THOIGIANBATDAU")
     private LocalDate thoiGianBatDau;
 
-    @Column(name = "THOIGIANKETTHUC")
     private LocalDate thoiGianKetThuc;
 
-    @Column(name = "MACONGTY")
     private Long maCongTy;
 
-    public SuKien() {
+    public SuKienResponse() {
     }
 
     public Long getMaSuKien() {

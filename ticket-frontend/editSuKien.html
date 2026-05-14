@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <title>Tạo sự kiện</title>
 
-    <link rel="stylesheet" href="css/createEvent.css">
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Chỉnh sửa sự kiện</title>
+
+    <link rel="stylesheet" href="css/editSuKien.css">
+
 </head>
 
 <body>
 
     <div class="container">
 
-        <h1>Tạo sự kiện</h1>
+        <h1>Chỉnh sửa sự kiện</h1>
 
         <div class="form-group">
 
@@ -20,7 +24,6 @@
             <input
                 type="text"
                 id="tenSuKien"
-                placeholder="Nhập tên sự kiện"
             >
 
         </div>
@@ -31,7 +34,6 @@
 
             <textarea
                 id="moTa"
-                placeholder="Nhập mô tả"
             ></textarea>
 
         </div>
@@ -62,14 +64,14 @@
 
             <button
                 class="create-btn"
-                onclick="handleCreateEvent()"
+                onclick="updateEvent()"
             >
-                Tạo sự kiện
+                Cập nhật
             </button>
 
             <button
                 class="cancel-btn"
-                onclick="history.back()"
+                onclick="goBack()"
             >
                 Hủy
             </button>
@@ -78,7 +80,8 @@
 
     </div>
 
-    <script src="js/script.js"></script>
+    <script src="js/editSuKien.js"></script>
 
 </body>
+
 </html>

@@ -576,19 +576,19 @@ function loadEvents() {
                 <div class="event-card">
 
                     <h2>
-                        ${sk.tenSuKien}
+                        Tên sự kiện: ${sk.tenSuKien}
                     </h2>
 
                     <p>
-                        ${sk.moTa}
+                       Mô tả: ${sk.moTa}
                     </p>
 
                     <p>
-                        ${sk.thoiGianBatDau}
+                        Thời gian băt đầu: ${sk.thoiGianBatDau}
                     </p>
 
                     <p>
-                        ${sk.thoiGianKetThuc}
+                        Thời gian kết thúc: ${sk.thoiGianKetThuc}
                     </p>
 
                     <div class="event-actions">
@@ -682,12 +682,8 @@ function deleteEvent(maSuKien) {
 ========================= */
 
 function editEvent(maSuKien) {
-
-    alert(
-        "Chỉnh sửa sự kiện ID: " +
-        maSuKien
-    );
-
+    window.location.href =
+        `editSuKien.html?id=${maSuKien}`;
 }
 
 /* =========================
@@ -812,12 +808,6 @@ function openCreateTicket() {
 
 }
 
-function openCreateEvent() {
-
-    alert("Mở form tạo sự kiện");
-
-}
-
 function openCreateVoucher() {
 
     alert("Mở form tạo khuyến mãi");
@@ -831,7 +821,7 @@ function openCreateEvent() {
 
 }
 
-function createEvent() {
+function handleCreateEvent() {
 
     const tenSuKien =
         document.getElementById(
@@ -896,7 +886,7 @@ function createEvent() {
                 thoiGianKetThuc:
                     thoiGianKetThuc,
 
-                maCongTy:
+                maTaiKhoan:
                     currentUser.maTaiKhoan
 
             })

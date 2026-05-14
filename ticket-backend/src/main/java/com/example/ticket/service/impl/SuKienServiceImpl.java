@@ -1,64 +1,213 @@
 package com.example.ticket.service.impl;
 
-import com.example.ticket.model.*;
-import com.example.ticket.repository.*;
-import com.example.ticket.service.*;
+import com.example.ticket.dto.request.SuKienRequest;
+import com.example.ticket.dto.response.SuKienResponse;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import com.example.ticket.model.NhaToChuc;
+import com.example.ticket.model.SuKien;
+
+import com.example.ticket.repository.NhaToChucRepository;
+import com.example.ticket.repository.SuKienRepository;
+
+import com.example.ticket.service.SuKienService;
 
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 @Service
-public class SuKienServiceImpl implements SuKienService{
+public class SuKienServiceImpl
+    implements SuKienService {
 
-    @Autowired
-    private SuKienRepository suKienRepository;
+    private final SuKienRepository suKienRepository;
 
-    @Autowired
-    private NhaToChucRepository nhaToChucRepository;
-    @Override
-    public List<SuKien> getAll() {
-        return suKienRepository.findAll();
-    }
-    @Override
-    public SuKien getById(Long id) {
-        return suKienRepository.findById(id).orElseThrow(() ->
-            new RuntimeException(
-                "Không tìm thấy sự kiện"
-            ));
-    }
+    private final NhaToChucRepository nhaToChucRepository;
 
-    @Override
-    public SuKien create(SuKien suKien) {
-        return suKienRepository.save(suKien);
+    public SuKienServiceImpl(
+        SuKienRepository suKienRepository,
+        NhaToChucRepository nhaToChucRepository
+    ) {
+
+        this.suKienRepository =
+            suKienRepository;
+
+        this.nhaToChucRepository =
+            nhaToChucRepository;
     }
 
     @Override
-    public SuKien update(Long id, SuKien suKien){
-        SuKien existing = getById(id);
-        existing.setTenSuKien(suKien.getTenSuKien());
-        existing.setMoTa(suKien.getMoTa());
+    public List<SuKienResponse> getAll() {
 
-        existing.setThoiGianBatDau(suKien.getThoiGianBatDau());
-        existing.setThoiGianKetThuc(suKien.getThoiGianKetThuc());
-        return suKienRepository.save(existing);
+        return suKienRepository.findAll()
+            .stream()
+            .map(this::mapToResponse)
+            .toList();
     }
 
     @Override
-    public void delete(Long id){
-        SuKien suKien = getById(id);
+    public SuKienResponse getById(Long id) {
+
+        SuKien suKien =
+            suKienRepository.findById(id)
+            .orElseThrow(() ->
+                new RuntimeException(
+                    "Không tìm thấy sự kiện"
+                )
+            );
+
+        return mapToResponse(suKien);
+    }
+
+    @Override
+    public SuKienResponse create(
+        SuKienRequest request
+    ) {
+
+        NhaToChuc ntc =
+            nhaToChucRepository
+            .findByMaTaiKhoan(
+                request.getMaTaiKhoan()
+            )
+            .orElseThrow(() ->
+                new RuntimeException(
+                    "Không tìm thấy nhà tổ chức"
+                )
+            );
+
+        SuKien suKien = new SuKien();
+
+        suKien.setTenSuKien(
+            request.getTenSuKien()
+        );
+
+        suKien.setMoTa(
+            request.getMoTa()
+        );
+
+        suKien.setThoiGianBatDau(
+            request.getThoiGianBatDau()
+        );
+
+        suKien.setThoiGianKetThuc(
+            request.getThoiGianKetThuc()
+        );
+
+        suKien.setMaCongTy(
+            ntc.getMaCongTy()
+        );
+
+        SuKien saved =
+            suKienRepository.save(suKien);
+
+        return mapToResponse(saved);
+    }
+
+    @Override
+    public SuKienResponse update(
+        Long id,
+        SuKienRequest request
+    ) {
+
+        SuKien existing =
+            suKienRepository.findById(id)
+            .orElseThrow(() ->
+                new RuntimeException(
+                    "Không tìm thấy sự kiện"
+                )
+            );
+
+        existing.setTenSuKien(
+            request.getTenSuKien()
+        );
+
+        existing.setMoTa(
+            request.getMoTa()
+        );
+
+        existing.setThoiGianBatDau(
+            request.getThoiGianBatDau()
+        );
+
+        existing.setThoiGianKetThuc(
+            request.getThoiGianKetThuc()
+        );
+
+        SuKien updated =
+            suKienRepository.save(existing);
+
+        return mapToResponse(updated);
+    }
+
+    @Override
+    public void delete(Long id) {
+
+        SuKien suKien =
+            suKienRepository.findById(id)
+            .orElseThrow(() ->
+                new RuntimeException(
+                    "Không tìm thấy sự kiện"
+                )
+            );
+
         suKienRepository.delete(suKien);
     }
-    @Override
-    public List<SuKien> getByCreator(Long maTaiKhoan) {
-        // tìm nhà tổ chức theo tài khoản
-        NhaToChuc ntc = nhaToChucRepository.findByMaTaiKhoan(maTaiKhoan).orElseThrow(() ->
-            new RuntimeException(
-                "Không tìm thấy nhà tổ chức"
-            ));
 
-        // lấy event theo công ty
-        return suKienRepository.findByMaCongTy(ntc.getMaCongTy());
+    @Override
+    public List<SuKienResponse> getByCreator(
+        Long maTaiKhoan
+    ) {
+
+        NhaToChuc ntc =
+            nhaToChucRepository
+            .findByMaTaiKhoan(
+                maTaiKhoan
+            )
+            .orElseThrow(() ->
+                new RuntimeException(
+                    "Không tìm thấy nhà tổ chức"
+                )
+            );
+
+        return suKienRepository
+            .findByMaCongTy(
+                ntc.getMaCongTy()
+            )
+            .stream()
+            .map(this::mapToResponse)
+            .toList();
+    }
+
+    private SuKienResponse mapToResponse(
+        SuKien suKien
+    ) {
+
+        SuKienResponse response =
+            new SuKienResponse();
+
+        response.setMaSuKien(
+            suKien.getMaSuKien()
+        );
+
+        response.setTenSuKien(
+            suKien.getTenSuKien()
+        );
+
+        response.setMoTa(
+            suKien.getMoTa()
+        );
+
+        response.setThoiGianBatDau(
+            suKien.getThoiGianBatDau()
+        );
+
+        response.setThoiGianKetThuc(
+            suKien.getThoiGianKetThuc()
+        );
+
+        response.setMaCongTy(
+            suKien.getMaCongTy()
+        );
+
+        return response;
     }
 }
