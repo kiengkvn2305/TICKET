@@ -2,318 +2,158 @@ package com.example.ticket.service.impl;
 
 import com.example.ticket.dto.request.VeRequest;
 import com.example.ticket.dto.response.VeResponse;
-
+import com.example.ticket.exception.*;
+import com.example.ticket.model.NhaToChuc;
 import com.example.ticket.model.SuKien;
 import com.example.ticket.model.Ve;
-
+import com.example.ticket.repository.NhaToChucRepository;
 import com.example.ticket.repository.SuKienRepository;
 import com.example.ticket.repository.VeRepository;
-
 import com.example.ticket.service.VeService;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-
-import org.springframework.stereotype.Service;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
-public class VeServiceImpl
-    implements VeService {
+@Transactional(readOnly = true)
+public class VeServiceImpl implements VeService {
 
     private final VeRepository veRepository;
-
     private final SuKienRepository suKienRepository;
+    private final NhaToChucRepository nhaToChucRepository;
 
-    public VeServiceImpl(
-
-        VeRepository veRepository,
-
-        SuKienRepository suKienRepository
-
-    ) {
-
-        this.veRepository =
-            veRepository;
-
-        this.suKienRepository =
-            suKienRepository;
-
+    public VeServiceImpl(VeRepository veRepository,
+                         SuKienRepository suKienRepository,
+                         NhaToChucRepository nhaToChucRepository) {
+        this.veRepository        = veRepository;
+        this.suKienRepository    = suKienRepository;
+        this.nhaToChucRepository = nhaToChucRepository;
     }
 
-    /* =========================
-       CREATE
-    ========================= */
+    // ── helpers ───────────────────────────────────────────────────────────────
 
-    @Override
-    public VeResponse create(
-        VeRequest request
-    ) {
-
-        // CHECK EVENT EXIST
-
-        SuKien suKien =
-            suKienRepository
-            .findById(
-                request.getMaSuKien()
-            )
-
-            .orElseThrow(() ->
-
-                new RuntimeException(
-                    "Sự kiện không tồn tại"
-                )
-
-            );
-
-        // CHECK GIÁ
-
-        if (
-            request.getGia() < 0
-        ) {
-
-            throw new RuntimeException(
-                "Giá vé không hợp lệ"
-            );
-
-        }
-
-        Ve ve =
-            new Ve();
-
-        ve.setTenVe(
-            request.getTenVe()
-        );
-
-        ve.setLoaiVe(
-            request.getLoaiVe()
-        );
-
-        ve.setGia(
-            request.getGia()
-        );
-
-        ve.setTrangThai(
-            request.getTrangThai()
-        );
-
-        ve.setMoTa(
-            request.getMoTa()
-        );
-
-        ve.setMaSuKien(
-            suKien.getMaSuKien()
-        );
-
-        Ve saved =
-            veRepository.save(ve);
-
-        return mapToResponse(
-            saved,
-            suKien
-        );
-
+    private SuKien findSuKien(Long maSuKien) {
+        return suKienRepository.findById(maSuKien)
+                .orElseThrow(() -> new EntityNotFoundException("Sự kiện không tồn tại"));
     }
 
-    /* =========================
-       GET ALL
-    ========================= */
+    private Ve findVe(Long id) {
+        return veRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy vé"));
+    }
+
+    private void validateGia(double gia) {
+        if (gia < 0) throw new BadRequestException("Giá vé không được âm");
+    }
+
+    private VeResponse mapToResponse(Ve ve, SuKien suKien) {
+        VeResponse r = new VeResponse();
+        r.setMaVe(ve.getMaVe());
+        r.setTenVe(ve.getTenVe());
+        r.setLoaiVe(ve.getLoaiVe());
+        r.setGia(ve.getGia());
+        r.setTrangThai(ve.getTrangThai());
+        r.setMoTa(ve.getMoTa());
+        r.setMaSuKien(ve.getMaSuKien());
+        if (suKien != null) r.setTenSuKien(suKien.getTenSuKien());
+        return r;
+    }
+
+    // ── queries ───────────────────────────────────────────────────────────────
 
     @Override
     public List<VeResponse> getAll() {
-
-        return veRepository
-            .findAll()
-            .stream()
-            .map(ve -> {
-
-                SuKien suKien =
-                    suKienRepository
-                    .findById(
-                        ve.getMaSuKien()
-                    )
-                    .orElse(null);
-
-                return mapToResponse(
-                    ve,
-                    suKien
-                );
-
-            })
-
-            .toList();
-
+        List<Ve> ves = veRepository.findAll();
+        List<Long> ids = ves.stream().map(Ve::getMaSuKien).distinct().toList();
+        Map<Long, SuKien> skMap = suKienRepository.findAllById(ids)
+                .stream().collect(Collectors.toMap(SuKien::getMaSuKien, s -> s));
+        return ves.stream()
+                .map(ve -> mapToResponse(ve, skMap.get(ve.getMaSuKien())))
+                .toList();
     }
 
-    /* =========================
-       GET BY ID
-    ========================= */
+    @Override
+    public VeResponse getById(Long id) {
+        Ve ve = findVe(id);
+        SuKien sk = suKienRepository.findById(ve.getMaSuKien()).orElse(null);
+        return mapToResponse(ve, sk);
+    }
 
     @Override
-    public VeResponse getById(
-        Long id
-    ) {
+    public List<VeResponse> getBySuKien(Long maSuKien) {
+        SuKien sk = findSuKien(maSuKien);
+        return veRepository.findByMaSuKien(maSuKien)
+                .stream().map(ve -> mapToResponse(ve, sk)).toList();
+    }
 
-        Ve ve =
-            veRepository
-            .findById(id)
+    @Override
+    public List<VeResponse> getByCreator(Long maTaiKhoan) {
+        NhaToChuc ntc = nhaToChucRepository.findByMaTaiKhoan(maTaiKhoan)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy nhà tổ chức"));
 
-            .orElseThrow(() ->
+        // ✅ Guard: creator chưa có công ty
+        Long maCongTy = ntc.getMaCongTy();
+        if (maCongTy == null) return List.of();
 
-                new RuntimeException(
-                    "Không tìm thấy vé"
-                )
+        List<SuKien> suKiens = suKienRepository.findByMaCongTy(maCongTy);
+        if (suKiens.isEmpty()) return List.of();
 
+        Map<Long, SuKien> skMap = suKiens.stream()
+                .collect(Collectors.toMap(SuKien::getMaSuKien, s -> s));
+
+        List<Long> suKienIds = suKiens.stream().map(SuKien::getMaSuKien).toList();
+        return veRepository.findByMaSuKienIn(suKienIds)
+                .stream().map(ve -> mapToResponse(ve, skMap.get(ve.getMaSuKien()))).toList();
+    }
+
+    // ── commands ──────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public VeResponse create(VeRequest request) {
+        SuKien sk = findSuKien(request.getMaSuKien());
+        validateGia(request.getGia());
+        
+        if (veRepository.existsByTenVeAndMaSuKien(request.getTenVe(), request.getMaSuKien())) {
+            throw new DuplicateResourceException(
+                "Vé '" + request.getTenVe() + "' đã tồn tại trong sự kiện này"
             );
+        }
+        Ve ve = new Ve();
+        ve.setTenVe(request.getTenVe());
+        ve.setLoaiVe(request.getLoaiVe());
+        ve.setGia(request.getGia());
+        ve.setTrangThai(request.getTrangThai());
+        ve.setMoTa(request.getMoTa());
+        ve.setMaSuKien(sk.getMaSuKien());
 
-        SuKien suKien =
-            suKienRepository
-            .findById(
-                ve.getMaSuKien()
-            )
-            .orElse(null);
-
-        return mapToResponse(
-            ve,
-            suKien
-        );
-
+        return mapToResponse(veRepository.save(ve), sk);
     }
 
-    /* =========================
-       UPDATE
-    ========================= */
-
     @Override
+    @Transactional
     public VeResponse update(Long id, VeRequest request) {
-        Ve existing = veRepository.findById(id).orElseThrow(() ->
-            new RuntimeException(
-                "Không tìm thấy vé"
-            )
+        Ve existing = findVe(id);
+        validateGia(request.getGia());
 
-        );
+        // ✅ Không cho đổi sự kiện — giữ nguyên maSuKien cũ
+        existing.setTenVe(request.getTenVe());
+        existing.setLoaiVe(request.getLoaiVe());
+        existing.setGia(request.getGia());
+        existing.setTrangThai(request.getTrangThai());
+        existing.setMoTa(request.getMoTa());
 
-        SuKien suKien =
-            suKienRepository
-            .findById(
-                existing.getMaSuKien()
-            )
-            .orElse(null);
-
-        if (
-            request.getGia() < 0
-        ) {
-
-            throw new RuntimeException(
-                "Giá vé không hợp lệ"
-            );
-
-        }
-
-        existing.setTenVe(
-            request.getTenVe()
-        );
-
-        existing.setLoaiVe(
-            request.getLoaiVe()
-        );
-
-        existing.setGia(
-            request.getGia()
-        );
-
-        existing.setTrangThai(
-            request.getTrangThai()
-        );
-
-        existing.setMoTa(
-            request.getMoTa()
-        );
-
-        Ve updated =
-            veRepository.save(
-                existing
-            );
-
-        return mapToResponse(updated, suKien);
+        SuKien sk = suKienRepository.findById(existing.getMaSuKien()).orElse(null);
+        return mapToResponse(veRepository.save(existing), sk);
     }
-
-    /* =========================
-       DELETE
-    ========================= */
 
     @Override
-    public void delete(
-        Long id
-    ) {
-
-        Ve ve =
-            veRepository
-            .findById(id)
-
-            .orElseThrow(() ->
-
-                new RuntimeException(
-                    "Không tìm thấy vé"
-                )
-
-            );
-
-        veRepository.delete(ve);
-
+    @Transactional
+    public void delete(Long id) {
+        veRepository.delete(findVe(id));
     }
-
-    /* =========================
-       MAP RESPONSE
-    ========================= */
-
-    private VeResponse mapToResponse(
-
-        Ve ve,
-
-        SuKien suKien
-
-    ) {
-
-        VeResponse response =
-            new VeResponse();
-
-        response.setMaVe(
-            ve.getMaVe()
-        );
-
-        response.setTenVe(
-            ve.getTenVe()
-        );
-
-        response.setLoaiVe(
-            ve.getLoaiVe()
-        );
-
-        response.setGia(
-            ve.getGia()
-        );
-
-        response.setTrangThai(
-            ve.getTrangThai()
-        );
-
-        response.setMoTa(
-            ve.getMoTa()
-        );
-
-        response.setMaSuKien(
-            ve.getMaSuKien()
-        );
-
-        if (suKien != null) {
-
-            response.setTenSuKien(
-                suKien.getTenSuKien()
-            );
-
-        }
-
-        return response;
-
-    }
-
 }

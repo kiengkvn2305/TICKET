@@ -11,4 +11,6 @@ public interface TaiKhoanService {
     List<TaiKhoanResponse> getAll();
     TaiKhoanResponse update(Long id, UpdateTaiKhoanRequest taiKhoan);
     void delete(Long id);
+    // BUG FIX: endpoint /forget-password gọi method này nhưng chưa có trong interface
+    void forgetPassword(String tenDangNhap);
 }

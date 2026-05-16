@@ -437,3 +437,67 @@ body {
     flex-direction: column;
   }
 }
+
+/* =========================
+   FILTER PANEL
+========================= */
+
+.filter-panel {
+    background: white;
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filter-panel input,
+.filter-panel select {
+    padding: 10px 14px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    font-size: 15px;
+    outline: none;
+    flex: 1;
+    min-width: 180px;
+}
+
+.filter-panel input:focus,
+.filter-panel select:focus {
+    border-color: #3cdbd8;
+}
+
+.filter-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    background: #3cdbd8;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.filter-btn:hover {
+    background: #2bb8b5;
+}
+
+.event-group {
+    background: white;
+    border-radius: 18px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.event-group h2 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: #2bb8b5;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+}

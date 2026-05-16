@@ -1,8 +1,8 @@
 package com.example.ticket.repository;
-import org.springframework.data.jpa.repository.JpaRepository;
 import com.example.ticket.model.ChiTietHoaDon;
+import com.example.ticket.model.ChiTietHoaDonID;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-
-public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, Long> {
-    
+// BUG FIX: ID của ChiTietHoaDon là composite (ChiTietHoaDonID), không phải Long
+public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, ChiTietHoaDonID> {
 }

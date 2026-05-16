@@ -1,7 +1,3 @@
-/* =========================
-   LOAD DANH SÁCH SỰ KIỆN VÀO SELECT
-========================= */
-
 window.addEventListener("DOMContentLoaded", function () {
 
     const currentUser = JSON.parse(localStorage.getItem("user"));
@@ -31,20 +27,15 @@ window.addEventListener("DOMContentLoaded", function () {
 
 });
 
-/* =========================
-   TẠO VÉ
-========================= */
-
 function createTicket() {
 
     const tenVe    = document.getElementById("tenVe").value.trim();
     const loaiVe   = document.getElementById("loaiVe").value.trim();
     const gia      = document.getElementById("gia").value;
-    const trangThai= document.getElementById("trangThai").value.trim();
     const moTa     = document.getElementById("moTa").value.trim();
     const maSuKien = document.getElementById("maSuKien").value;
 
-    if (tenVe === "" || loaiVe === "" || gia === "" || trangThai === "" || moTa === "" || maSuKien === "") {
+    if (tenVe === "" || loaiVe === "" || gia === "" || moTa === "" || maSuKien === "") {
         alert("Vui lòng nhập đầy đủ thông tin");
         return;
     }
@@ -57,7 +48,10 @@ function createTicket() {
     fetch(`${BASE_URL}/ve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenVe, loaiVe, gia, trangThai, moTa, maSuKien })
+        body: JSON.stringify({
+            tenVe, loaiVe, gia, moTa, maSuKien,
+            trangThai: "available" // ✅ Set mặc định
+        })
     })
 
     .then(async response => {

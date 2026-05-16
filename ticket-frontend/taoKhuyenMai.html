@@ -10,39 +10,41 @@
     <h1>Tạo Khuyến Mãi</h1>
 
     <div class="form-group">
-      <label>Mã code</label>
-      <input type="text" id="maCode">
+      <label>Mã voucher</label>
+      <input type="text" id="maCode" placeholder="Nhập mã voucher">
     </div>
 
     <div class="form-group">
       <label>Điều kiện</label>
-      <input type="text" id="dieuKien">
+      <input type="text" id="dieuKien" placeholder="Nhập điều kiện áp dụng">
     </div>
 
     <div class="form-group">
       <label>Mức khuyến mãi (%)</label>
-      <input type="number" id="mucKhuyenMai">
+      <input type="number" id="mucKhuyenMai" placeholder="Nhập % giảm giá (0-100)" min="0" max="100">
     </div>
 
     <div class="form-group">
-      <label>Trạng thái</label>
-      <input type="text" id="trangThai">
+      <label>Lượt sử dụng tối đa</label>
+      <input type="number" id="luotSuDung" placeholder="Nhập số lượt" min="1">
     </div>
 
     <div class="form-group">
-      <label>Sự kiện</label>
-      <select id="maSuKien">
-        <option value="">-- Chọn sự kiện --</option>
-      </select>
+      <label>Ngày bắt đầu</label>
+      <input type="date" id="ngayBatDau">
+    </div>
+
+    <div class="form-group">
+      <label>Ngày kết thúc</label>
+      <input type="date" id="ngayKetThuc">
     </div>
 
     <div class="button-group">
-      <button onclick="createVoucher()">Tạo Khuyến Mãi</button>
-      <button onclick="goBack()">Quay Lại</button>
+      <button class="create-btn" onclick="createVoucher()">Tạo Khuyến Mãi</button>
+      <button class="cancel-btn" onclick="goBack()">Hủy</button>
     </div>
   </div>
 
-  <!-- Model: api.js | Controller: createVoucher.js -->
   <script src="js/common/api.js"></script>
   <script src="js/voucher/createVoucher.js"></script>
 </body>

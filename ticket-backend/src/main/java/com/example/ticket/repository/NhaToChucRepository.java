@@ -5,6 +5,5 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface NhaToChucRepository extends JpaRepository<NhaToChuc, Long> {
-
     Optional<NhaToChuc> findByMaTaiKhoan(Long maTaiKhoan);
 }

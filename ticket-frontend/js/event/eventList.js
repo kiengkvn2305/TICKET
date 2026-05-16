@@ -1,3 +1,5 @@
+let allEvents = [];
+
 function loadEvents() {
 
     clearContent();
@@ -8,6 +10,10 @@ function loadEvents() {
         <div class="top-actions">
             <button class="create-btn" onclick="openCreateEvent()">Tạo sự kiện</button>
         </div>
+        <div class="filter-panel">
+            <input type="text" id="filterTenSuKien" placeholder="Tìm theo tên sự kiện..." oninput="applyEventFilter()" />
+        </div>
+        <div id="eventContent"></div>
     `;
 
     const currentUser = JSON.parse(localStorage.getItem("user"));
@@ -25,32 +31,50 @@ function loadEvents() {
     })
 
     .then(data => {
-
-        if (data.length === 0) {
-            eventList.innerHTML += "<p>Không có sự kiện nào</p>";
-            return;
-        }
-
-        data.forEach(sk => {
-            eventList.innerHTML += `
-                <div class="event-card">
-                    <h2>Tên sự kiện: ${sk.tenSuKien}</h2>
-                    <p>Mô tả: ${sk.moTa}</p>
-                    <p>Thời gian bắt đầu: ${sk.thoiGianBatDau}</p>
-                    <p>Thời gian kết thúc: ${sk.thoiGianKetThuc}</p>
-                    <div class="event-actions">
-                        <button class="edit-btn"   onclick="editEvent(${sk.maSuKien})">Chỉnh sửa</button>
-                        <button class="delete-btn" onclick="deleteEvent(${sk.maSuKien})">Xóa</button>
-                    </div>
-                </div>
-            `;
-        });
-
+        allEvents = data;
+        renderEvents(data);
     })
 
     .catch(error => {
         alert(error.message);
     });
+}
+
+function applyEventFilter() {
+    const tenSuKien = document.getElementById("filterTenSuKien").value.trim().toLowerCase();
+    const filtered  = allEvents.filter(sk =>
+        sk.tenSuKien.toLowerCase().includes(tenSuKien)
+    );
+    renderEvents(filtered);
+}
+
+function renderEvents(data) {
+
+    const container = document.getElementById("eventContent");
+    if (!container) return;
+
+    if (data.length === 0) {
+        container.innerHTML = "<p>Không có sự kiện nào</p>";
+        return;
+    }
+
+    let html = "";
+    data.forEach(sk => {
+        html += `
+            <div class="event-card">
+                <h2>Tên sự kiện: ${sk.tenSuKien}</h2>
+                <p>Mô tả: ${sk.moTa}</p>
+                <p>Thời gian bắt đầu: ${sk.thoiGianBatDau}</p>
+                <p>Thời gian kết thúc: ${sk.thoiGianKetThuc}</p>
+                <div class="event-actions">
+                    <button class="edit-btn"   onclick="editEvent(${sk.maSuKien})">Chỉnh sửa</button>
+                    <button class="delete-btn" onclick="deleteEvent(${sk.maSuKien})">Xóa</button>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
 }
 
 function editEvent(maSuKien) {

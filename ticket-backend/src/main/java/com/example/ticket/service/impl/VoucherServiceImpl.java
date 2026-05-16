@@ -8,10 +8,12 @@ import com.example.ticket.repository.NhaToChucRepository;
 import com.example.ticket.repository.VoucherRepository;
 import com.example.ticket.service.VoucherService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)   // mặc định read-only cho toàn class (GET không tốn overhead)
 public class VoucherServiceImpl implements VoucherService {
 
     private final VoucherRepository voucherRepository;
@@ -55,11 +57,23 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
+    @Transactional   // override read-only → writable
     public VoucherResponse create(VoucherRequest request) {
         NhaToChuc ntc = findNhaToChuc(request.getMaTaiKhoan());
 
-        if (request.getMucKhuyenMai() == null || request.getMucKhuyenMai() < 0 || request.getMucKhuyenMai() > 100) {
-            throw new RuntimeException("Mức khuyến mãi phải từ 0 đến 100");
+        if (request.getMucKhuyenMai() == null
+                || request.getMucKhuyenMai() < 0
+                || request.getMucKhuyenMai() > 100) {
+            throw new IllegalArgumentException("Mức khuyến mãi phải từ 0 đến 100");
+        }
+
+        // Kiểm tra trùng mã code trong cùng công ty
+        boolean duplicate = voucherRepository
+                .findByMaCongTy(ntc.getMaCongTy())
+                .stream()
+                .anyMatch(v -> v.getMaCode().equalsIgnoreCase(request.getMaCode()));
+        if (duplicate) {
+            throw new IllegalArgumentException("Mã voucher đã tồn tại trong công ty");
         }
 
         Voucher v = new Voucher();
@@ -74,13 +88,14 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
+    @Transactional
     public VoucherResponse update(Long id, VoucherRequest request) {
         Voucher existing = voucherRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy voucher"));
 
-        if (request.getMucKhuyenMai() != null &&
-            (request.getMucKhuyenMai() < 0 || request.getMucKhuyenMai() > 100)) {
-            throw new RuntimeException("Mức khuyến mãi phải từ 0 đến 100");
+        if (request.getMucKhuyenMai() != null
+                && (request.getMucKhuyenMai() < 0 || request.getMucKhuyenMai() > 100)) {
+            throw new IllegalArgumentException("Mức khuyến mãi phải từ 0 đến 100");
         }
 
         existing.setMaCode(request.getMaCode());
@@ -95,6 +110,7 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         Voucher v = voucherRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy voucher"));

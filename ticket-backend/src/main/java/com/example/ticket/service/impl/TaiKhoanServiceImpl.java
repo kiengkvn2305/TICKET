@@ -302,6 +302,31 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         taiKhoanRepository
             .deleteById(id);
     }
+    
+    /* =========================
+        FORGET PASSWORD
+     ========================= */
 
+     @Override
+     public void forgetPassword(String tenDangNhap) {
+
+         TaiKhoan taiKhoan =
+             taiKhoanRepository
+             .findByTenTaiKhoan(tenDangNhap)
+
+             .orElseThrow(() ->
+
+                 new NotFoundException(
+                     "Tài khoản không tồn tại"
+                 )
+
+             );
+
+         // Reset mật khẩu về mặc định
+         taiKhoan.setMatKhau("123456");
+
+         taiKhoanRepository.save(taiKhoan);
+
+     }
 }
 

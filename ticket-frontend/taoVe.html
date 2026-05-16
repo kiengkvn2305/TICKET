@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Tạo Vé</title>
-  <link rel="stylesheet" href="css/Ve.css">
+  <link rel="stylesheet" href="css/createEvent.css">
 </head>
 <body>
   <div class="container">
@@ -11,43 +11,37 @@
 
     <div class="form-group">
       <label>Tên vé</label>
-      <input type="text" id="tenVe">
+      <input type="text" id="tenVe" placeholder="Nhập tên vé">
     </div>
 
     <div class="form-group">
       <label>Loại vé</label>
-      <input type="text" id="loaiVe">
+      <input type="text" id="loaiVe" placeholder="Nhập loại vé">
     </div>
 
     <div class="form-group">
       <label>Giá vé</label>
-      <input type="number" id="gia">
-    </div>
-
-    <div class="form-group">
-      <label>Trạng thái</label>
-      <input type="text" id="trangThai">
+      <input type="number" id="gia" placeholder="Nhập giá vé">
     </div>
 
     <div class="form-group">
       <label>Mô tả</label>
-      <textarea id="moTa"></textarea>
+      <textarea id="moTa" placeholder="Nhập mô tả"></textarea>
     </div>
 
     <div class="form-group">
       <label>Sự kiện</label>
-      <select id="maSuKien">
+      <select id="maSuKien" style="width:100%; padding:12px; border:1px solid #ccc; border-radius:10px; font-size:15px; box-sizing:border-box;">
         <option value="">-- Chọn sự kiện --</option>
       </select>
     </div>
 
     <div class="button-group">
-      <button onclick="createTicket()">Tạo Vé</button>
-      <button onclick="goBack()">Quay Lại</button>
+      <button class="create-btn" onclick="createTicket()">Tạo Vé</button>
+      <button class="cancel-btn" onclick="goBack()">Hủy</button>
     </div>
   </div>
 
-  <!-- Model: api.js | Controller: createTicket.js -->
   <script src="js/common/api.js"></script>
   <script src="js/ticket/createTicket.js"></script>
 </body>
