@@ -63,5 +63,18 @@
   <script src="js/ticket/ticketList.js"></script>
   <script src="js/event/eventList.js"></script>
   <script src="js/voucher/voucherList.js"></script>
-</body>
+  <script>
+      function followIncome() {
+          clearContent(); // xóa nội dung 3 div con, KHÔNG xóa bản thân chúng
+          const ticketList = document.getElementById("ticketList");
+          if (ticketList) {
+              ticketList.innerHTML = `
+                  <div style="text-align:center; padding:60px 20px; color:#888;">
+                      <div style="font-size:3rem; margin-bottom:16px;">📊</div>
+                      <h2 style="margin-bottom:8px;">Chức năng đang phát triển</h2>
+                      <p>Tính năng theo dõi doanh thu sẽ được cập nhật sớm.</p>
+                  </div>`;
+          }
+      }
+  </script>
 </html>

@@ -35,6 +35,7 @@ window.addEventListener("click", function (event) {
 ========================= */
 
 function register() {
+    // FIX: file tên thực là registerPopup.html
     window.location.href = "registerPopup.html";
 }
 
@@ -43,7 +44,8 @@ function forget() {
 }
 
 function cancelRF() {
-    window.location.href = "loginPopup.html";
+    // FIX: file tên thực là loginpopup.html (chữ thường)
+    window.location.href = "loginpopup.html";
 }
 
 function cancelLogin() {

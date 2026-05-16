@@ -8,7 +8,7 @@
 (function () {
     const user = localStorage.getItem("user");
     if (!user) {
-        alert("Vui lòng đăng nhập");
-        window.location.href = "loginPopup.html";
+        // FIX: file tên thực là loginpopup.html (chữ thường), Linux phân biệt hoa/thường
+        window.location.href = "loginpopup.html";
     }
 })();

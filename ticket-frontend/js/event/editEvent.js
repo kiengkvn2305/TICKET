@@ -44,10 +44,13 @@ function updateEvent() {
         body: JSON.stringify({ tenSuKien, moTa, thoiGianBatDau, thoiGianKetThuc })
     })
 
+    // FIX: tách xử lý lỗi (text) và thành công (json) — tránh JSON.parse lỗi khi server trả string
     .then(async response => {
-        const message = await response.text();
-        if (!response.ok) throw new Error(message);
-        return JSON.parse(message);
+        if (!response.ok) {
+            const message = await response.text();
+            throw new Error(message);
+        }
+        return response.json();
     })
 
     .then(() => {

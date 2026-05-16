@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional(readOnly = true)
@@ -89,14 +90,19 @@ public class VoucherServiceImpl implements VoucherService {
     @Override
     public List<VoucherResponse> getByCreator(Long maTaiKhoan) {
         NhaToChuc ntc = findNhaToChuc(maTaiKhoan);
-        return voucherRepository.findByMaCongTy(ntc.getMaCongTy())
-                .stream()
-                .map(v -> {
-                    SuKien sk = v.getMaSuKien() != null
-                            ? suKienRepository.findById(v.getMaSuKien()).orElse(null)
-                            : null;
-                    return mapToResponse(v, sk);
-                })
+        List<Voucher> vouchers = voucherRepository.findByMaCongTy(ntc.getMaCongTy());
+        if (vouchers.isEmpty()) return List.of();
+
+        // FIX: N+1 — load tất cả SuKien cần thiết trong 1 query thay vì query per voucher
+        List<Long> suKienIds = vouchers.stream()
+                .map(Voucher::getMaSuKien)
+                .filter(id -> id != null)
+                .distinct().toList();
+        Map<Long, SuKien> skMap = suKienRepository.findAllById(suKienIds)
+                .stream().collect(java.util.stream.Collectors.toMap(SuKien::getMaSuKien, s -> s));
+
+        return vouchers.stream()
+                .map(v -> mapToResponse(v, skMap.get(v.getMaSuKien())))
                 .toList();
     }
 

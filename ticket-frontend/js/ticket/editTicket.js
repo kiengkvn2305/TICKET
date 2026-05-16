@@ -46,10 +46,13 @@ function updateTicket() {
         body: JSON.stringify({ tenVe, loaiVe, gia, trangThai, moTa })
     })
 
+    // FIX: tách error (text) và success (json)
     .then(async response => {
-        const message = await response.text();
-        if (!response.ok) throw new Error(message);
-        return JSON.parse(message);
+        if (!response.ok) {
+            const message = await response.text();
+            throw new Error(message);
+        }
+        return response.json();
     })
 
     .then(() => {

@@ -2,331 +2,125 @@ package com.example.ticket.service.impl;
 
 import com.example.ticket.dto.request.*;
 import com.example.ticket.dto.response.*;
-
-import com.example.ticket.model.KhachHang;
-import com.example.ticket.model.NhaToChuc;
-import com.example.ticket.model.TaiKhoan;
-
-import com.example.ticket.repository.KhachHangRepository;
-import com.example.ticket.repository.NhaToChucRepository;
-import com.example.ticket.repository.TaiKhoanRepository;
-
 import com.example.ticket.exception.*;
-
+import com.example.ticket.model.*;
+import com.example.ticket.repository.*;
 import com.example.ticket.service.TaiKhoanService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import java.util.Set;
 
 @Service
+@Transactional(readOnly = true)
 public class TaiKhoanServiceImpl implements TaiKhoanService {
 
-    @Autowired
-    private TaiKhoanRepository
-        taiKhoanRepository;
+    private static final Set<String> LOAI_HOP_LE = Set.of("customer", "creator");
 
-    @Autowired
-    private KhachHangRepository
-        khachHangRepository;
+    // FIX 1: @Autowired field injection → constructor injection
+    private final TaiKhoanRepository  taiKhoanRepository;
+    private final KhachHangRepository khachHangRepository;
+    private final NhaToChucRepository nhaToChucRepository;
 
-    @Autowired
-    private NhaToChucRepository
-        nhaToChucRepository;
-    
-    private TaiKhoanResponse mapToResponse(
-        TaiKhoan taiKhoan
-    ) {
-
-        TaiKhoanResponse response =
-            new TaiKhoanResponse();
-
-        response.setMaTaiKhoan(
-            taiKhoan.getMaTaiKhoan()
-        );
-
-        response.setTenDangNhap(
-            taiKhoan.getTenTaiKhoan()
-        );
-
-        response.setLoaiTaiKhoan(
-            taiKhoan.getLoaiTaiKhoan()
-        );
-
-        return response;
-
-    }
-    /* =========================
-       REGISTER
-    ========================= */
-
-    @Override
-    public void register(
-        RegisterRequest request
-    ) {
-
-        boolean exists =
-            taiKhoanRepository
-            .findByTenTaiKhoan(
-                request.getTenDangNhap()
-            )
-            .isPresent();
-
-        if (exists) {
-
-            throw new DuplicateResourceException(
-                "Tên tài khoản đã tồn tại"
-            );
-
-        }
-
-        if (
-            !request.getLoaiTaiKhoan()
-            .equals("customer")
-
-            &&
-
-            !request.getLoaiTaiKhoan()
-            .equals("creator")
-        ) {
-
-            throw new RuntimeException(
-                "Loại tài khoản không hợp lệ"
-            );
-
-        }
-
-        TaiKhoan taiKhoan =
-            new TaiKhoan();
-
-        taiKhoan.setTenTaiKhoan(
-            request.getTenDangNhap()
-        );
-
-        taiKhoan.setMatKhau(
-            request.getMatKhau()
-        );
-
-        taiKhoan.setLoaiTaiKhoan(
-            request.getLoaiTaiKhoan()
-        );
-
-        TaiKhoan savedTaiKhoan =
-            taiKhoanRepository.save(
-                taiKhoan
-            );
-
-        // customer
-        if (
-            savedTaiKhoan
-            .getLoaiTaiKhoan()
-            .equals("customer")
-        ) {
-
-            KhachHang kh =
-                new KhachHang();
-
-            kh.setMaTaiKhoan(
-                savedTaiKhoan
-                .getMaTaiKhoan()
-            );
-
-            khachHangRepository
-                .save(kh);
-
-        }
-
-        // creator
-        else {
-
-            NhaToChuc ntc =
-                new NhaToChuc();
-
-            ntc.setMaTaiKhoan(
-                savedTaiKhoan
-                .getMaTaiKhoan()
-            );
-
-            nhaToChucRepository
-                .save(ntc);
-
-        }
-
+    public TaiKhoanServiceImpl(TaiKhoanRepository  taiKhoanRepository,
+                               KhachHangRepository khachHangRepository,
+                               NhaToChucRepository nhaToChucRepository) {
+        this.taiKhoanRepository  = taiKhoanRepository;
+        this.khachHangRepository = khachHangRepository;
+        this.nhaToChucRepository = nhaToChucRepository;
     }
 
-    /* =========================
-       LOGIN
-    ========================= */
-
-    @Override
-    public LoginResponse login(
-        LoginRequest request
-    ) {
-
-        TaiKhoan tk =
-            taiKhoanRepository
-            .findByTenTaiKhoan(
-                request.getTenDangNhap()
-            )
-
-            .orElseThrow(() ->
-
-                new NotFoundException(
-                    "Tài khoản không tồn tại"
-                )
-
-            );
-
-        if (
-            !tk.getMatKhau()
-                .equals(request.getMatKhau())
-        ) {
-
-            throw new UnauthorizedException(
-                "Sai mật khẩu"
-            );
-
-        }
-
-        LoginResponse response =
-            new LoginResponse();
-
-        response.setMaTaiKhoan(
-            tk.getMaTaiKhoan()
-        );
-
-        response.setTenDangNhap(
-            tk.getTenTaiKhoan()
-        );
-
-        response.setLoaiTaiKhoan(
-            tk.getLoaiTaiKhoan()
-        );
-
-        return response;
-
+    private TaiKhoan findTaiKhoan(Long id) {
+        return taiKhoanRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy tài khoản"));
     }
 
-    /* =========================
-       GET BY ID
-    ========================= */
-
-    @Override
-    public TaiKhoanResponse getById(
-        Long id
-    ) {
-
-        TaiKhoan taiKhoan =
-            taiKhoanRepository
-            .findById(id)
-
-            .orElseThrow(() ->
-
-                new NotFoundException(
-                    "Không tìm thấy tài khoản"
-                )
-
-            );
-
-        return mapToResponse(
-            taiKhoan
-        );
-
+    private TaiKhoanResponse mapToResponse(TaiKhoan tk) {
+        TaiKhoanResponse r = new TaiKhoanResponse();
+        r.setMaTaiKhoan(tk.getMaTaiKhoan());
+        r.setTenDangNhap(tk.getTenTaiKhoan());
+        r.setLoaiTaiKhoan(tk.getLoaiTaiKhoan());
+        return r;
     }
-
-    /* =========================
-       GET ALL
-    ========================= */
 
     @Override
     public List<TaiKhoanResponse> getAll() {
-
-        return taiKhoanRepository
-            .findAll()
-            .stream()
-            .map(this::mapToResponse)
-            .toList();
-
+        return taiKhoanRepository.findAll().stream().map(this::mapToResponse).toList();
     }
-
-    /* =========================
-       UPDATE
-    ========================= */
 
     @Override
-    public TaiKhoanResponse update(
-        Long id,
-        UpdateTaiKhoanRequest request
-
-    ) {
-
-        TaiKhoan existing =
-            taiKhoanRepository
-            .findById(id)
-
-            .orElseThrow(() ->
-
-                new RuntimeException(
-                    "Không tìm thấy tài khoản"
-                )
-
-            );
-
-        existing.setTenTaiKhoan(
-            request.getTenDangNhap()
-        );
-
-        existing.setMatKhau(
-            request.getMatKhau()
-        );
-
-        TaiKhoan updated =
-            taiKhoanRepository
-            .save(existing);
-
-        return mapToResponse(
-            updated
-        );
-
+    public TaiKhoanResponse getById(Long id) {
+        return mapToResponse(findTaiKhoan(id));
     }
-
-    /* =========================
-       DELETE
-    ========================= */
 
     @Override
-    public void delete(
-        Long id
-    ) {
-        taiKhoanRepository
-            .deleteById(id);
+    public LoginResponse login(LoginRequest request) {
+        TaiKhoan tk = taiKhoanRepository.findByTenTaiKhoan(request.getTenDangNhap())
+                .orElseThrow(() -> new NotFoundException("Tài khoản không tồn tại"));
+        if (!tk.getMatKhau().equals(request.getMatKhau())) {
+            throw new UnauthorizedException("Sai mật khẩu");
+        }
+        LoginResponse r = new LoginResponse();
+        r.setMaTaiKhoan(tk.getMaTaiKhoan());
+        r.setTenDangNhap(tk.getTenTaiKhoan());
+        r.setLoaiTaiKhoan(tk.getLoaiTaiKhoan());
+        return r;
     }
-    
-    /* =========================
-        FORGET PASSWORD
-     ========================= */
 
-     @Override
-     public void forgetPassword(String tenDangNhap) {
+    @Override
+    @Transactional  // FIX 2: thiếu @Transactional → nếu save profile lỗi, TaiKhoan không rollback
+    public void register(RegisterRequest request) {
+        if (taiKhoanRepository.findByTenTaiKhoan(request.getTenDangNhap()).isPresent()) {
+            throw new DuplicateResourceException("Tên tài khoản đã tồn tại");
+        }
+        if (!LOAI_HOP_LE.contains(request.getLoaiTaiKhoan())) {
+            throw new BadRequestException("Loại tài khoản không hợp lệ (customer / creator)");
+        }
+        TaiKhoan tk = new TaiKhoan();
+        tk.setTenTaiKhoan(request.getTenDangNhap());
+        tk.setMatKhau(request.getMatKhau());
+        tk.setLoaiTaiKhoan(request.getLoaiTaiKhoan());
+        TaiKhoan saved = taiKhoanRepository.save(tk);
+        if ("customer".equals(saved.getLoaiTaiKhoan())) {
+            KhachHang kh = new KhachHang();
+            kh.setMaTaiKhoan(saved.getMaTaiKhoan());
+            khachHangRepository.save(kh);
+        } else {
+            NhaToChuc ntc = new NhaToChuc();
+            ntc.setMaTaiKhoan(saved.getMaTaiKhoan());
+            nhaToChucRepository.save(ntc);
+        }
+    }
 
-         TaiKhoan taiKhoan =
-             taiKhoanRepository
-             .findByTenTaiKhoan(tenDangNhap)
+    @Override
+    @Transactional
+    public TaiKhoanResponse update(Long id, UpdateTaiKhoanRequest request) {
+        TaiKhoan existing = findTaiKhoan(id);
+        // FIX 3: thiếu kiểm tra trùng tenTaiKhoan khi update
+        taiKhoanRepository.findByTenTaiKhoan(request.getTenDangNhap())
+                .filter(other -> !other.getMaTaiKhoan().equals(id))
+                .ifPresent(other -> { throw new DuplicateResourceException("Tên tài khoản đã được sử dụng"); });
+        existing.setTenTaiKhoan(request.getTenDangNhap());
+        existing.setMatKhau(request.getMatKhau());
+        return mapToResponse(taiKhoanRepository.save(existing));
+    }
 
-             .orElseThrow(() ->
+    @Override
+    @Transactional  // FIX 4: xóa KhachHang/NhaToChuc trước → tránh FK violation
+    public void delete(Long id) {
+        TaiKhoan tk = findTaiKhoan(id);
+        khachHangRepository.findByMaTaiKhoan(id).ifPresent(khachHangRepository::delete);
+        nhaToChucRepository.findByMaTaiKhoan(id).ifPresent(nhaToChucRepository::delete);
+        taiKhoanRepository.delete(tk);
+    }
 
-                 new NotFoundException(
-                     "Tài khoản không tồn tại"
-                 )
-
-             );
-
-         // Reset mật khẩu về mặc định
-         taiKhoan.setMatKhau("123456");
-
-         taiKhoanRepository.save(taiKhoan);
-
-     }
+    @Override
+    @Transactional  // FIX 5: class readOnly=true → save() không hoạt động nếu không override
+    public void forgetPassword(String tenDangNhap) {
+        TaiKhoan tk = taiKhoanRepository.findByTenTaiKhoan(tenDangNhap)
+                .orElseThrow(() -> new NotFoundException("Tài khoản không tồn tại"));
+        tk.setMatKhau("123456");  // TODO: sinh mật khẩu ngẫu nhiên + gửi email
+        taiKhoanRepository.save(tk);
+    }
 }
-

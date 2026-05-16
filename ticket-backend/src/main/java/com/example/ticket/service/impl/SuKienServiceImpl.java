@@ -7,6 +7,7 @@ import com.example.ticket.model.NhaToChuc;
 import com.example.ticket.model.SuKien;
 import com.example.ticket.repository.NhaToChucRepository;
 import com.example.ticket.repository.SuKienRepository;
+import com.example.ticket.repository.VeRepository;
 import com.example.ticket.service.SuKienService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,11 +22,15 @@ public class SuKienServiceImpl implements SuKienService {
 
     private final SuKienRepository suKienRepository;
     private final NhaToChucRepository nhaToChucRepository;
+    // FIX: cần VeRepository để kiểm tra vé trước khi xóa sự kiện
+    private final VeRepository veRepository;
 
     public SuKienServiceImpl(SuKienRepository suKienRepository,
-                              NhaToChucRepository nhaToChucRepository) {
-        this.suKienRepository = suKienRepository;
+                              NhaToChucRepository nhaToChucRepository,
+                              VeRepository veRepository) {
+        this.suKienRepository    = suKienRepository;
         this.nhaToChucRepository = nhaToChucRepository;
+        this.veRepository        = veRepository;
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -123,6 +128,11 @@ public class SuKienServiceImpl implements SuKienService {
     @Override
     @Transactional
     public void delete(Long id) {
-        suKienRepository.delete(findSuKien(id));
+        SuKien sk = findSuKien(id);
+        // FIX: xóa sự kiện khi còn vé → FK violation. Phải kiểm tra trước.
+        if (!veRepository.findByMaSuKien(id).isEmpty()) {
+            throw new BadRequestException("Không thể xóa sự kiện đang có vé. Hãy xóa vé trước.");
+        }
+        suKienRepository.delete(sk);
     }
 }

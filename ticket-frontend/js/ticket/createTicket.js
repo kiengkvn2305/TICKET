@@ -50,14 +50,17 @@ function createTicket() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             tenVe, loaiVe, gia, moTa, maSuKien,
-            trangThai: "available" // ✅ Set mặc định
+            trangThai: "available"
         })
     })
 
+    // FIX: tách error (text) và success (json) — tránh JSON.parse lỗi
     .then(async response => {
-        const message = await response.text();
-        if (!response.ok) throw new Error(message);
-        return JSON.parse(message);
+        if (!response.ok) {
+            const message = await response.text();
+            throw new Error(message);
+        }
+        return response.json();
     })
 
     .then(() => {

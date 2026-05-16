@@ -29,10 +29,14 @@ function handleCreateEvent() {
         })
     })
 
+    // FIX: dùng response.json() trực tiếp. Khi lỗi, GlobalExceptionHandler trả String body
+    // nên dùng response.text() để đọc message lỗi, tránh JSON.parse lỗi.
     .then(async response => {
-        const message = await response.text();
-        if (!response.ok) throw new Error(message);
-        return JSON.parse(message);
+        if (!response.ok) {
+            const message = await response.text();
+            throw new Error(message);
+        }
+        return response.json();
     })
 
     .then(() => {

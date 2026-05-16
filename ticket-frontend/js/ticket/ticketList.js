@@ -47,7 +47,8 @@ function applyTicketFilter() {
 
     const filtered = allTickets.filter(ve =>
         ve.tenVe.toLowerCase().includes(tenVe) &&
-        ve.tenSuKien.toLowerCase().includes(tenSuKien)
+        // FIX: tenSuKien có thể null nếu SuKien bị xóa → TypeError crash
+        (ve.tenSuKien || "").toLowerCase().includes(tenSuKien)
     );
 
     renderTickets(filtered);
