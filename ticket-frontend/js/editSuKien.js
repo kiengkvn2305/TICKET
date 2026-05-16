@@ -110,13 +110,14 @@ function updateEvent() {
         }
     )
 
-    .then(response => {
+    .then(async response => {
 
         if (!response.ok) {
 
-            throw new Error(
-                "Cập nhật thất bại"
-            );
+            const message =
+                await response.text();
+
+            throw new Error(message);
 
         }
 
@@ -142,7 +143,6 @@ function updateEvent() {
         alert(error.message);
 
     });
-
 }
 
 /* =========================

@@ -142,7 +142,7 @@ function acceptRegister() {
 
   const roleValue = role.value;
 
-  fetch("http://localhost:8080/api/taikhoan", {
+  fetch("http://localhost:8080/api/taikhoan/register", {
 
     method: "POST",
 
@@ -162,20 +162,20 @@ function acceptRegister() {
 
   })
 
-  .then(async response => {
+    .then(async response => {
 
-    const message =
-      await response.text();
+        if (!response.ok) {
 
-    if (!response.ok) {
+            const message =
+                await response.text();
 
-      throw new Error(message);
+            throw new Error(message);
 
-    }
+        }
 
-    return JSON.parse(message);
+        return response.text();
 
-  })
+    })
 
   .then(data => {
 
@@ -231,7 +231,7 @@ function login() {
 
     body: JSON.stringify({
 
-      tenTaiKhoan: username,
+      tenDangNhap: username,
 
       matKhau: password
 
@@ -239,14 +239,11 @@ function login() {
 
   })
 
-  .then(response => {
+  .then(async response => {
 
     if (!response.ok) {
-
-      throw new Error(
-        "Sai tài khoản hoặc mật khẩu"
-      );
-
+        const message = await response.text();
+        throw new Error(message);
     }
 
     return response.json();
@@ -533,11 +530,12 @@ function loadEvents() {
 
     `;
 
-    const currentUser =
-        JSON.parse(
-            localStorage.getItem("user")
-        );
-
+    const currentUser = JSON.parse(localStorage.getItem("user"));
+    if (!currentUser) {
+        alert("Vui lòng đăng nhập");
+        window.location.href = "loginPopup.html";
+        return;
+    }
     fetch(
         `http://localhost:8080/api/sukien/creator/${currentUser.maTaiKhoan}`
     )
@@ -714,11 +712,12 @@ function loadVouchers() {
 
     `;
 
-    const currentUser =
-        JSON.parse(
-            localStorage.getItem("user")
-        );
-
+    const currentUser = JSON.parse(localStorage.getItem("user"));
+    if (!currentUser) {
+        alert("Vui lòng đăng nhập");
+        window.location.href = "loginPopup.html";
+        return;
+    }
     fetch(
         `http://localhost:8080/api/voucher/creator/${currentUser.maTaiKhoan}`
     )
@@ -856,11 +855,12 @@ function handleCreateEvent() {
 
     }
 
-    const currentUser =
-        JSON.parse(
-            localStorage.getItem("user")
-        );
-
+    const currentUser = JSON.parse(localStorage.getItem("user"));
+    if (!currentUser) {
+        alert("Vui lòng đăng nhập");
+        window.location.href = "loginPopup.html";
+        return;
+    }
     fetch(
         "http://localhost:8080/api/sukien",
         {

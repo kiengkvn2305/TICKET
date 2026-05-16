@@ -11,28 +11,22 @@ import com.example.ticket.repository.SuKienRepository;
 
 import com.example.ticket.service.SuKienService;
 
+import com.example.ticket.exception.*;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Service
-public class SuKienServiceImpl
-    implements SuKienService {
+public class SuKienServiceImpl implements SuKienService {
 
     private final SuKienRepository suKienRepository;
 
     private final NhaToChucRepository nhaToChucRepository;
 
-    public SuKienServiceImpl(
-        SuKienRepository suKienRepository,
-        NhaToChucRepository nhaToChucRepository
-    ) {
-
-        this.suKienRepository =
-            suKienRepository;
-
-        this.nhaToChucRepository =
-            nhaToChucRepository;
+    public SuKienServiceImpl(SuKienRepository suKienRepository, NhaToChucRepository nhaToChucRepository){
+        this.suKienRepository = suKienRepository;
+        this.nhaToChucRepository = nhaToChucRepository;
     }
 
     @Override
@@ -59,20 +53,19 @@ public class SuKienServiceImpl
     }
 
     @Override
-    public SuKienResponse create(
-        SuKienRequest request
-    ) {
-
-        NhaToChuc ntc =
-            nhaToChucRepository
-            .findByMaTaiKhoan(
-                request.getMaTaiKhoan()
-            )
-            .orElseThrow(() ->
-                new RuntimeException(
-                    "Không tìm thấy nhà tổ chức"
-                )
+    public SuKienResponse create(SuKienRequest request) {
+        if (request.getThoiGianKetThuc().isBefore(request.getThoiGianBatDau())) {
+            throw new RuntimeException(
+                "Thời gian kết thúc phải sau thời gian bắt đầu"
             );
+        }
+        
+        
+        NhaToChuc ntc = nhaToChucRepository.findByMaTaiKhoan(request.getMaTaiKhoan()).orElseThrow(() ->
+            new RuntimeException(
+                "Không tìm thấy nhà tổ chức"
+            )
+        );
 
         SuKien suKien = new SuKien();
 
@@ -96,18 +89,23 @@ public class SuKienServiceImpl
             ntc.getMaCongTy()
         );
 
-        SuKien saved =
-            suKienRepository.save(suKien);
-
-        return mapToResponse(saved);
+        try {
+            SuKien saved = suKienRepository.save(suKien);
+            return mapToResponse(saved);
+        } catch (DataIntegrityViolationException e){
+            throw new RuntimeException(
+                "Sự kiện đã tồn tại"
+            );
+        }
     }
 
     @Override
-    public SuKienResponse update(
-        Long id,
-        SuKienRequest request
-    ) {
-
+    public SuKienResponse update(Long id, SuKienRequest request) {
+        if (request.getThoiGianKetThuc().isBefore(request.getThoiGianBatDau())) {
+            throw new RuntimeException(
+                "Thời gian kết thúc phải sau thời gian bắt đầu"
+            );
+        }
         SuKien existing =
             suKienRepository.findById(id)
             .orElseThrow(() ->
@@ -131,11 +129,15 @@ public class SuKienServiceImpl
         existing.setThoiGianKetThuc(
             request.getThoiGianKetThuc()
         );
-
-        SuKien updated =
-            suKienRepository.save(existing);
-
-        return mapToResponse(updated);
+        
+        try {
+            SuKien updated = suKienRepository.save(existing);
+            return mapToResponse(updated);
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException(
+                "Sự kiện đã tồn tại"
+            );
+        }
     }
 
     @Override

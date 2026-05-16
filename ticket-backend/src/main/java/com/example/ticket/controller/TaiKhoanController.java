@@ -1,46 +1,77 @@
 package com.example.ticket.controller;
-import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import com.example.ticket.model.*;
-import com.example.ticket.service.*;
-import org.springframework.http.ResponseEntity;
 
+import com.example.ticket.dto.request.LoginRequest;
+import com.example.ticket.dto.request.RegisterRequest;
+import com.example.ticket.dto.response.LoginResponse;
+import com.example.ticket.dto.request.UpdateTaiKhoanRequest;
+
+import com.example.ticket.dto.response.TaiKhoanResponse;
+import com.example.ticket.model.TaiKhoan;
+
+import com.example.ticket.service.TaiKhoanService;
+
+import java.util.List;
+
+import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/taikhoan")
+
 public class TaiKhoanController {
+
     private final TaiKhoanService service;
 
     public TaiKhoanController(TaiKhoanService service) {
         this.service = service;
     }
 
+    /* =========================
+       GET ALL
+    ========================= */
+
     @GetMapping
-    public List<TaiKhoan> getAll() {
+    public List<TaiKhoanResponse> getAll() {
         return service.getAll();
     }
-
+    /* =========================
+       GET BY ID
+    ========================= */
     
-    @PostMapping("/login")
-    public TaiKhoan login(@RequestBody TaiKhoan tk) {
-        return service.login(
-            tk.getTenTaiKhoan(),
-            tk.getMatKhau()
-        );
+    @GetMapping("/{id}")
+    public TaiKhoanResponse getById(@PathVariable Long id) {
+        return service.getById(id);
     }
     
-    @PostMapping
-    public ResponseEntity<?> create(@RequestBody TaiKhoan tk) {
-        try {
-            TaiKhoan created =
-                service.register(tk);
-            return ResponseEntity.ok(created);
-        }
-        catch (Exception e) {
-            return ResponseEntity
-                .badRequest()
-                .body(e.getMessage());
-        }
+    /* =========================
+       LOGIN
+    ========================= */
+
+    @PostMapping("/login")
+    public LoginResponse login(@RequestBody LoginRequest request) {
+
+        return service.login(request);
+
+    }
+
+    /* =========================
+       REGISTER
+    ========================= */
+
+    @PostMapping("/register")
+    public void register(
+        @RequestBody RegisterRequest request
+    ) {
+
+        service.register(request);
+
+    }
+
+    /* =========================
+       UPDATE
+    ========================= */
+    @PutMapping("/{id}")
+    public TaiKhoanResponse update(@PathVariable Long id, @RequestBody UpdateTaiKhoanRequest request) {
+        return service.update(id, request);
     }
 }

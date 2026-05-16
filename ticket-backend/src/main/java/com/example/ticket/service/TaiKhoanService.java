@@ -1,18 +1,14 @@
 package com.example.ticket.service;
 import com.example.ticket.model.TaiKhoan;
+import com.example.ticket.dto.request.*;
+import com.example.ticket.dto.response.*;
 import java.util.List;
 
 public interface TaiKhoanService {
-
-    TaiKhoan register(TaiKhoan taiKhoan);
-
-    TaiKhoan login(String username, String password);
-
-    TaiKhoan getById(Long id);
-
-    List<TaiKhoan> getAll();
-
-    TaiKhoan update(Long id, TaiKhoan taiKhoan);
-
+    LoginResponse login(LoginRequest request);
+    void register(RegisterRequest request);
+    TaiKhoanResponse getById(Long id);
+    List<TaiKhoanResponse> getAll();
+    TaiKhoanResponse update(Long id, UpdateTaiKhoanRequest taiKhoan);
     void delete(Long id);
 }
