@@ -8,19 +8,19 @@
 <h1 align="center"><b>IS216 - LẬP TRÌNH JAVA</b></h1>
 
 ## BẢNG MỤC LỤC
-* [ Giới thiệu đồ án](#gioithieumonhoc)
-* [ Công nghệ sử dụng](#congnghe)
+* [ Giới thiệu đồ án](#gioithieudoan)
+* [ Công nghệ sử dụng](#congnghesudung)
 * [ Giảng viên hướng dẫn](#giangvien)
 * [ Thành viên nhóm](#thanhvien)
 
 ## GIỚI THIỆU ĐỒ ÁN
-
+<a name="gioithieudoan"></a>
 -    **Đề tài:** HỆ THỐNG QUẢN LÍ VÀ PHÂN PHỐI VÉ SỰ KIỆN
 -    **Repository BACKEND:** 
 -    **Repository FRONTEND:** 
 
 ## CÔNG NGHỆ SỬ DỤNG
-
+<a name="congnghesudung"></a>
 -    **Backend:** [Java](https://www.java.com/en/), [Spring Boot](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)
 -    **Frontend:** [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML), [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS).
 -    **Database:** [Oracle](https://www.oracle.com/)
@@ -30,7 +30,7 @@
 * ThS. **Tạ Việt Phương** - *phuongtv@uit.edu.vn*
   
 ## THÀNH VIÊN NHÓM
-
+<a name="thanhvien"></a>
 | STT | MSSV     | Họ và Tên            | GitHub                                 | Email                  |
 | :-- | :------- | :------------------- | :------------------------------------- | :--------------------- |
 | 1   | 24520886 | Nguyễn Trung Kiên    | https://github.com/kiengkvn2305        | 24520886@gm.uit.edu.vn |
