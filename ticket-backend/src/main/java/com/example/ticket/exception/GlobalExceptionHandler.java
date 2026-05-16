@@ -53,8 +53,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGeneric(Exception e) {
+        e.printStackTrace(); // in ra console để thấy lỗi thật
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body("Đã xảy ra lỗi, vui lòng thử lại sau");
+            .body("Lỗi hệ thống: " + e.getMessage()); // trả về message thật khi dev
     }
 }

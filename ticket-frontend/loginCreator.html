@@ -24,8 +24,8 @@
             <img class="image" src="assets/icons/DSC_0315.jpg" /> Tài khoản
           </button>
           <div id="menu" class="dropdown-content">
-            <a href="#">Hồ sơ tài khoản</a>
-            <a href="#">Đổi mật khẩu</a>
+            <a href="hoSo.html">Hồ sơ tài khoản</a>
+            <a href="doiMatKhau.html">Đổi mật khẩu</a>
             <a href="#" onclick="logout()">Đăng xuất</a>
           </div>
         </div>
@@ -65,7 +65,7 @@
   <script src="js/voucher/voucherList.js"></script>
   <script>
       function followIncome() {
-          clearContent(); // xóa nội dung 3 div con, KHÔNG xóa bản thân chúng
+          clearContent(); 
           const ticketList = document.getElementById("ticketList");
           if (ticketList) {
               ticketList.innerHTML = `

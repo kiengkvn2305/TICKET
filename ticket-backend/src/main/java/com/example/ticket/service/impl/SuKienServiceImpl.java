@@ -90,11 +90,25 @@ public class SuKienServiceImpl implements SuKienService {
     @Override
     @Transactional
     public SuKienResponse create(SuKienRequest request) {
+        // FIX 1: validate input cơ bản
+        if (request.getMaTaiKhoan() == null) {
+            throw new BadRequestException("Thiếu thông tin tài khoản");
+        }
+        if (request.getTenSuKien() == null || request.getTenSuKien().isBlank()) {
+            throw new BadRequestException("Tên sự kiện không được để trống");
+        }
+
         validateThoiGian(request);
+
         NhaToChuc ntc = findNhaToChuc(request.getMaTaiKhoan());
 
+        // FIX 2: chặn ngay nếu nhà tổ chức chưa có công ty
+        if (ntc.getMaCongTy() == null) {
+            throw new BadRequestException("Nhà tổ chức chưa được gán công ty. Vui lòng cập nhật thông tin trước.");
+        }
+
         SuKien suKien = new SuKien();
-        suKien.setTenSuKien(request.getTenSuKien());
+        suKien.setTenSuKien(request.getTenSuKien().trim());
         suKien.setMoTa(request.getMoTa());
         suKien.setThoiGianBatDau(request.getThoiGianBatDau());
         suKien.setThoiGianKetThuc(request.getThoiGianKetThuc());
@@ -103,7 +117,7 @@ public class SuKienServiceImpl implements SuKienService {
         try {
             return mapToResponse(suKienRepository.save(suKien));
         } catch (DataIntegrityViolationException e) {
-            throw new BadRequestException("Sự kiện đã tồn tại");
+            throw new BadRequestException("Sự kiện đã tồn tại hoặc dữ liệu không hợp lệ");
         }
     }
 

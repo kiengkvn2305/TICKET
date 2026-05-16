@@ -63,7 +63,6 @@ function renderVouchers(data) {
         return;
     }
 
-    // Group theo sự kiện — giống ticketList.js
     const grouped = {};
     data.forEach(v => {
         const key = v.maSuKien || "other";
