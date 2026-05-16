@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 public class Voucher {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "voucher_seq")
+    @SequenceGenerator(name = "voucher_seq", sequenceName = "VOUCHER_SEQ", allocationSize = 1)
     private Long maVoucher;
 
     private String maCode;

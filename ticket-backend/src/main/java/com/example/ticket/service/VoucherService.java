@@ -1,9 +1,13 @@
 package com.example.ticket.service;
 
-import com.example.ticket.model.Voucher;
+import com.example.ticket.dto.request.VoucherRequest;
+import com.example.ticket.dto.response.VoucherResponse;
 import java.util.List;
 
 public interface VoucherService {
-    List<Voucher> getByCreator(Long maTaiKhoan);
-
+    List<VoucherResponse> getByCreator(Long maTaiKhoan);
+    VoucherResponse getById(Long id);
+    VoucherResponse create(VoucherRequest request);
+    VoucherResponse update(Long id, VoucherRequest request);
+    void delete(Long id);
 }

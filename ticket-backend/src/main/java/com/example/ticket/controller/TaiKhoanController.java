@@ -49,9 +49,7 @@ public class TaiKhoanController {
 
     @PostMapping("/login")
     public LoginResponse login(@RequestBody LoginRequest request) {
-
         return service.login(request);
-
     }
 
     /* =========================

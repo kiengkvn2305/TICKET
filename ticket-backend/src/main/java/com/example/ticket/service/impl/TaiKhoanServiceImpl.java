@@ -11,6 +11,8 @@ import com.example.ticket.repository.KhachHangRepository;
 import com.example.ticket.repository.NhaToChucRepository;
 import com.example.ticket.repository.TaiKhoanRepository;
 
+import com.example.ticket.exception.*;
+
 import com.example.ticket.service.TaiKhoanService;
 
 import java.util.List;
@@ -158,25 +160,34 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
     ========================= */
 
     @Override
-    public LoginResponse login(LoginRequest request) {
+    public LoginResponse login(
+        LoginRequest request
+    ) {
 
         TaiKhoan tk =
             taiKhoanRepository
-            .findByTenTaiKhoanAndMatKhau(
-
-                request.getTenDangNhap(),
-
-                request.getMatKhau()
-
+            .findByTenTaiKhoan(
+                request.getTenDangNhap()
             )
 
             .orElseThrow(() ->
 
-                new RuntimeException(
-                    "Sai tài khoản hoặc mật khẩu"
+                new NotFoundException(
+                    "Tài khoản không tồn tại"
                 )
 
             );
+
+        if (
+            !tk.getMatKhau()
+                .equals(request.getMatKhau())
+        ) {
+
+            throw new UnauthorizedException(
+                "Sai mật khẩu"
+            );
+
+        }
 
         LoginResponse response =
             new LoginResponse();
