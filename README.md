@@ -31,11 +31,11 @@
   
 ## THÀNH VIÊN NHÓM
 <a name="thanhvien"></a>
-| STT | MSSV     | Họ và Tên            | GitHub                                 | Email                  |
-| :-- | :------- | :------------------- | :------------------------------------- | :--------------------- |
-| 1   | 24520886 | Nguyễn Trung Kiên    | https://github.com/kiengkvn2305        | 24520886@gm.uit.edu.vn |
-| 2   | 24520370 | Hà Phan Khánh Duy    | https://github.com/khzuy               | 24520370@gm.uit.edu.vn |
-| 3   | 24521751 | Hồ Thị Phương Thùy   | https://github.com/phthuyy             | 24521751@gm.uit.edu.vn |
-| 4   | 24521651 | Trần Thị Thanh Thảo  | https://github.com/thanhtharo          | 24521651@gm.uit.edu.vn |
-| 5   | 24520500 | Nguyễn Đoàn Đức Hiểu | https://github.com/DalzielNguyen-1611  | 24520500@gm.uit.edu.vn |
+| STT | MSSV     | Họ và Tên            | GitHub                                 | Email                    |
+| :-- | :------- | :------------------- | :------------------------------------- | :----------------------- |
+| 1   | 24520886 | Nguyễn Trung Kiên    | https://github.com/kiengkvn2305        | *24520886@gm.uit.edu.vn* |
+| 2   | 24520370 | Hà Phan Khánh Duy    | https://github.com/khzuy               | *24520370@gm.uit.edu.vn* |
+| 3   | 24521751 | Hồ Thị Phương Thùy   | https://github.com/phthuyy             | *24521751@gm.uit.edu.vn* |
+| 4   | 24521651 | Trần Thị Thanh Thảo  | https://github.com/thanhtharo          | *24521651@gm.uit.edu.vn* |
+| 5   | 24520500 | Nguyễn Đoàn Đức Hiểu | https://github.com/DalzielNguyen-1611  | *24520500@gm.uit.edu.vn* |
 
