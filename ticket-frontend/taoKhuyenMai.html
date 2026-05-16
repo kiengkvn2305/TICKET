@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Tạo Khuyến Mãi</title>
+  <link rel="stylesheet" href="css/createEvent.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Tạo Khuyến Mãi</h1>
+
+    <div class="form-group">
+      <label>Mã code</label>
+      <input type="text" id="maCode">
+    </div>
+
+    <div class="form-group">
+      <label>Điều kiện</label>
+      <input type="text" id="dieuKien">
+    </div>
+
+    <div class="form-group">
+      <label>Mức khuyến mãi (%)</label>
+      <input type="number" id="mucKhuyenMai">
+    </div>
+
+    <div class="form-group">
+      <label>Trạng thái</label>
+      <input type="text" id="trangThai">
+    </div>
+
+    <div class="form-group">
+      <label>Sự kiện</label>
+      <select id="maSuKien">
+        <option value="">-- Chọn sự kiện --</option>
+      </select>
+    </div>
+
+    <div class="button-group">
+      <button onclick="createVoucher()">Tạo Khuyến Mãi</button>
+      <button onclick="goBack()">Quay Lại</button>
+    </div>
+  </div>
+
+  <!-- Model: api.js | Controller: createVoucher.js -->
+  <script src="js/common/api.js"></script>
+  <script src="js/voucher/createVoucher.js"></script>
+</body>
+</html>

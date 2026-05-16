@@ -3,37 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1, width=device-width" />
-
   <link rel="stylesheet" href="css/login.css" />
-
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ingrid+Darling:wght@400&display=swap" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap" />
 </head>
-
 <body>
   <div class="login">
-
     <header class="header">
       <div class="header-child"></div>
-
       <div class="ticket-wrapper">
         <div class="ticket">TICKET</div>
       </div>
-
       <div class="frame-parent">
-
         <div class="bn-cn-tm-g-wrapper">
           <h3 class="bn-cn-tm">Bạn cần tìm gì</h3>
         </div>
-
         <input class="search-area" type="text" />
-
         <button class="ng-nhp-ng-k-wrapper" type="button" onclick="openPopup()">
           Đăng nhập | Đăng ký
         </button>
       </div>
     </header>
-
     <section class="rectangle-parent">
       <div class="frame-child"></div>
       <h3 class="th-loi">Thể loại</h3>
@@ -41,11 +31,12 @@
   </div>
 
   <div id="overlay" onclick="closePopup()"></div>
-
   <div id="popup">
     <iframe src="loginPopup.html"></iframe>
   </div>
 
-  <script src="js/script.js"></script>
+  <!-- View: chỉ cần ui.js (không cần auth ở trang index) -->
+  <script src="js/common/api.js"></script>
+  <script src="js/common/ui.js"></script>
 </body>
 </html>

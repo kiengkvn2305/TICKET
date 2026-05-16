@@ -3,12 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="initial-scale=1, width=device-width" />
-
     <link rel="stylesheet" href="css/loginpopup.css" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap"
-    />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap" />
   </head>
   <body>
     <div class="container">
@@ -26,26 +22,20 @@
         </div>
 
         <div class="actions">
-          <button class="btn-login" onclick="login()">Đăng nhập</button>
+          <button class="btn-login"  onclick="login()">Đăng nhập</button>
           <button class="btn-cancel" onclick="cancelLogin()">Hủy</button>
         </div>
 
         <div class="exception">
-          <button class="btn-register" type="button" onclick="register()">
-            Đăng ký
-          </button>
-
-          <button class="btn-forget" type="button" onclick="forget()">
-            Quên mật khẩu
-          </button>
+          <button class="btn-register" type="button" onclick="register()">Đăng ký</button>
+          <button class="btn-forget"   type="button" onclick="forget()">Quên mật khẩu</button>
         </div>
-        
-        <div id="overlay" onclick="closePopup()"></div>
-
       </div>
-
     </div>
 
-    <script src="js/script.js"></script>
+    <!-- Model: api.js | Controller: login.js | View helpers: ui.js -->
+    <script src="js/common/api.js"></script>
+    <script src="js/auth/login.js"></script>
+    <script src="js/common/ui.js"></script>
   </body>
 </html>

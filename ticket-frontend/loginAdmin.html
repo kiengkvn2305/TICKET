@@ -3,58 +3,44 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1, width=device-width" />
-
   <link rel="stylesheet" href="css/login.css" />
-
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ingrid+Darling:wght@400&display=swap" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap" />
 </head>
-
 <body>
   <div class="login">
-
     <header class="header">
       <div class="header-child"></div>
-
       <div class="ticket-wrapper">
         <div class="ticket">TICKET</div>
       </div>
-
       <div class="frame-parent">
-
         <div class="bn-cn-tm-g-wrapper">
           <h3 class="bn-cn-tm">Bạn cần tìm gì</h3>
         </div>
-
         <input class="search-area" type="text" />
-
         <div class="dropdown">
-            <button class="btn" onclick="toggleMenu(event)">
-                <img class="image" src = "assets/icons/DSC_0315.jpg" /> Tài khoản
-            </button>
-
-            <div id="menu" class="dropdown-content">
-                <a href="#">Hồ sơ tài khoản</a>
-                <a href="#">Quản lý sự kiện hệ thống</a>
-                <a href="#">Quản lý người dùng</a>
-                <a href="#">Đổi mật khẩu</a>
-                <a href="#" onclick="logout()">Đăng xuất</a>
-            </div>
-
+          <button class="btn" onclick="toggleMenu(event)">
+            <img class="image" src="assets/icons/DSC_0315.jpg" /> Tài khoản
+          </button>
+          <div id="menu" class="dropdown-content">
+            <a href="#">Hồ sơ tài khoản</a>
+            <a href="#">Quản lý sự kiện hệ thống</a>
+            <a href="#">Quản lý người dùng</a>
+            <a href="#">Đổi mật khẩu</a>
+            <a href="#" onclick="logout()">Đăng xuất</a>
+          </div>
         </div>
-
       </div>
     </header>
-
     <section class="rectangle-parent">
       <div class="frame-child"></div>
-
     </section>
   </div>
 
-
-  <script src="js/script.js"></script>
+  <!-- Model: api.js | View helpers: ui.js | Guard: authGuard.js -->
+  <script src="js/common/api.js"></script>
+  <script src="js/common/authGuard.js"></script>
+  <script src="js/common/ui.js"></script>
 </body>
-
-
 </html>

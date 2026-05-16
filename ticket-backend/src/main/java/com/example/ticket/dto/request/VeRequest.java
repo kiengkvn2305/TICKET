@@ -1,25 +1,6 @@
-package com.example.ticket.model;
+package com.example.ticket.dto.request;
 
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "VE")
-
-public class Ve {
-
-    @Id
-    @GeneratedValue(
-        strategy = GenerationType.SEQUENCE,
-        generator = "ve_seq"
-    )
-
-    @SequenceGenerator(
-        name = "ve_seq",
-        sequenceName = "VE_SEQ",
-        allocationSize = 1
-    )
-
-    private Long maVe;
+public class VeRequest {
 
     private String tenVe;
 
@@ -32,16 +13,6 @@ public class Ve {
     private String moTa;
 
     private Long maSuKien;
-
-    public Long getMaVe() {
-        return maVe;
-    }
-
-    public void setMaVe(
-        Long maVe
-    ) {
-        this.maVe = maVe;
-    }
 
     public String getTenVe() {
         return tenVe;
