@@ -25,7 +25,7 @@ window.addEventListener("DOMContentLoaded", () => {
             document.getElementById("tenKhachHang").value  = data.tenKhachHang  || "";
             document.getElementById("email-customer").value = data.email        || "";
             document.getElementById("sdt-customer").value   = data.soDienThoai  || "";
-        } else {
+        } else if (user.loaiTaiKhoan === "creator"){
             document.getElementById("tenCongTy").value       = data.tenCongTy       || "";
             document.getElementById("tenNguoiDaiDien").value = data.tenNguoiDaiDien || "";
             document.getElementById("diaChi").value          = data.diaChi          || "";
@@ -47,7 +47,7 @@ function luuHoSo() {
             email:        document.getElementById("email-customer").value.trim(),
             soDienThoai:  document.getElementById("sdt-customer").value.trim(),
         };
-    } else {
+    } else if (user.loaiTaiKhoan === "creator"){
         body = {
             tenCongTy:       document.getElementById("tenCongTy").value.trim(),
             tenNguoiDaiDien: document.getElementById("tenNguoiDaiDien").value.trim(),
@@ -55,6 +55,13 @@ function luuHoSo() {
             email:           document.getElementById("email-creator").value.trim(),
             soDienThoai:     document.getElementById("sdt-creator").value.trim(),
         };
+    } else {
+        body = {
+            tenKhachHang: document.getElementById("tenNhanVien").value.trim(),
+            email:        document.getElementById("email-admin").value.trim(),
+            soDienThoai:  document.getElementById("sdt-admin").value.trim(),
+
+        }
     }
 
     const btn = document.querySelector(".btn-primary");

@@ -1,46 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1, width=device-width" />
+  <title>TICKET — Trang khách hàng</title>
   <link rel="stylesheet" href="css/login.css" />
+  <link rel="stylesheet" href="css/customer.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ingrid+Darling:wght@400&display=swap" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" />
 </head>
 <body>
-  <div class="login">
-    <header class="header">
-      <div class="header-child"></div>
-      <div class="ticket-wrapper">
-        <div class="ticket">TICKET</div>
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="header-child"></div>
+    <div class="ticket-wrapper">
+      <div class="ticket">TICKET</div>
+    </div>
+    <div class="frame-parent">
+      <div class="bn-cn-tm-g-wrapper">
+        <h3 class="bn-cn-tm">Bạn cần tìm gì</h3>
       </div>
-      <div class="frame-parent">
-        <div class="bn-cn-tm-g-wrapper">
-          <h3 class="bn-cn-tm">Bạn cần tìm gì</h3>
-        </div>
-        <input class="search-area" type="text" />
-        <div class="dropdown">
-          <button class="btn" onclick="toggleMenu(event)">
-            <img class="image" src="assets/icons/DSC_0315.jpg" /> Tài khoản
-          </button>
-          <div id="menu" class="dropdown-content">
-            <a href="hoSo.html">Hồ sơ tài khoản</a>
-            <a href="#">Vé của tôi</a>
-            <a href="doiMatKhau.html">Đổi mật khẩu</a>
-            <a href="#" onclick="logout()">Đăng xuất</a>
-          </div>
+      <input class="search-area" type="text" id="globalSearch"
+             placeholder="Tìm sự kiện..." oninput="onGlobalSearch()" />
+      <div class="dropdown">
+        <button class="btn" onclick="toggleMenu(event)">
+          <span class="avatar-icon">👤</span> Tài khoản
+        </button>
+        <div id="menu" class="dropdown-content">
+          <a href="hoSo.html">🙍 Hồ sơ tài khoản</a>
+          <a href="#" onclick="showTab('myTickets')">🎫 Vé của tôi</a>
+          <a href="doiMatKhau.html">🔑 Đổi mật khẩu</a>
+          <hr style="margin:4px 0; border-color:#eee;">
+          <a href="#" onclick="logout()" class="logout-link">🚪 Đăng xuất</a>
         </div>
       </div>
-    </header>
-    <section class="rectangle-parent">
-      <div class="frame-child"></div>
-      <h3 class="th-loi">Thể loại</h3>
-    </section>
+    </div>
+  </header>
+
+  <!-- ===== HERO BANNER ===== -->
+  <section class="hero-banner">
+    <div class="hero-content">
+      <p class="hero-sub">Chào mừng trở lại, <span id="welcomeName">bạn</span> 👋</p>
+      <h1 class="hero-title">Khám phá sự kiện<br>đang chờ bạn</h1>
+      <p class="hero-desc">Mua vé ngay hôm nay — thanh toán nhanh, nhận vé tức thì.</p>
+    </div>
+    <div class="hero-deco"></div>
+  </section>
+
+  <!-- ===== TAB NAV ===== -->
+  <div class="tab-nav">
+    <button class="tab-btn active" id="tab-events"    onclick="showTab('events')">🎪 Sự kiện</button>
+    <button class="tab-btn"        id="tab-myTickets" onclick="showTab('myTickets')">🎫 Vé của tôi</button>
   </div>
 
-  <!-- Model: api.js | View helpers: ui.js | Guard: authGuard.js -->
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-content">
+
+    <!-- TAB: SỰ KIỆN -->
+    <div id="pane-events" class="tab-pane active">
+      <div class="filter-panel">
+        <input type="text" id="filterEvent" placeholder="🔍 Tìm theo tên sự kiện..." oninput="applyEventFilter()" />
+        <select id="filterSort" onchange="applyEventFilter()">
+          <option value="">Sắp xếp</option>
+          <option value="asc">Ngày tăng dần</option>
+          <option value="desc">Ngày giảm dần</option>
+        </select>
+        <button class="filter-btn" onclick="applyEventFilter()">Lọc</button>
+      </div>
+
+      <div id="eventGrid" class="event-grid">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Đang tải sự kiện...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: VÉ CỦA TÔI -->
+    <div id="pane-myTickets" class="tab-pane">
+      <div id="myTicketsList" class="my-tickets-list">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Đang tải vé...</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ===== MODAL MUA VÉ ===== -->
+  <div id="buyOverlay" class="modal-overlay" onclick="closeBuyModal()"></div>
+  <div id="buyModal" class="modal-box">
+    <button class="modal-close" onclick="closeBuyModal()">✕</button>
+    <h2 id="modalEventName" class="modal-event-name"></h2>
+    <p id="modalEventDate" class="modal-event-date"></p>
+    <hr class="modal-divider">
+    <div id="modalTicketList" class="modal-ticket-list"></div>
+    <div id="buyMsg" class="buy-msg"></div>
+  </div>
+
+  <!-- ===== SCRIPTS ===== -->
   <script src="js/common/api.js"></script>
   <script src="js/common/authGuard.js"></script>
   <script src="js/common/ui.js"></script>
+  <script src="js/customer/customerHome.js"></script>
 </body>
 </html>

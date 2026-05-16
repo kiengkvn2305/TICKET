@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1, width=device-width" />
+  <title>TICKET — Nhân viên</title>
   <link rel="stylesheet" href="css/login.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ingrid+Darling:wght@400&display=swap" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap" />
@@ -21,16 +22,17 @@
         <input class="search-area" type="text" />
         <div class="dropdown">
           <button class="btn" onclick="toggleMenu(event)">
-            <img class="image" src="assets/icons/DSC_0315.jpg" /> Tài khoản
+            <span class="avatar-icon">👤</span> Tài khoản
           </button>
           <div id="menu" class="dropdown-content">
-            <a href="hoSo.html">Hồ sơ tài khoản</a>
-            <a href="#">Quản lý sự kiện hệ thống</a>
-            <a href="#">Quản lý người dùng</a>
-            <a href="doiMatKhau.html">Đổi mật khẩu</a>
-            <a href="#" onclick="logout()">Đăng xuất</a>
-          </div>
+            <a href="hoSo.html">🙍 Hồ sơ tài khoản</a>
+            <a href="#">🎫 Quản lý người dùng hệ thống</a>
+            <a href="#">Quản lý sự kiện</a>
+            <a href="doiMatKhau.html">🔑 Đổi mật khẩu</a>
+            <hr style="margin:4px 0; border-color:#eee;">
+            <a href="#" onclick="logout()" class="logout-link">🚪 Đăng xuất</a>
         </div>
+      </div>
       </div>
     </header>
     <section class="rectangle-parent">
