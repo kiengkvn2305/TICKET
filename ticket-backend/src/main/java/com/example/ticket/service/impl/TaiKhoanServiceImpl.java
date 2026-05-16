@@ -75,7 +75,7 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
 
         if (exists) {
 
-            throw new RuntimeException(
+            throw new DuplicateResourceException(
                 "Tên tài khoản đã tồn tại"
             );
 
@@ -223,7 +223,7 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
 
             .orElseThrow(() ->
 
-                new RuntimeException(
+                new NotFoundException(
                     "Không tìm thấy tài khoản"
                 )
 

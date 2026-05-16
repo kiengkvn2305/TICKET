@@ -1,47 +1,50 @@
 package com.example.ticket.model;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 import java.util.Objects;
 
+// Composite key: (maDiaDiem, maSuKien) — dùng 2 ID, không dùng chuỗi tên làm khóa
 @Embeddable
-public class DienRaTaiID implements Serializable{
-    private int maDiaDiem;
-    private String tenDiaDiem;
-    public DienRaTaiID(){
-        
-    }
-    
-    public DienRaTaiID(int maDiaDiem, String tenDiaDiem){
+public class DienRaTaiID implements Serializable {
+
+    private Long maDiaDiem;
+    private Long maSuKien;
+
+    public DienRaTaiID() {}
+
+    public DienRaTaiID(Long maDiaDiem, Long maSuKien) {
         this.maDiaDiem = maDiaDiem;
-        this.tenDiaDiem = tenDiaDiem;
+        this.maSuKien = maSuKien;
     }
-    
-    public int getMaDiaDiem(){
+
+    public Long getMaDiaDiem() {
         return maDiaDiem;
     }
-    
-    public void setMaDiaDiem(int maDiaDiem){
+
+    public void setMaDiaDiem(Long maDiaDiem) {
         this.maDiaDiem = maDiaDiem;
     }
-    
-    public String getTenDiaDiem(){
-        return tenDiaDiem;
+
+    public Long getMaSuKien() {
+        return maSuKien;
     }
-    
-    public void setTenDiaDiem(String tenDiaDiem){
-        this.tenDiaDiem = tenDiaDiem;
+
+    public void setMaSuKien(Long maSuKien) {
+        this.maSuKien = maSuKien;
     }
-    
+
     @Override
-    public boolean equals(Object o){
+    public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof DienRaTaiID)) return false;
         DienRaTaiID that = (DienRaTaiID) o;
-        return ((maDiaDiem == that.maDiaDiem) && (tenDiaDiem.equals(that.tenDiaDiem)));
+        return Objects.equals(maDiaDiem, that.maDiaDiem)
+                && Objects.equals(maSuKien, that.maSuKien);
     }
-    
+
     @Override
-    public int hashCode(){
-        return Objects.hash(maDiaDiem, tenDiaDiem);
+    public int hashCode() {
+        return Objects.hash(maDiaDiem, maSuKien);
     }
 }

@@ -5,21 +5,11 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "SUKIEN")
-
 public class SuKien {
 
     @Id
-    @GeneratedValue(
-        strategy = GenerationType.SEQUENCE,
-        generator = "sukien_seq"
-    )
-
-    @SequenceGenerator(
-        name = "sukien_seq",
-        sequenceName = "SUKIEN_SEQ",
-        allocationSize = 1
-    )
-
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sukien_seq")
+    @SequenceGenerator(name = "sukien_seq", sequenceName = "SUKIEN_SEQ", allocationSize = 1)
     @Column(name = "MASUKIEN")
     private Long maSuKien;
 
@@ -38,8 +28,7 @@ public class SuKien {
     @Column(name = "MACONGTY")
     private Long maCongTy;
 
-    public SuKien() {
-    }
+    public SuKien() {}
 
     public Long getMaSuKien() {
         return maSuKien;

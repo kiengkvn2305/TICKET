@@ -4,42 +4,25 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "VE")
-
 public class Ve {
 
     @Id
-    @GeneratedValue(
-        strategy = GenerationType.SEQUENCE,
-        generator = "ve_seq"
-    )
-
-    @SequenceGenerator(
-        name = "ve_seq",
-        sequenceName = "VE_SEQ",
-        allocationSize = 1
-    )
-
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ve_seq")
+    @SequenceGenerator(name = "ve_seq", sequenceName = "VE_SEQ", allocationSize = 1)
     private Long maVe;
 
     private String tenVe;
-
     private String loaiVe;
-
     private double gia;
-
     private String trangThai;
-
     private String moTa;
-
     private Long maSuKien;
 
     public Long getMaVe() {
         return maVe;
     }
 
-    public void setMaVe(
-        Long maVe
-    ) {
+    public void setMaVe(Long maVe) {
         this.maVe = maVe;
     }
 
@@ -47,9 +30,7 @@ public class Ve {
         return tenVe;
     }
 
-    public void setTenVe(
-        String tenVe
-    ) {
+    public void setTenVe(String tenVe) {
         this.tenVe = tenVe;
     }
 
@@ -57,9 +38,7 @@ public class Ve {
         return loaiVe;
     }
 
-    public void setLoaiVe(
-        String loaiVe
-    ) {
+    public void setLoaiVe(String loaiVe) {
         this.loaiVe = loaiVe;
     }
 
@@ -67,9 +46,7 @@ public class Ve {
         return gia;
     }
 
-    public void setGia(
-        double gia
-    ) {
+    public void setGia(double gia) {
         this.gia = gia;
     }
 
@@ -77,9 +54,7 @@ public class Ve {
         return trangThai;
     }
 
-    public void setTrangThai(
-        String trangThai
-    ) {
+    public void setTrangThai(String trangThai) {
         this.trangThai = trangThai;
     }
 
@@ -87,9 +62,7 @@ public class Ve {
         return moTa;
     }
 
-    public void setMoTa(
-        String moTa
-    ) {
+    public void setMoTa(String moTa) {
         this.moTa = moTa;
     }
 
@@ -97,10 +70,7 @@ public class Ve {
         return maSuKien;
     }
 
-    public void setMaSuKien(
-        Long maSuKien
-    ) {
+    public void setMaSuKien(Long maSuKien) {
         this.maSuKien = maSuKien;
     }
-
 }

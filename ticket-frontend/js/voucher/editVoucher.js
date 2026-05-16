@@ -1,5 +1,8 @@
+const params     = new URLSearchParams(window.location.search);
+const maVoucher  = params.get("id");
+
 /* =========================
-   LOAD SỰ KIỆN VÀO DROPDOWN
+   LOAD DỮ LIỆU
 ========================= */
 
 window.addEventListener("DOMContentLoaded", function () {
@@ -11,6 +14,7 @@ window.addEventListener("DOMContentLoaded", function () {
         return;
     }
 
+    // Load danh sách sự kiện vào dropdown trước
     fetch(`${BASE_URL}/sukien/creator/${currentUser.maTaiKhoan}`)
 
     .then(response => {
@@ -18,15 +22,34 @@ window.addEventListener("DOMContentLoaded", function () {
         return response.json();
     })
 
-    .then(data => {
+    .then(suKiens => {
         const select = document.getElementById("maSuKien");
-        if (data.length === 0) {
-            select.innerHTML = `<option value="">-- Chưa có sự kiện nào --</option>`;
-            return;
-        }
-        data.forEach(sk => {
+        suKiens.forEach(sk => {
             select.innerHTML += `<option value="${sk.maSuKien}">${sk.tenSuKien}</option>`;
         });
+
+        // Sau khi có dropdown, load thông tin voucher để điền vào form
+        return fetch(`${BASE_URL}/voucher/${maVoucher}`);
+    })
+
+    .then(response => {
+        if (!response.ok) throw new Error("Không lấy được khuyến mãi");
+        return response.json();
+    })
+
+    .then(data => {
+        document.getElementById("maCode").value       = data.maCode;
+        document.getElementById("dieuKien").value     = data.dieuKien || "";
+        document.getElementById("mucKhuyenMai").value = data.mucKhuyenMai;
+        document.getElementById("luotSuDung").value   = data.luotSuDung;
+        document.getElementById("trangThai").value    = data.trangThai;
+        document.getElementById("ngayBatDau").value   = data.ngayBatDau;
+        document.getElementById("ngayKetThuc").value  = data.ngayKetThuc;
+
+        // Chọn đúng sự kiện trong dropdown
+        if (data.maSuKien) {
+            document.getElementById("maSuKien").value = data.maSuKien;
+        }
     })
 
     .catch(error => {
@@ -36,22 +59,18 @@ window.addEventListener("DOMContentLoaded", function () {
 });
 
 /* =========================
-   TẠO KHUYẾN MÃI
+   CẬP NHẬT KHUYẾN MÃI
 ========================= */
 
-function createVoucher() {
+function updateVoucher() {
 
     const currentUser = JSON.parse(localStorage.getItem("user"));
-    if (!currentUser) {
-        alert("Vui lòng đăng nhập");
-        window.location.href = "loginPopup.html";
-        return;
-    }
 
     const maCode       = document.getElementById("maCode").value.trim();
     const dieuKien     = document.getElementById("dieuKien").value.trim();
     const mucKhuyenMai = document.getElementById("mucKhuyenMai").value;
     const luotSuDung   = document.getElementById("luotSuDung").value;
+    const trangThai    = document.getElementById("trangThai").value.trim();
     const maSuKien     = document.getElementById("maSuKien").value;
     const ngayBatDau   = document.getElementById("ngayBatDau").value;
     const ngayKetThuc  = document.getElementById("ngayKetThuc").value;
@@ -66,19 +85,19 @@ function createVoucher() {
         return;
     }
 
-    fetch(`${BASE_URL}/voucher`, {
-        method: "POST",
+    fetch(`${BASE_URL}/voucher/${maVoucher}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             maCode,
             dieuKien,
             mucKhuyenMai: parseFloat(mucKhuyenMai),
             luotSuDung:   parseInt(luotSuDung),
+            trangThai,
             maSuKien:     parseInt(maSuKien),
             ngayBatDau,
             ngayKetThuc,
-            trangThai:    "active",
-            maTaiKhoan:   currentUser.maTaiKhoan
+            maTaiKhoan:   currentUser ? currentUser.maTaiKhoan : null
         })
     })
 
@@ -89,7 +108,7 @@ function createVoucher() {
     })
 
     .then(() => {
-        alert("Tạo khuyến mãi thành công");
+        alert("Cập nhật khuyến mãi thành công");
         window.location.href = "loginCreator.html";
     })
 

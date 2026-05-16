@@ -1,25 +1,13 @@
 package com.example.ticket.service;
 
-import org.springframework.stereotype.Service;
-import com.example.ticket.repository.ChiTietHoaDonRepository;
-import com.example.ticket.model.*;
+import com.example.ticket.dto.request.ChiTietHoaDonRequest;
+import com.example.ticket.dto.response.ChiTietHoaDonResponse;
+
 import java.util.List;
 
-@Service
-public class ChiTietHoaDonService {
+public interface ChiTietHoaDonService {
 
-    private final ChiTietHoaDonRepository repo;
+    List<ChiTietHoaDonResponse> getAll();
 
-    public ChiTietHoaDonService(ChiTietHoaDonRepository repo) {
-        this.repo = repo;
-    }
-
-    public List<ChiTietHoaDon> getAll() {
-        return repo.findAll();
-    }
-
-    public ChiTietHoaDon save(ChiTietHoaDon ct) {
-        System.out.println("SAVE CALLED");
-        return repo.save(ct);
-    }
+    ChiTietHoaDonResponse create(ChiTietHoaDonRequest request);
 }

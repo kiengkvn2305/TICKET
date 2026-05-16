@@ -11,7 +11,8 @@ function loadVouchers() {
             <button class="create-btn" onclick="openCreateVoucher()">Tạo khuyến mãi</button>
         </div>
         <div class="filter-panel">
-            <input type="text" id="filterMaCode" placeholder="Tìm theo mã voucher..." oninput="applyVoucherFilter()" />
+            <input type="text" id="filterMaCode"    placeholder="Tìm theo mã voucher..."  oninput="applyVoucherFilter()" />
+            <input type="text" id="filterTenSuKien" placeholder="Tìm theo sự kiện..."     oninput="applyVoucherFilter()" />
         </div>
         <div id="voucherContent"></div>
     `;
@@ -41,10 +42,14 @@ function loadVouchers() {
 }
 
 function applyVoucherFilter() {
-    const maCode   = document.getElementById("filterMaCode").value.trim().toLowerCase();
+    const maCode    = document.getElementById("filterMaCode").value.trim().toLowerCase();
+    const tenSuKien = document.getElementById("filterTenSuKien").value.trim().toLowerCase();
+
     const filtered = allVouchers.filter(v =>
-        v.maCode.toLowerCase().includes(maCode)
+        v.maCode.toLowerCase().includes(maCode) &&
+        (v.tenSuKien || "").toLowerCase().includes(tenSuKien)
     );
+
     renderVouchers(filtered);
 }
 
@@ -58,18 +63,58 @@ function renderVouchers(data) {
         return;
     }
 
+    // Group theo sự kiện — giống ticketList.js
+    const grouped = {};
+    data.forEach(v => {
+        const key = v.maSuKien || "other";
+        if (!grouped[key]) {
+            grouped[key] = { tenSuKien: v.tenSuKien || "Chưa gán sự kiện", vouchers: [] };
+        }
+        grouped[key].vouchers.push(v);
+    });
+
     let html = "";
-    data.forEach(voucher => {
-        html += `
-            <div class="event-card">
-                <h2>${voucher.maCode}</h2>
-                <p>Điều kiện: ${voucher.dieuKien}</p>
-                <p>Mức giảm: ${voucher.mucKhuyenMai}%</p>
-                <p>Trạng thái: ${voucher.trangThai}</p>
-                <p>Lượt sử dụng: ${voucher.luotSuDung}</p>
-            </div>
-        `;
+    Object.values(grouped).forEach(group => {
+        html += `<div class="event-group"><h2>Sự kiện: ${group.tenSuKien}</h2>`;
+        group.vouchers.forEach(v => {
+            html += `
+                <div class="ticket-card">
+                    <p><strong>Mã voucher: ${v.maCode}</strong></p>
+                    <p>Điều kiện: ${v.dieuKien || "—"}</p>
+                    <p>Mức giảm: ${v.mucKhuyenMai}%</p>
+                    <p>Lượt sử dụng: ${v.luotSuDung}</p>
+                    <p>Trạng thái: ${v.trangThai}</p>
+                    <p>Từ: ${v.ngayBatDau} → ${v.ngayKetThuc}</p>
+                    <div class="event-actions">
+                        <button class="edit-btn"   onclick="editVoucher(${v.maVoucher})">Chỉnh sửa</button>
+                        <button class="delete-btn" onclick="deleteVoucher(${v.maVoucher})">Xóa</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
     });
 
     container.innerHTML = html;
+}
+
+function editVoucher(maVoucher) {
+    window.location.href = `editVoucher.html?id=${maVoucher}`;
+}
+
+function deleteVoucher(maVoucher) {
+
+    if (!confirm("Bạn có chắc muốn xóa khuyến mãi này?")) return;
+
+    fetch(`${BASE_URL}/voucher/${maVoucher}`, { method: "DELETE" })
+
+    .then(response => {
+        if (!response.ok) throw new Error("Xóa thất bại");
+        alert("Xóa khuyến mãi thành công");
+        loadVouchers();
+    })
+
+    .catch(error => {
+        alert(error.message);
+    });
 }

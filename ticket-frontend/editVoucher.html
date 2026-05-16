@@ -2,38 +2,43 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Tạo Khuyến Mãi</title>
-  <link rel="stylesheet" href="css/createEvent.css">
+  <title>Chỉnh Sửa Khuyến Mãi</title>
+  <link rel="stylesheet" href="css/Ve.css">
 </head>
 <body>
   <div class="container">
-    <h1>Tạo Khuyến Mãi</h1>
+    <h1>Chỉnh Sửa Khuyến Mãi</h1>
 
     <div class="form-group">
       <label>Sự kiện áp dụng</label>
-      <select id="maSuKien" style="width:100%; padding:12px; border:1px solid #ccc; border-radius:10px; font-size:15px; box-sizing:border-box;">
+      <select id="maSuKien" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; box-sizing:border-box; font-size:15px;">
         <option value="">-- Chọn sự kiện --</option>
       </select>
     </div>
 
     <div class="form-group">
       <label>Mã voucher</label>
-      <input type="text" id="maCode" placeholder="Nhập mã voucher">
+      <input type="text" id="maCode">
     </div>
 
     <div class="form-group">
       <label>Điều kiện áp dụng</label>
-      <input type="text" id="dieuKien" placeholder="Ví dụ: Đơn từ 500.000đ">
+      <input type="text" id="dieuKien">
     </div>
 
     <div class="form-group">
       <label>Mức khuyến mãi (%)</label>
-      <input type="number" id="mucKhuyenMai" placeholder="0 – 100" min="0" max="100">
+      <input type="number" id="mucKhuyenMai" min="0" max="100">
     </div>
 
     <div class="form-group">
       <label>Lượt sử dụng tối đa</label>
-      <input type="number" id="luotSuDung" placeholder="Nhập số lượt" min="1">
+      <input type="number" id="luotSuDung" min="1">
+    </div>
+
+    <div class="form-group">
+      <label>Trạng thái</label>
+      <input type="text" id="trangThai">
     </div>
 
     <div class="form-group">
@@ -47,14 +52,14 @@
     </div>
 
     <div class="button-group">
-      <button class="create-btn" onclick="createVoucher()">Tạo Khuyến Mãi</button>
-      <button class="cancel-btn" onclick="goBack()">Hủy</button>
+      <button onclick="updateVoucher()">Cập nhật</button>
+      <button onclick="goBack()">Quay lại</button>
     </div>
   </div>
 
-  <!-- Model: api.js | Guard: authGuard.js | Controller: createVoucher.js -->
+  <!-- Model: api.js | Guard: authGuard.js | Controller: editVoucher.js -->
   <script src="js/common/api.js"></script>
   <script src="js/common/authGuard.js"></script>
-  <script src="js/voucher/createVoucher.js"></script>
+  <script src="js/voucher/editVoucher.js"></script>
 </body>
 </html>

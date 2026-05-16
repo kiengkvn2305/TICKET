@@ -1,6 +1,7 @@
 package com.example.ticket.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "VOUCHER")
@@ -17,63 +18,39 @@ public class Voucher {
     private String trangThai;
     private Integer luotSuDung;
     private Long maCongTy;
+    private Long maSuKien;
+    private LocalDate ngayBatDau;
+    private LocalDate ngayKetThuc;
 
-    public Voucher() {
-    }
+    public Voucher() {}
 
-    public Long getMaVoucher() {
-        return maVoucher;
-    }
+    public Long getMaVoucher() { return maVoucher; }
+    public void setMaVoucher(Long maVoucher) { this.maVoucher = maVoucher; }
 
-    public void setMaVoucher(Long maVoucher) {
-        this.maVoucher = maVoucher;
-    }
+    public String getMaCode() { return maCode; }
+    public void setMaCode(String maCode) { this.maCode = maCode; }
 
-    public String getMaCode() {
-        return maCode;
-    }
+    public String getDieuKien() { return dieuKien; }
+    public void setDieuKien(String dieuKien) { this.dieuKien = dieuKien; }
 
-    public void setMaCode(String maCode) {
-        this.maCode = maCode;
-    }
+    public Double getMucKhuyenMai() { return mucKhuyenMai; }
+    public void setMucKhuyenMai(Double mucKhuyenMai) { this.mucKhuyenMai = mucKhuyenMai; }
 
-    public String getDieuKien() {
-        return dieuKien;
-    }
+    public String getTrangThai() { return trangThai; }
+    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
 
-    public void setDieuKien(String dieuKien) {
-        this.dieuKien = dieuKien;
-    }
+    public Integer getLuotSuDung() { return luotSuDung; }
+    public void setLuotSuDung(Integer luotSuDung) { this.luotSuDung = luotSuDung; }
 
-    public Double getMucKhuyenMai() {
-        return mucKhuyenMai;
-    }
+    public Long getMaCongTy() { return maCongTy; }
+    public void setMaCongTy(Long maCongTy) { this.maCongTy = maCongTy; }
 
-    public void setMucKhuyenMai(Double mucKhuyenMai) {
-        this.mucKhuyenMai = mucKhuyenMai;
-    }
+    public Long getMaSuKien() { return maSuKien; }
+    public void setMaSuKien(Long maSuKien) { this.maSuKien = maSuKien; }
 
-    public String getTrangThai() {
-        return trangThai;
-    }
+    public LocalDate getNgayBatDau() { return ngayBatDau; }
+    public void setNgayBatDau(LocalDate ngayBatDau) { this.ngayBatDau = ngayBatDau; }
 
-    public void setTrangThai(String trangThai) {
-        this.trangThai = trangThai;
-    }
-
-    public Integer getLuotSuDung() {
-        return luotSuDung;
-    }
-
-    public void setLuotSuDung(Integer luotSuDung) {
-        this.luotSuDung = luotSuDung;
-    }
-
-    public Long getMaCongTy() {
-        return maCongTy;
-    }
-
-    public void setMaCongTy(Long maCongTy) {
-        this.maCongTy = maCongTy;
-    }
+    public LocalDate getNgayKetThuc() { return ngayKetThuc; }
+    public void setNgayKetThuc(LocalDate ngayKetThuc) { this.ngayKetThuc = ngayKetThuc; }
 }

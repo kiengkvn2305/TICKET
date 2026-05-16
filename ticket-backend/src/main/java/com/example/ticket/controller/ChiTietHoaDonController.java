@@ -1,10 +1,14 @@
 package com.example.ticket.controller;
 
+import com.example.ticket.dto.request.ChiTietHoaDonRequest;
+import com.example.ticket.dto.response.ChiTietHoaDonResponse;
+import com.example.ticket.service.ChiTietHoaDonService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import com.example.ticket.model.*;
-import com.example.ticket.service.*;
 
+import java.util.List;
+
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/chitiethoadon")
 public class ChiTietHoaDonController {
@@ -16,14 +20,12 @@ public class ChiTietHoaDonController {
     }
 
     @GetMapping
-    public List<ChiTietHoaDon> getAll() {
-        return service.getAll();
+    public ResponseEntity<List<ChiTietHoaDonResponse>> getAll() {
+        return ResponseEntity.ok(service.getAll());
     }
 
     @PostMapping
-    public ChiTietHoaDon create(@RequestBody ChiTietHoaDon ct) {
-        System.out.println("RECEIVED: " + ct);
-        System.out.println(ct.getID());
-        return service.save(ct);
+    public ResponseEntity<ChiTietHoaDonResponse> create(@RequestBody ChiTietHoaDonRequest request) {
+        return ResponseEntity.ok(service.create(request));
     }
 }
