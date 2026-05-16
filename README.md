@@ -15,7 +15,7 @@
 ## CÔNG NGHỆ SỬ DỤNG
 
 -    **Backend:** [Java](https://www.java.com/en/), [Spring Boot](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)
--    **Frontend:** [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML), [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS), [JavaScript](https://www.javascript.com/), [ReactJS](https://reactjs.org/), [Redux Toolkit](https://redux.js.org/), [Bootstrap](https://reactstrap.github.io/?path=/story/home-installation--page)
+-    **Frontend:** [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML), [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS).
 -    **Database:** [Oracle](https://www.oracle.com/)
 
 ## THÀNH VIÊN NHÓM
