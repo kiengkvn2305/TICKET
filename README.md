@@ -4,7 +4,14 @@
   </a>
 </p>
 
+<!-- Title -->
+<h1 align="center"><b>IS216 - LẬP TRÌNH JAVA</b></h1>
 
+## BẢNG MỤC LỤC
+* [ Giới thiệu đồ án](#gioithieumonhoc)
+* [ Công nghệ sử dụng](#congnghe)
+* [ Giảng viên hướng dẫn](#giangvien)
+* [ Thành viên nhóm](#thanhvien)
 
 ## GIỚI THIỆU ĐỒ ÁN
 
@@ -18,6 +25,10 @@
 -    **Frontend:** [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML), [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS).
 -    **Database:** [Oracle](https://www.oracle.com/)
 
+## GIẢNG VIÊN HƯỚNG DẪN
+<a name="giangvien"></a>
+* ThS. **Tạ Việt Phương** - *phuongtv@uit.edu.vn*
+  
 ## THÀNH VIÊN NHÓM
 
 | STT | MSSV     | Họ và Tên            | GitHub                                 | Email                  |
