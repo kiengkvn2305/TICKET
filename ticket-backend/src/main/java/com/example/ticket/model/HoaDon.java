@@ -15,6 +15,8 @@ public class HoaDon {
     private LocalDate ngayLap;
     private String trangThai;
     private Long thanhTien;
+    private Long maKhachHang;
+    private Long maVoucher;
 
     public Long getMaHoaDon() {
         return maHoaDon;
@@ -46,5 +48,21 @@ public class HoaDon {
 
     public void setThanhTien(Long thanhTien) {
         this.thanhTien = thanhTien;
+    }
+    
+    public Long getMaKhachHang(){
+        return maKhachHang;
+    }
+    
+    public void setMaKhachHang(Long maKhachHang){
+        this.maKhachHang = maKhachHang;
+    }
+    
+    public Long getMaVoucher(){
+        return maVoucher;
+    }
+    
+    public void setMaVoucher(Long maVoucher){
+        this.maVoucher = maVoucher;
     }
 }

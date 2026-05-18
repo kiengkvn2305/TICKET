@@ -97,9 +97,20 @@
     <p id="modalEventDate" class="modal-event-date"></p>
     <hr class="modal-divider">
     <div id="modalTicketList" class="modal-ticket-list"></div>
+
+    <!-- Thêm các element này vào HTML tĩnh -->
+    <div class="voucher-row" id="voucherRow" style="display:none">
+      <input type="text" id="voucherInput" placeholder="Nhập mã voucher (nếu có)" />
+      <button class="filter-btn" style="white-space:nowrap" onclick="applyVoucher()">Áp dụng</button>
+    </div>
+    <div id="voucherMsg" class="buy-msg" style="margin-top:6px"></div>
+    <div class="modal-summary" id="modalSummary" style="display:none">
+      <div class="modal-total">Tổng cộng: <strong id="totalPrice">0 ₫</strong></div>
+      <button class="confirm-buy-btn" id="confirmBuyBtn" onclick="confirmBuy()">Xác nhận mua</button>
+    </div>
     <div id="buyMsg" class="buy-msg"></div>
   </div>
-
+  
   <!-- ===== SCRIPTS ===== -->
   <script src="js/common/api.js"></script>
   <script src="js/common/authGuard.js"></script>
