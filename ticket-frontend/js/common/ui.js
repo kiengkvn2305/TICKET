@@ -62,12 +62,14 @@ function logout() {
 ========================= */
 
 function clearContent() {
-    const ticketList = document.getElementById("ticketList");
-    const eventList  = document.getElementById("eventList");
+    const ticketList  = document.getElementById("ticketList");
+    const eventList   = document.getElementById("eventList");
     const voucherList = document.getElementById("voucherList");
+    const hoanVeList  = document.getElementById("hoanVeList"); // ✅ thêm
     if (ticketList)  ticketList.innerHTML  = "";
     if (eventList)   eventList.innerHTML   = "";
     if (voucherList) voucherList.innerHTML = "";
+    if (hoanVeList)  hoanVeList.innerHTML  = ""; // ✅ thêm
 }
 
 function openCreateTicket() {

@@ -59,4 +59,15 @@ public class VoucherController {
         voucherService.delete(id);
         return ResponseEntity.noContent().build();
     }
+    
+    @GetMapping("/sukien/{maSuKien}")
+    public ResponseEntity<List<VoucherResponse>> getBySuKien(@PathVariable Long maSuKien) {
+        return ResponseEntity.ok(voucherService.getBySuKien(maSuKien));
+    }
+
+    @GetMapping("/code/{maCode}/sukien/{maSuKien}")
+    public ResponseEntity<VoucherResponse> getByCodeAndSuKien(
+            @PathVariable String maCode, @PathVariable Long maSuKien) {
+        return ResponseEntity.ok(voucherService.getByCodeAndSuKien(maCode, maSuKien));
+    }
 }

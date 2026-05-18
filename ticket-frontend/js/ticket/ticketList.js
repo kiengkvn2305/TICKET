@@ -20,7 +20,7 @@ function loadTickets() {
     const currentUser = JSON.parse(localStorage.getItem("user"));
     if (!currentUser) {
         alert("Vui lòng đăng nhập");
-        window.location.href = "loginPopup.html";
+        window.location.href = "loginpopup.html";
         return;
     }
 
@@ -47,7 +47,6 @@ function applyTicketFilter() {
 
     const filtered = allTickets.filter(ve =>
         ve.tenVe.toLowerCase().includes(tenVe) &&
-        // FIX: tenSuKien có thể null nếu SuKien bị xóa → TypeError crash
         (ve.tenSuKien || "").toLowerCase().includes(tenSuKien)
     );
 

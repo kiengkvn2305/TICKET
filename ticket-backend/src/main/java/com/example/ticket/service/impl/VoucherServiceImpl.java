@@ -16,23 +16,23 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
 public class VoucherServiceImpl implements VoucherService {
 
-    private final VoucherRepository voucherRepository;
+    private final VoucherRepository   voucherRepository;
     private final NhaToChucRepository nhaToChucRepository;
-    private final SuKienRepository suKienRepository;
+    private final SuKienRepository    suKienRepository;
 
     public VoucherServiceImpl(VoucherRepository voucherRepository,
                               NhaToChucRepository nhaToChucRepository,
                               SuKienRepository suKienRepository) {
-        this.voucherRepository = voucherRepository;
+        this.voucherRepository   = voucherRepository;
         this.nhaToChucRepository = nhaToChucRepository;
-        this.suKienRepository = suKienRepository;
+        this.suKienRepository    = suKienRepository;
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
@@ -53,21 +53,36 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     private void validateMucKhuyenMai(Double mucKhuyenMai) {
-        if (mucKhuyenMai == null || mucKhuyenMai < 0 || mucKhuyenMai > 100) {
+        if (mucKhuyenMai == null || mucKhuyenMai < 0 || mucKhuyenMai > 100)
             throw new BadRequestException("Mức khuyến mãi phải từ 0 đến 100");
-        }
     }
 
     private void validateNgay(VoucherRequest request) {
-        if (request.getNgayBatDau() == null || request.getNgayKetThuc() == null) {
+        if (request.getNgayBatDau() == null || request.getNgayKetThuc() == null)
             throw new BadRequestException("Vui lòng nhập ngày bắt đầu và kết thúc");
-        }
-        if (request.getNgayKetThuc().isBefore(request.getNgayBatDau())) {
+        if (request.getNgayKetThuc().isBefore(request.getNgayBatDau()))
             throw new BadRequestException("Ngày kết thúc phải sau ngày bắt đầu");
+    }
+
+    // ✅ Parse "1,2,3" → List<Long>
+    private List<Long> parseSuKienIds(String danhSach) {
+        if (danhSach == null || danhSach.isBlank()) return List.of();
+        return Arrays.stream(danhSach.split(","))
+                .map(s -> Long.parseLong(s.trim()))
+                .toList();
+    }
+
+    // ✅ Kiểm tra tất cả sự kiện thuộc công ty
+    private void validateSuKienBelongToCompany(List<Long> ids, Long maCongTy) {
+        for (Long id : ids) {
+            SuKien sk = suKienRepository.findById(id)
+                    .orElseThrow(() -> new NotFoundException("Không tìm thấy sự kiện #" + id));
+            if (!maCongTy.equals(sk.getMaCongTy()))
+                throw new BadRequestException("Sự kiện #" + id + " không thuộc công ty của bạn");
         }
     }
 
-    private VoucherResponse mapToResponse(Voucher v, SuKien suKien) {
+    private VoucherResponse mapToResponse(Voucher v) {
         VoucherResponse r = new VoucherResponse();
         r.setMaVoucher(v.getMaVoucher());
         r.setMaCode(v.getMaCode());
@@ -76,11 +91,16 @@ public class VoucherServiceImpl implements VoucherService {
         r.setTrangThai(v.getTrangThai());
         r.setLuotSuDung(v.getLuotSuDung());
         r.setMaCongTy(v.getMaCongTy());
-        r.setMaSuKien(v.getMaSuKien());
+        r.setDanhSachSuKien(v.getDanhSachSuKien());
         r.setNgayBatDau(v.getNgayBatDau());
         r.setNgayKetThuc(v.getNgayKetThuc());
-        if (suKien != null) {
-            r.setTenSuKien(suKien.getTenSuKien());
+
+        // ✅ Load tên sự kiện từ danhSachSuKien
+        if (v.getDanhSachSuKien() != null && !v.getDanhSachSuKien().isBlank()) {
+            List<Long> ids = parseSuKienIds(v.getDanhSachSuKien());
+            List<String> tenList = suKienRepository.findAllById(ids)
+                    .stream().map(SuKien::getTenSuKien).toList();
+            r.setTenSuKienList(tenList);
         }
         return r;
     }
@@ -92,40 +112,48 @@ public class VoucherServiceImpl implements VoucherService {
         NhaToChuc ntc = findNhaToChuc(maTaiKhoan);
         List<Voucher> vouchers = voucherRepository.findByMaCongTy(ntc.getMaCongTy());
         if (vouchers.isEmpty()) return List.of();
-
-        // FIX: N+1 — load tất cả SuKien cần thiết trong 1 query thay vì query per voucher
-        List<Long> suKienIds = vouchers.stream()
-                .map(Voucher::getMaSuKien)
-                .filter(id -> id != null)
-                .distinct().toList();
-        Map<Long, SuKien> skMap = suKienRepository.findAllById(suKienIds)
-                .stream().collect(java.util.stream.Collectors.toMap(SuKien::getMaSuKien, s -> s));
-
-        return vouchers.stream()
-                .map(v -> mapToResponse(v, skMap.get(v.getMaSuKien())))
-                .toList();
+        return vouchers.stream().map(this::mapToResponse).toList();
     }
 
     @Override
     public VoucherResponse getById(Long id) {
-        Voucher v = findVoucher(id);
-        SuKien sk = v.getMaSuKien() != null
-                ? suKienRepository.findById(v.getMaSuKien()).orElse(null)
-                : null;
-        return mapToResponse(v, sk);
+        return mapToResponse(findVoucher(id));
     }
-
-    // ── commands ──────────────────────────────────────────────────────────────
 
     @Override
     public VoucherResponse getByCode(String maCode) {
         Voucher v = voucherRepository.findByMaCode(maCode.trim())
                 .orElseThrow(() -> new NotFoundException("Mã voucher không tồn tại"));
-        SuKien sk = v.getMaSuKien() != null
-                ? suKienRepository.findById(v.getMaSuKien()).orElse(null)
-                : null;
-        return mapToResponse(v, sk);
+        return mapToResponse(v);
     }
+
+    // ✅ Kiểm tra voucher có áp dụng cho sự kiện không
+    @Override
+    public VoucherResponse getByCodeAndSuKien(String maCode, Long maSuKien) {
+        Voucher v = voucherRepository.findByMaCode(maCode.trim())
+                .orElseThrow(() -> new NotFoundException("Mã voucher không tồn tại"));
+
+        if (!"active".equalsIgnoreCase(v.getTrangThai()))
+            throw new BadRequestException("Voucher đã hết hạn hoặc không còn hiệu lực");
+
+        List<Long> ids = parseSuKienIds(v.getDanhSachSuKien());
+        if (!ids.contains(maSuKien))
+            throw new BadRequestException("Voucher này không áp dụng cho sự kiện đang chọn");
+
+        return mapToResponse(v);
+    }
+
+    // ✅ Lấy voucher active áp dụng cho sự kiện — dùng cho dropdown
+    @Override
+    public List<VoucherResponse> getBySuKien(Long maSuKien) {
+        return voucherRepository.findAll().stream()
+                .filter(v -> "active".equalsIgnoreCase(v.getTrangThai()))
+                .filter(v -> parseSuKienIds(v.getDanhSachSuKien()).contains(maSuKien))
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    // ── commands ──────────────────────────────────────────────────────────────
 
     @Override
     @Transactional
@@ -134,28 +162,30 @@ public class VoucherServiceImpl implements VoucherService {
         validateNgay(request);
 
         NhaToChuc ntc = findNhaToChuc(request.getMaTaiKhoan());
-        SuKien sk = findSuKien(request.getMaSuKien());
 
-        boolean duplicate = voucherRepository
-                .findByMaCongTy(ntc.getMaCongTy())
-                .stream()
-                .anyMatch(v -> v.getMaCode().equalsIgnoreCase(request.getMaCode()));
-        if (duplicate) {
+        // ✅ Validate tất cả sự kiện trong danh sách thuộc công ty này
+        List<Long> suKienIds = parseSuKienIds(request.getDanhSachSuKien());
+        if (suKienIds.isEmpty())
+            throw new BadRequestException("Vui lòng chọn ít nhất 1 sự kiện");
+        validateSuKienBelongToCompany(suKienIds, ntc.getMaCongTy());
+
+        boolean duplicate = voucherRepository.findByMaCongTy(ntc.getMaCongTy())
+                .stream().anyMatch(v -> v.getMaCode().equalsIgnoreCase(request.getMaCode()));
+        if (duplicate)
             throw new DuplicateResourceException("Mã voucher đã tồn tại trong công ty");
-        }
 
         Voucher v = new Voucher();
         v.setMaCode(request.getMaCode());
         v.setDieuKien(request.getDieuKien());
         v.setMucKhuyenMai(request.getMucKhuyenMai());
-        v.setTrangThai(request.getTrangThai());
+        v.setTrangThai("active");
         v.setLuotSuDung(request.getLuotSuDung() != null ? request.getLuotSuDung() : 0);
         v.setMaCongTy(ntc.getMaCongTy());
-        v.setMaSuKien(sk.getMaSuKien());
+        v.setDanhSachSuKien(request.getDanhSachSuKien()); // "1,2,3"
         v.setNgayBatDau(request.getNgayBatDau());
         v.setNgayKetThuc(request.getNgayKetThuc());
 
-        return mapToResponse(voucherRepository.save(v), sk);
+        return mapToResponse(voucherRepository.save(v));
     }
 
     @Override
@@ -165,20 +195,23 @@ public class VoucherServiceImpl implements VoucherService {
         validateNgay(request);
 
         Voucher existing = findVoucher(id);
-        SuKien sk = findSuKien(request.getMaSuKien());
+        NhaToChuc ntc = findNhaToChuc(request.getMaTaiKhoan());
+
+        List<Long> suKienIds = parseSuKienIds(request.getDanhSachSuKien());
+        if (suKienIds.isEmpty())
+            throw new BadRequestException("Vui lòng chọn ít nhất 1 sự kiện");
+        validateSuKienBelongToCompany(suKienIds, ntc.getMaCongTy());
 
         existing.setMaCode(request.getMaCode());
         existing.setDieuKien(request.getDieuKien());
         existing.setMucKhuyenMai(request.getMucKhuyenMai());
-        existing.setTrangThai(request.getTrangThai());
-        existing.setMaSuKien(sk.getMaSuKien());
+        existing.setDanhSachSuKien(request.getDanhSachSuKien());
         existing.setNgayBatDau(request.getNgayBatDau());
         existing.setNgayKetThuc(request.getNgayKetThuc());
-        if (request.getLuotSuDung() != null) {
+        if (request.getLuotSuDung() != null)
             existing.setLuotSuDung(request.getLuotSuDung());
-        }
 
-        return mapToResponse(voucherRepository.save(existing), sk);
+        return mapToResponse(voucherRepository.save(existing));
     }
 
     @Override

@@ -10,9 +10,13 @@ import java.util.List;
 
 @Repository
 public interface HoanVeRepository extends JpaRepository<HoanVe, Long> {
+
     List<HoanVe> findByMaHoaDonAndMaVe(Long maHoaDon, Long maVe);
 
-    // Lấy tất cả yêu cầu hoàn vé thuộc sự kiện của nhà tổ chức (qua maCongTy)
+    /** Dùng cho DoanhThuServiceImpl: batch load hoàn theo nhiều hóa đơn */
+    List<HoanVe> findByMaHoaDonIn(List<Long> maHoaDonIds);
+
+    /** Lấy tất cả yêu cầu hoàn vé thuộc sự kiện của nhà tổ chức (qua maCongTy) */
     @Query("""
         SELECT hv FROM HoanVe hv
         JOIN ChiTietHoaDon ct ON ct.id.maHoaDon = hv.maHoaDon AND ct.id.maVe = hv.maVe

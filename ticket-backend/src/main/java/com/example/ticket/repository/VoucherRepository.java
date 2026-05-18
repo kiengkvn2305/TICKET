@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface VoucherRepository extends JpaRepository<Voucher, Long> {
     List<Voucher> findByMaCongTy(Long maCongTy);
     Optional<Voucher> findByMaCode(String maCode); // dùng khi apply voucher
+    List<Voucher> findByMaSuKienAndTrangThai(Long maSuKien, String trangThai);
 }

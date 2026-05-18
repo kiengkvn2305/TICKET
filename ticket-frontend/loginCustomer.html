@@ -98,9 +98,14 @@
     <hr class="modal-divider">
     <div id="modalTicketList" class="modal-ticket-list"></div>
     <div class="voucher-row" id="voucherRow" style="display:none">
-      <input type="text" id="voucherInput" placeholder="Nhập mã voucher (nếu có)" />
-      <button class="filter-btn" style="white-space:nowrap" onclick="applyVoucher()">Áp dụng</button>
+        <input type="text" id="voucherInput" placeholder="Nhập mã voucher (nếu có)"
+              oninput="filterVoucherList()" />
+        <button class="filter-btn" style="white-space:nowrap" onclick="applyVoucher()">Áp dụng</button>
     </div>
+    <!-- ✅ Thêm: danh sách voucher để chọn -->
+    <div id="voucherListDrop" style="display:none; margin-top:8px; border:1px solid #e0e0e0;
+        border-radius:10px; overflow:hidden; max-height:200px; overflow-y:auto;"></div>
+    <div id="voucherMsg" class="buy-msg" style="margin-top:6px"></div>
     <div id="voucherMsg" class="buy-msg" style="margin-top:6px"></div>
     <div class="modal-summary" id="modalSummary" style="display:none">
       <div class="modal-total">Tổng cộng: <strong id="totalPrice">0 ₫</strong></div>

@@ -14,6 +14,7 @@ public class Voucher {
 
     private String maCode;
     private String dieuKien;
+    private String danhSachSuKien;
     private Double mucKhuyenMai;
     private String trangThai;
     private Integer luotSuDung;
@@ -53,4 +54,15 @@ public class Voucher {
 
     public LocalDate getNgayKetThuc() { return ngayKetThuc; }
     public void setNgayKetThuc(LocalDate ngayKetThuc) { this.ngayKetThuc = ngayKetThuc; }
+    
+    public String getDanhSachSuKien() { return danhSachSuKien; }
+    public void setDanhSachSuKien(String v) { this.danhSachSuKien = v; }
+    
+    public boolean isApDungChoSuKien(Long maSuKien) {
+    if (danhSachSuKien == null || danhSachSuKien.isBlank()) return false;
+        for (String id : danhSachSuKien.split(",")) {
+            if (id.trim().equals(String.valueOf(maSuKien))) return true;
+        }
+        return false;
+    }
 }

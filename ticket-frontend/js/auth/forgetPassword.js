@@ -22,7 +22,7 @@ function acceptForget() {
 
     .then(message => {
         alert(message);
-        window.location.href = "loginPopup.html";
+        window.location.href = "loginpopup.html";
     })
 
     .catch(error => {

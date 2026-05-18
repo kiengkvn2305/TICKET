@@ -14,20 +14,20 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
 public class SuKienServiceImpl implements SuKienService {
 
-    private final SuKienRepository suKienRepository;
+    private final SuKienRepository    suKienRepository;
     private final NhaToChucRepository nhaToChucRepository;
-    // FIX: cần VeRepository để kiểm tra vé trước khi xóa sự kiện
-    private final VeRepository veRepository;
+    private final VeRepository        veRepository;
 
     public SuKienServiceImpl(SuKienRepository suKienRepository,
-                              NhaToChucRepository nhaToChucRepository,
-                              VeRepository veRepository) {
+                             NhaToChucRepository nhaToChucRepository,
+                             VeRepository veRepository) {
         this.suKienRepository    = suKienRepository;
         this.nhaToChucRepository = nhaToChucRepository;
         this.veRepository        = veRepository;
@@ -51,6 +51,20 @@ public class SuKienServiceImpl implements SuKienService {
         }
     }
 
+    /**
+     * Tính trạng thái sự kiện dựa vào ngày hiện tại:
+     *   - "Sắp diễn ra"  : hôm nay < batDau
+     *   - "Đang tổ chức" : batDau <= hôm nay <= ketThuc
+     *   - "Đã tổ chức"   : hôm nay > ketThuc
+     */
+    private String computeTrangThai(SuKien s) {
+        LocalDate today = LocalDate.now();
+        if (s.getThoiGianBatDau() == null || s.getThoiGianKetThuc() == null) return "Không xác định";
+        if (today.isBefore(s.getThoiGianBatDau()))  return "Sắp diễn ra";
+        if (today.isAfter(s.getThoiGianKetThuc()))  return "Đã tổ chức";
+        return "Đang tổ chức";
+    }
+
     private SuKienResponse mapToResponse(SuKien s) {
         SuKienResponse r = new SuKienResponse();
         r.setMaSuKien(s.getMaSuKien());
@@ -59,14 +73,24 @@ public class SuKienServiceImpl implements SuKienService {
         r.setThoiGianBatDau(s.getThoiGianBatDau());
         r.setThoiGianKetThuc(s.getThoiGianKetThuc());
         r.setMaCongTy(s.getMaCongTy());
+        r.setTrangThai(computeTrangThai(s));
         return r;
     }
 
     // ── queries ──────────────────────────────────────────────────────────────
 
+    /**
+     * Dùng cho trang khách hàng (index + loginCustomer):
+     * CHỈ trả về sự kiện chưa kết thúc (Sắp diễn ra + Đang tổ chức).
+     * Sự kiện đã kết thúc bị ẩn khỏi khách hàng.
+     */
     @Override
     public List<SuKienResponse> getAll() {
-        return suKienRepository.findAll().stream().map(this::mapToResponse).toList();
+        LocalDate today = LocalDate.now();
+        return suKienRepository.findAll().stream()
+                .filter(s -> s.getThoiGianKetThuc() == null || !s.getThoiGianKetThuc().isBefore(today))
+                .map(this::mapToResponse)
+                .toList();
     }
 
     @Override
@@ -74,15 +98,20 @@ public class SuKienServiceImpl implements SuKienService {
         return mapToResponse(findSuKien(id));
     }
 
+    /**
+     * Dùng cho creator: trả về TẤT CẢ sự kiện (kể cả đã kết thúc),
+     * kèm trangThai để creator có thể phân nhóm thành tabs.
+     */
     @Override
     public List<SuKienResponse> getByCreator(Long maTaiKhoan) {
         NhaToChuc ntc = findNhaToChuc(maTaiKhoan);
-
         Long maCongTy = ntc.getMaCongTy();
         if (maCongTy == null) return List.of();
 
         return suKienRepository.findByMaCongTy(maCongTy)
-                .stream().map(this::mapToResponse).toList();
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     // ── commands ─────────────────────────────────────────────────────────────
@@ -90,22 +119,16 @@ public class SuKienServiceImpl implements SuKienService {
     @Override
     @Transactional
     public SuKienResponse create(SuKienRequest request) {
-        // FIX 1: validate input cơ bản
-        if (request.getMaTaiKhoan() == null) {
+        if (request.getMaTaiKhoan() == null)
             throw new BadRequestException("Thiếu thông tin tài khoản");
-        }
-        if (request.getTenSuKien() == null || request.getTenSuKien().isBlank()) {
+        if (request.getTenSuKien() == null || request.getTenSuKien().isBlank())
             throw new BadRequestException("Tên sự kiện không được để trống");
-        }
 
         validateThoiGian(request);
 
         NhaToChuc ntc = findNhaToChuc(request.getMaTaiKhoan());
-
-        // FIX 2: chặn ngay nếu nhà tổ chức chưa có công ty
-        if (ntc.getMaCongTy() == null) {
+        if (ntc.getMaCongTy() == null)
             throw new BadRequestException("Nhà tổ chức chưa được gán công ty. Vui lòng cập nhật thông tin trước.");
-        }
 
         SuKien suKien = new SuKien();
         suKien.setTenSuKien(request.getTenSuKien().trim());
@@ -143,10 +166,8 @@ public class SuKienServiceImpl implements SuKienService {
     @Transactional
     public void delete(Long id) {
         SuKien sk = findSuKien(id);
-        // FIX: xóa sự kiện khi còn vé → FK violation. Phải kiểm tra trước.
-        if (!veRepository.findByMaSuKien(id).isEmpty()) {
+        if (!veRepository.findByMaSuKien(id).isEmpty())
             throw new BadRequestException("Không thể xóa sự kiện đang có vé. Hãy xóa vé trước.");
-        }
         suKienRepository.delete(sk);
     }
 }

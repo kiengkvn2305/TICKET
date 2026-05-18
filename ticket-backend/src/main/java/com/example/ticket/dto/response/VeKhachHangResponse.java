@@ -18,7 +18,10 @@ public class VeKhachHangResponse {
     private int       soLuong;
     private Long      thanhTien;     // tổng tiền thực tế của hóa đơn (đã trừ voucher)
     private Long      thanhTienGoc;  // tổng tiền gốc trước khi trừ voucher
+    private String trangThaiHoan; // null = chưa gửi, "pending", "approved", "rejected"
 
+    public String    getTrangThaiHoan()         { return trangThaiHoan; }
+    public void      setTrangThaiHoan(String v) { this.trangThaiHoan = v; }
     public Long      getMaVe()                   { return maVe; }
     public void      setMaVe(Long v)             { this.maVe = v; }
     public String    getTenVe()                  { return tenVe; }

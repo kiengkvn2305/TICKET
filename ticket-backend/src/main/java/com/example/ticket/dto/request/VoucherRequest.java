@@ -13,7 +13,10 @@ public class VoucherRequest {
     private Long maSuKien;
     private LocalDate ngayBatDau;
     private LocalDate ngayKetThuc;
-
+    private String danhSachSuKien; // "1,2,3"
+    
+    public String getDanhSachSuKien() { return danhSachSuKien; }
+    public void setDanhSachSuKien(String v) { this.danhSachSuKien = v; }
     public String getMaCode() { return maCode; }
     public void setMaCode(String maCode) { this.maCode = maCode; }
 

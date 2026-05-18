@@ -1,5 +1,5 @@
-const params     = new URLSearchParams(window.location.search);
-const maVoucher  = params.get("id");
+const params    = new URLSearchParams(window.location.search);
+const maVoucher = params.get("id");
 
 /* =========================
    LOAD DỮ LIỆU
@@ -10,33 +10,32 @@ window.addEventListener("DOMContentLoaded", function () {
     const currentUser = JSON.parse(localStorage.getItem("user"));
     if (!currentUser) {
         alert("Vui lòng đăng nhập");
-        window.location.href = "loginPopup.html";
+        window.location.href = "loginpopup.html";
         return;
     }
 
-    // Load danh sách sự kiện vào dropdown trước
+    // 1. Load danh sách sự kiện vào multi-select trước
     fetch(`${BASE_URL}/sukien/creator/${currentUser.maTaiKhoan}`)
-
     .then(response => {
         if (!response.ok) throw new Error("Không lấy được sự kiện");
         return response.json();
     })
-
     .then(suKiens => {
-        const select = document.getElementById("maSuKien");
+        const select = document.getElementById("danhSachSuKien");
         suKiens.forEach(sk => {
-            select.innerHTML += `<option value="${sk.maSuKien}">${sk.tenSuKien}</option>`;
+            const opt = document.createElement("option");
+            opt.value = sk.maSuKien;
+            opt.textContent = sk.tenSuKien;
+            select.appendChild(opt);
         });
 
-        // Sau khi có dropdown, load thông tin voucher để điền vào form
+        // 2. Sau khi có dropdown, load thông tin voucher
         return fetch(`${BASE_URL}/voucher/${maVoucher}`);
     })
-
     .then(response => {
         if (!response.ok) throw new Error("Không lấy được khuyến mãi");
         return response.json();
     })
-
     .then(data => {
         document.getElementById("maCode").value       = data.maCode;
         document.getElementById("dieuKien").value     = data.dieuKien || "";
@@ -46,12 +45,18 @@ window.addEventListener("DOMContentLoaded", function () {
         document.getElementById("ngayBatDau").value   = data.ngayBatDau;
         document.getElementById("ngayKetThuc").value  = data.ngayKetThuc;
 
-        // Chọn đúng sự kiện trong dropdown
-        if (data.maSuKien) {
-            document.getElementById("maSuKien").value = data.maSuKien;
-        }
-    })
+        // FIX: restore các sự kiện đã chọn trong multi-select
+        // danhSachSuKien trả về dạng "1,2,3"
+        const selectedIds = (data.danhSachSuKien || "")
+            .split(",")
+            .map(s => s.trim())
+            .filter(s => s !== "");
 
+        const select = document.getElementById("danhSachSuKien");
+        Array.from(select.options).forEach(opt => {
+            opt.selected = selectedIds.includes(String(opt.value));
+        });
+    })
     .catch(error => {
         alert(error.message);
     });
@@ -68,15 +73,24 @@ function updateVoucher() {
 
     const maCode       = document.getElementById("maCode").value.trim();
     const dieuKien     = document.getElementById("dieuKien").value.trim();
-    const mucKhuyenMai = document.getElementById("mucKhuyenMai").value;
-    const luotSuDung   = document.getElementById("luotSuDung").value;
-    const trangThai    = document.getElementById("trangThai").value.trim();
-    const maSuKien     = document.getElementById("maSuKien").value;
+    // FIX: parse sang số
+    const mucKhuyenMai = parseFloat(document.getElementById("mucKhuyenMai").value);
+    const luotSuDung   = parseInt(document.getElementById("luotSuDung").value);
+    const trangThai    = document.getElementById("trangThai").value;
     const ngayBatDau   = document.getElementById("ngayBatDau").value;
     const ngayKetThuc  = document.getElementById("ngayKetThuc").value;
 
-    if (!maCode || !mucKhuyenMai || !luotSuDung || !maSuKien || !ngayBatDau || !ngayKetThuc) {
+    // FIX: lấy từ multi-select thay vì single-select
+    const selectedOptions = Array.from(document.getElementById("danhSachSuKien").selectedOptions);
+    const danhSachSuKien  = selectedOptions.map(o => o.value).join(",");
+
+    if (!maCode || isNaN(mucKhuyenMai) || isNaN(luotSuDung) || !ngayBatDau || !ngayKetThuc) {
         alert("Vui lòng nhập đầy đủ thông tin");
+        return;
+    }
+
+    if (danhSachSuKien === "") {
+        alert("Vui lòng chọn ít nhất 1 sự kiện");
         return;
     }
 
@@ -91,27 +105,24 @@ function updateVoucher() {
         body: JSON.stringify({
             maCode,
             dieuKien,
-            mucKhuyenMai: parseFloat(mucKhuyenMai),
-            luotSuDung:   parseInt(luotSuDung),
+            mucKhuyenMai,   // number
+            luotSuDung,     // number
             trangThai,
-            maSuKien:     parseInt(maSuKien),
+            danhSachSuKien, // "1,2,3"
             ngayBatDau,
             ngayKetThuc,
-            maTaiKhoan:   currentUser ? currentUser.maTaiKhoan : null
+            maTaiKhoan: currentUser ? currentUser.maTaiKhoan : null
         })
     })
-
     .then(async response => {
         const text = await response.text();
         if (!response.ok) throw new Error(text);
         return JSON.parse(text);
     })
-
     .then(() => {
         alert("Cập nhật khuyến mãi thành công");
         window.location.href = "loginCreator.html";
     })
-
     .catch(error => {
         alert(error.message);
     });

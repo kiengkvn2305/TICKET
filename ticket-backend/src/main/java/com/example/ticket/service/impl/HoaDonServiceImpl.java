@@ -26,19 +26,22 @@ public class HoaDonServiceImpl implements HoaDonService {
     private final VeRepository           veRepository;
     private final SuKienRepository       suKienRepository;
     private final VoucherRepository      voucherRepository;
-
+    private final HoanVeRepository       hoanVeRepository;
+    
     public HoaDonServiceImpl(HoaDonRepository hoaDonRepository,
                              ChiTietHoaDonRepository chiTietHoaDonRepository,
                              KhachHangRepository khachHangRepository,
                              VeRepository veRepository,
                              SuKienRepository suKienRepository,
-                             VoucherRepository voucherRepository) {
+                             VoucherRepository voucherRepository,
+                             HoanVeRepository hoanVeRepository) {
         this.hoaDonRepository        = hoaDonRepository;
         this.chiTietHoaDonRepository = chiTietHoaDonRepository;
         this.khachHangRepository     = khachHangRepository;
         this.veRepository            = veRepository;
         this.suKienRepository        = suKienRepository;
         this.voucherRepository       = voucherRepository;
+        this.hoanVeRepository = hoanVeRepository;
     }
 
     @Override
@@ -171,7 +174,11 @@ public class HoaDonServiceImpl implements HoaDonService {
                         ct -> ct.getId().getMaHoaDon(),
                         Collectors.summingLong(ct -> ct.getDonGia() * ct.getSoLuong())
                 ));
-
+        List<Long> allMaVe = chiTiets.stream().map(ct -> ct.getId().getMaVe()).distinct().toList();
+        Map<String, String> hoanVeMap = new HashMap<>();
+        hoanVeRepository.findByMaHoaDonIn(maHoaDonList).forEach(hv ->
+            hoanVeMap.put(hv.getMaHoaDon() + "_" + hv.getMaVe(), hv.getTrangThaiHoan())
+        );
         // 7. Assemble response
         return chiTiets.stream().map(ct -> {
             Ve      ve = veMap.get(ct.getId().getMaVe());
@@ -199,6 +206,8 @@ public class HoaDonServiceImpl implements HoaDonService {
                 r.setThanhTienGoc(thanhTienGocMap.getOrDefault(hd.getMaHoaDon(), hd.getThanhTien()));
             }
             r.setSoLuong(ct.getSoLuong());
+            String keyHoan = (hd != null ? hd.getMaHoaDon() : 0) + "_" + (ve != null ? ve.getMaVe() : 0);
+            r.setTrangThaiHoan(hoanVeMap.get(keyHoan));
             return r;
         }).toList();
     }

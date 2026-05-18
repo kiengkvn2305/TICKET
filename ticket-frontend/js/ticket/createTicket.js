@@ -3,7 +3,7 @@ window.addEventListener("DOMContentLoaded", function () {
     const currentUser = JSON.parse(localStorage.getItem("user"));
     if (!currentUser) {
         alert("Vui lòng đăng nhập");
-        window.location.href = "loginPopup.html";
+        window.location.href = "loginpopup.html";
         return;
     }
 

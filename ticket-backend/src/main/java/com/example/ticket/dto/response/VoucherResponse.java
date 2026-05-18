@@ -1,7 +1,7 @@
 package com.example.ticket.dto.response;
 
 import java.time.LocalDate;
-
+import java.util.List;
 public class VoucherResponse {
 
     private Long maVoucher;
@@ -15,7 +15,15 @@ public class VoucherResponse {
     private String tenSuKien;
     private LocalDate ngayBatDau;
     private LocalDate ngayKetThuc;
-
+    private String danhSachSuKien;
+    private List<String> tenSuKienList; // để frontend hiển thị tên
+    
+    public String getDanhSachSuKien() { return danhSachSuKien; }
+    public void setDanhSachSuKien(String v) { this.danhSachSuKien = v; }
+    
+    public List<String> getTenSuKienList() { return tenSuKienList; }
+    public void setTenSuKienList(List<String> v) { this.tenSuKienList = v; }
+    
     public Long getMaVoucher() { return maVoucher; }
     public void setMaVoucher(Long maVoucher) { this.maVoucher = maVoucher; }
 

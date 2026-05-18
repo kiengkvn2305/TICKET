@@ -113,3 +113,24 @@ button:last-child {
     color: white;
 
 }
+
+.tag-sukien {
+    display: inline-block;
+    background: #e8f4fd;
+    color: #1a73e8;
+    border: 1px solid #aecef5;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 13px;
+    margin: 2px 3px 2px 0;
+}
+
+.status-active {
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.status-inactive {
+    color: #c62828;
+    font-weight: 600;
+}

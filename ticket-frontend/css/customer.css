@@ -705,3 +705,55 @@
 .hoan-textarea:focus {
   border-color: #3cdbd8;
 }
+
+.my-ticket-filter-btn {
+    padding: 7px 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    background: white;
+    color: #555;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.my-ticket-filter-btn:hover,
+.my-ticket-filter-btn.active {
+    background: #3cdbd8;
+    color: white;
+    border-color: #3cdbd8;
+}
+
+.voucher-drop-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.voucher-drop-item:hover {
+    background: #f0fffe;
+}
+
+.voucher-drop-code {
+    font-weight: 700;
+    color: #3cdbd8;
+    min-width: 90px;
+}
+
+.voucher-drop-pct {
+    font-weight: 700;
+    color: #e55;
+    min-width: 45px;
+}
+
+.voucher-drop-desc {
+    color: #888;
+    font-size: 0.83rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
