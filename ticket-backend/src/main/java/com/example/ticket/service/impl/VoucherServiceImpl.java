@@ -118,6 +118,16 @@ public class VoucherServiceImpl implements VoucherService {
     // ── commands ──────────────────────────────────────────────────────────────
 
     @Override
+    public VoucherResponse getByCode(String maCode) {
+        Voucher v = voucherRepository.findByMaCode(maCode.trim())
+                .orElseThrow(() -> new NotFoundException("Mã voucher không tồn tại"));
+        SuKien sk = v.getMaSuKien() != null
+                ? suKienRepository.findById(v.getMaSuKien()).orElse(null)
+                : null;
+        return mapToResponse(v, sk);
+    }
+
+    @Override
     @Transactional
     public VoucherResponse create(VoucherRequest request) {
         validateMucKhuyenMai(request.getMucKhuyenMai());

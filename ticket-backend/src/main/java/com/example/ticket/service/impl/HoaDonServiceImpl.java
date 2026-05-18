@@ -165,7 +165,14 @@ public class HoaDonServiceImpl implements HoaDonService {
         Map<Long, SuKien> skMap = suKienRepository.findAllById(maSuKienList)
                 .stream().collect(Collectors.toMap(SuKien::getMaSuKien, s -> s));
 
-        // 6. Assemble response
+        // 6. Tính thanhTienGoc cho mỗi hóa đơn (tổng donGia*soLuong các dòng)
+        Map<Long, Long> thanhTienGocMap = chiTiets.stream()
+                .collect(Collectors.groupingBy(
+                        ct -> ct.getId().getMaHoaDon(),
+                        Collectors.summingLong(ct -> ct.getDonGia() * ct.getSoLuong())
+                ));
+
+        // 7. Assemble response
         return chiTiets.stream().map(ct -> {
             Ve      ve = veMap.get(ct.getId().getMaVe());
             HoaDon  hd = hoaDonMap.get(ct.getId().getMaHoaDon());
@@ -188,6 +195,8 @@ public class HoaDonServiceImpl implements HoaDonService {
             if (hd != null) {
                 r.setMaHoaDon(hd.getMaHoaDon());
                 r.setNgayMua(hd.getNgayLap());
+                r.setThanhTien(hd.getThanhTien());
+                r.setThanhTienGoc(thanhTienGocMap.getOrDefault(hd.getMaHoaDon(), hd.getThanhTien()));
             }
             r.setSoLuong(ct.getSoLuong());
             return r;

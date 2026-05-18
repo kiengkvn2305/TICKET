@@ -16,6 +16,8 @@ public class VeKhachHangResponse {
     private Long      maHoaDon;
     private LocalDate ngayMua;
     private int       soLuong;
+    private Long      thanhTien;     // tổng tiền thực tế của hóa đơn (đã trừ voucher)
+    private Long      thanhTienGoc;  // tổng tiền gốc trước khi trừ voucher
 
     public Long      getMaVe()                   { return maVe; }
     public void      setMaVe(Long v)             { this.maVe = v; }
@@ -39,4 +41,8 @@ public class VeKhachHangResponse {
     public void      setNgayMua(LocalDate v)     { this.ngayMua = v; }
     public int       getSoLuong()                { return soLuong; }
     public void      setSoLuong(int v)           { this.soLuong = v; }
+    public Long      getThanhTien()              { return thanhTien; }
+    public void      setThanhTien(Long v)        { this.thanhTien = v; }
+    public Long      getThanhTienGoc()           { return thanhTienGoc; }
+    public void      setThanhTienGoc(Long v)     { this.thanhTienGoc = v; }
 }

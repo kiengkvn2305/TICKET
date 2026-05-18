@@ -19,6 +19,12 @@ public class VoucherController {
         this.voucherService = voucherService;
     }
 
+    // Tra cứu voucher theo mã code — dùng cho frontend preview giảm giá
+    @GetMapping("/code/{maCode}")
+    public ResponseEntity<VoucherResponse> getByCode(@PathVariable String maCode) {
+        return ResponseEntity.ok(voucherService.getByCode(maCode));
+    }
+
     // Lấy danh sách voucher theo nhà tổ chức (dùng maTaiKhoan làm key)
     @GetMapping("/creator/{maTaiKhoan}")
     public ResponseEntity<List<VoucherResponse>> getByCreator(

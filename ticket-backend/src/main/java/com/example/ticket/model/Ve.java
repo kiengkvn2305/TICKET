@@ -16,7 +16,8 @@ public class Ve {
     private double gia;
     private String trangThai;
     private String moTa;
-    private Long maSuKien;
+    private int    soLuong;   // tổng số vé tối đa
+    private Long   maSuKien;
 
     public Long getMaVe() {
         return maVe;

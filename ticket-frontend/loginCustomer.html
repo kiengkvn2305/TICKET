@@ -97,8 +97,6 @@
     <p id="modalEventDate" class="modal-event-date"></p>
     <hr class="modal-divider">
     <div id="modalTicketList" class="modal-ticket-list"></div>
-
-    <!-- Thêm các element này vào HTML tĩnh -->
     <div class="voucher-row" id="voucherRow" style="display:none">
       <input type="text" id="voucherInput" placeholder="Nhập mã voucher (nếu có)" />
       <button class="filter-btn" style="white-space:nowrap" onclick="applyVoucher()">Áp dụng</button>
@@ -110,7 +108,34 @@
     </div>
     <div id="buyMsg" class="buy-msg"></div>
   </div>
-  
+
+  <!-- ===== MODAL HOÀN VÉ ===== -->
+  <div id="hoanVeOverlay" class="modal-overlay" onclick="closeHoanVeModal()"></div>
+  <div id="hoanVeModal" class="modal-box">
+    <button class="modal-close" onclick="closeHoanVeModal()">✕</button>
+    <h2 class="modal-event-name">🔄 Yêu cầu hoàn vé</h2>
+    <p id="hoanVeInfo" class="modal-event-date"></p>
+    <hr class="modal-divider">
+    <div class="hoan-ve-form">
+      <label class="hoan-label">Số lượng hoàn</label>
+      <div class="qty-control" style="justify-content:flex-start; margin-bottom:16px">
+        <button class="qty-btn" onclick="changeHoanQty(-1)">−</button>
+        <span class="qty-display" id="hoanQtyDisplay">1</span>
+        <button class="qty-btn" onclick="changeHoanQty(1)">+</button>
+        <span style="margin-left:12px;color:#888;font-size:0.85rem" id="hoanQtyMax"></span>
+      </div>
+      <label class="hoan-label">Lý do hoàn vé</label>
+      <textarea id="hoanLyDo" class="hoan-textarea" rows="3"
+                placeholder="Nhập lý do hoàn vé (không bắt buộc)..."></textarea>
+    </div>
+    <div id="hoanVeMsg" class="buy-msg" style="margin-top:10px"></div>
+    <div style="text-align:right; margin-top:16px">
+      <button class="confirm-buy-btn" id="confirmHoanBtn" onclick="confirmHoanVe()">
+        Xác nhận hoàn vé
+      </button>
+    </div>
+  </div>
+
   <!-- ===== SCRIPTS ===== -->
   <script src="js/common/api.js"></script>
   <script src="js/common/authGuard.js"></script>

@@ -16,6 +16,7 @@ public class HoaDon {
     private String trangThai;
     private Long thanhTien;
     private Long maKhachHang;
+    private Long maNhanVien;
     private Long maVoucher;
 
     public Long getMaHoaDon() {
@@ -58,11 +59,18 @@ public class HoaDon {
         this.maKhachHang = maKhachHang;
     }
     
-    public Long getMaVoucher(){
+    public Long getMaNhanVien(){
+        return maNhanVien;
+    }
+
+    public void setMaNhanVien(Long maNhanVien){
+        this.maNhanVien = maNhanVien;
+    }
+    public Long getMaVoucher() {
         return maVoucher;
     }
-    
-    public void setMaVoucher(Long maVoucher){
+
+    public void setMaVoucher(Long maVoucher) {
         this.maVoucher = maVoucher;
     }
 }

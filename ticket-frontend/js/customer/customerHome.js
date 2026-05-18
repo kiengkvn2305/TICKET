@@ -4,10 +4,11 @@
 
 const currentUser = JSON.parse(localStorage.getItem("user"));
 
-let allEvents    = [];
-let cartMap      = {};
-let modalTickets = [];
-let currentEvent = null;
+let allEvents       = [];
+let cartMap         = {};
+let modalTickets    = [];
+let currentEvent    = null;
+let appliedDiscount = 0;   // % giảm giá đang áp dụng (0 = chưa có)
 
 /* ── KHỞI ĐỘNG ── */
 window.addEventListener("DOMContentLoaded", () => {
@@ -121,15 +122,16 @@ function openBuyModal(maSuKien) {
     const sk = allEvents.find(e => e.maSuKien === maSuKien);
     if (!sk) return;
 
-    currentEvent = sk;
-    cartMap      = {};
+    currentEvent    = sk;
+    cartMap         = {};
+    appliedDiscount = 0;
 
     document.getElementById("buyMsg").textContent = "";
     document.getElementById("buyMsg").className   = "buy-msg";
     const vi = document.getElementById("voucherInput");
     if (vi) vi.value = "";
     const vm = document.getElementById("voucherMsg");
-    if (vm) vm.textContent = "";
+    if (vm) { vm.textContent = ""; vm.className = "buy-msg"; }
     document.getElementById("modalEventName").textContent =
         sk.tenSuKien;
     document.getElementById("modalEventDate").textContent =
@@ -167,12 +169,17 @@ function renderModalTickets(tickets) {
     const list = document.getElementById("modalTicketList");
     const available = tickets.filter(v => v.trangThai !== "Hết vé");
 
+    const voucherRow  = document.getElementById("voucherRow");
+    const modalSummary = document.getElementById("modalSummary");
+
     if (available.length === 0) {
         list.innerHTML = `
             <div class="empty-state">
                 <div class="empty-icon">😔</div>
                 <p>Sự kiện này đã hết vé.</p>
             </div>`;
+        if (voucherRow)   voucherRow.style.display   = "none";
+        if (modalSummary) modalSummary.style.display = "none";
         return;
     }
 
@@ -191,18 +198,11 @@ function renderModalTickets(tickets) {
                 <button class="qty-btn" onclick="changeQty(${ve.maVe},  1, ${ve.gia})">+</button>
             </div>
         </div>
-    `).join("") + `
-        <div class="voucher-row">
-            <input type="text" id="voucherInput" placeholder="Nhập mã voucher (nếu có)" />
-            <button class="filter-btn" style="white-space:nowrap" onclick="applyVoucher()">Áp dụng</button>
-        </div>
-        <div id="voucherMsg" class="buy-msg" style="margin-top:6px"></div>
-        <div class="modal-summary">
-            <div class="modal-total">Tổng cộng: <strong id="totalPrice">0 ₫</strong></div>
-            <button class="confirm-buy-btn" id="confirmBuyBtn" onclick="confirmBuy()">
-                Xác nhận mua
-            </button>
-        </div>`;
+    `).join("");
+
+    if (voucherRow)   voucherRow.style.display   = "";
+    if (modalSummary) modalSummary.style.display = "";
+    updateTotal();
 }
 
 function changeQty(maVe, delta, gia) {
@@ -219,12 +219,21 @@ function updateTotal() {
         total += (cartMap[ve.maVe] || 0) * ve.gia;
     });
     const el = document.getElementById("totalPrice");
-    if (el) el.textContent = formatPrice(total);
+    if (!el) return;
+
+    if (appliedDiscount > 0) {
+        const sau = Math.round(total * (1 - appliedDiscount / 100));
+        el.innerHTML = `<span style="text-decoration:line-through;color:#aaa;font-weight:400">${formatPrice(total)}</span>
+            &nbsp;→&nbsp;<span style="color:#e55">${formatPrice(sau)}</span>
+            <span style="font-size:0.8rem;color:#e55;font-weight:600"> (-${appliedDiscount}%)</span>`;
+    } else {
+        el.textContent = formatPrice(total);
+    }
 }
 
-// Áp dụng voucher — chỉ hiển thị preview, thực tế tính ở backend khi mua
+// Áp dụng voucher — gọi backend lấy % giảm thật, cập nhật tổng ngay
 function applyVoucher() {
-    const code = document.getElementById("voucherInput").value.trim();
+    const code  = document.getElementById("voucherInput").value.trim();
     const msgEl = document.getElementById("voucherMsg");
 
     if (!code) {
@@ -233,9 +242,36 @@ function applyVoucher() {
         return;
     }
 
-    // Hiện thông báo đơn giản — backend sẽ validate khi confirmBuy
-    msgEl.textContent = `✅ Mã "${code}" sẽ được áp dụng khi thanh toán`;
-    msgEl.className   = "buy-msg ok";
+    msgEl.textContent = "Đang kiểm tra...";
+    msgEl.className   = "buy-msg";
+
+    fetch(`${BASE_URL}/voucher/code/${encodeURIComponent(code)}`)
+        .then(async res => {
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || "Mã voucher không hợp lệ");
+            }
+            return res.json();
+        })
+        .then(voucher => {
+            if (!voucher.trangThai || voucher.trangThai.toLowerCase() !== "active") {
+                throw new Error("Voucher đã hết hạn hoặc không còn hiệu lực");
+            }
+            const pct = voucher.mucKhuyenMai || 0;
+            if (pct <= 0) {
+                throw new Error("Voucher này không có giá trị giảm giá");
+            }
+            appliedDiscount = pct;
+            updateTotal();
+            msgEl.textContent = `✅ Áp dụng thành công! Giảm ${pct}%`;
+            msgEl.className   = "buy-msg ok";
+        })
+        .catch(err => {
+            appliedDiscount = 0;
+            updateTotal();
+            msgEl.textContent = `❌ ${err.message}`;
+            msgEl.className   = "buy-msg err";
+        });
 }
 
 function confirmBuy() {
@@ -346,11 +382,14 @@ function renderMyTickets(tickets) {
                     HĐ: #${ve.maHoaDon}
                 </div>
             </div>
-            <div style="text-align:right">
-                <div class="my-ticket-price">${formatPrice(ve.gia * ve.soLuong)}</div>
+            <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:8px">
+                <div class="my-ticket-price">${buildTicketPrice(ve)}</div>
                 <span class="status-badge ${ve.trangThai === "Còn vé" ? "status-available" : "status-sold"}">
                     ${escHtml(ve.trangThai || "—")}
                 </span>
+                <button class="hoan-ve-btn" onclick="openHoanVeModal(${ve.maVe}, ${ve.maHoaDon}, ${ve.soLuong}, '${escHtml(ve.tenVe || "")}')">
+                    🔄 Hoàn vé
+                </button>
             </div>
         </div>
     `).join("");
@@ -359,6 +398,20 @@ function renderMyTickets(tickets) {
 /* ========================================================
    HELPERS
    ======================================================== */
+
+// Hiển thị giá vé trong "Vé của tôi": gạch ngang giá gốc nếu có giảm voucher
+function buildTicketPrice(ve) {
+    const goc = ve.thanhTienGoc;
+    const sau = ve.thanhTien;
+    // Nếu có giảm giá (thanhTien < thanhTienGoc) thì hiện cả 2
+    if (goc && sau && sau < goc) {
+        return `<span style="text-decoration:line-through;color:#aaa;font-size:0.85rem;font-weight:400">${formatPrice(goc)}</span>
+                <br><span style="color:#e55;font-weight:700">${formatPrice(sau)}</span>`;
+    }
+    // Không có voucher → hiện thanhTien hoặc tính từ donGia
+    return formatPrice(sau || (ve.gia * ve.soLuong));
+}
+
 function formatDate(val) {
     if (!val) return "—";
     if (Array.isArray(val)) {
@@ -385,4 +438,82 @@ function errorState(msg) {
         <div class="empty-icon">⚠️</div>
         <p>${escHtml(msg)}</p>
     </div>`;
+}
+
+/* ========================================================
+   HOÀN VÉ
+   ======================================================== */
+let hoanVeData = { maVe: null, maHoaDon: null, soLuongMua: 1, hoanQty: 1 };
+
+function openHoanVeModal(maVe, maHoaDon, soLuongMua, tenVe) {
+    hoanVeData = { maVe, maHoaDon, soLuongMua, hoanQty: 1 };
+
+    document.getElementById("hoanVeInfo").textContent =
+        `Vé: ${tenVe} — HĐ #${maHoaDon} — Đã mua: ${soLuongMua} vé`;
+    document.getElementById("hoanQtyDisplay").textContent = 1;
+    document.getElementById("hoanQtyMax").textContent = `(tối đa ${soLuongMua})`;
+    document.getElementById("hoanLyDo").value = "";
+    document.getElementById("hoanVeMsg").textContent = "";
+    document.getElementById("hoanVeMsg").className = "buy-msg";
+
+    document.getElementById("hoanVeOverlay").style.display = "block";
+    const box = document.getElementById("hoanVeModal");
+    box.style.display = "block";
+    requestAnimationFrame(() => box.classList.add("open"));
+}
+
+function closeHoanVeModal() {
+    const box = document.getElementById("hoanVeModal");
+    box.classList.remove("open");
+    setTimeout(() => {
+        box.style.display = "none";
+        document.getElementById("hoanVeOverlay").style.display = "none";
+    }, 220);
+}
+
+function changeHoanQty(delta) {
+    const next = hoanVeData.hoanQty + delta;
+    if (next < 1 || next > hoanVeData.soLuongMua) return;
+    hoanVeData.hoanQty = next;
+    document.getElementById("hoanQtyDisplay").textContent = next;
+}
+
+function confirmHoanVe() {
+    const lyDo = document.getElementById("hoanLyDo").value.trim();
+    const btn  = document.getElementById("confirmHoanBtn");
+    const msgEl = document.getElementById("hoanVeMsg");
+
+    btn.disabled    = true;
+    btn.textContent = "Đang xử lý...";
+    msgEl.textContent = "";
+
+    fetch(`${BASE_URL}/hoanve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            maHoaDon:    hoanVeData.maHoaDon,
+            maVe:        hoanVeData.maVe,
+            soLuongHoan: hoanVeData.hoanQty,
+            lyDoHoan:    lyDo || null
+        })
+    })
+    .then(async res => {
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || "Gửi yêu cầu hoàn vé thất bại");
+        }
+        return res.json();
+    })
+    .then(data => {
+        msgEl.textContent = `✅ Yêu cầu hoàn vé #${data.maHoanVe} đã được ghi nhận. Chúng tôi sẽ xử lý trong vòng 3–5 ngày làm việc.`;
+        msgEl.className   = "buy-msg ok";
+        btn.textContent   = "Đã gửi";
+        setTimeout(closeHoanVeModal, 3000);
+    })
+    .catch(err => {
+        msgEl.textContent = err.message;
+        msgEl.className   = "buy-msg err";
+        btn.disabled    = false;
+        btn.textContent = "Xác nhận hoàn vé";
+    });
 }

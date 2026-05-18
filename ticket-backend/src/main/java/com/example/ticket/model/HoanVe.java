@@ -12,18 +12,19 @@ public class HoanVe {
     @SequenceGenerator(name = "hoanve_seq", sequenceName = "HOANVE_SEQ", allocationSize = 1)
     private Long maHoanVe;
 
+    private Long maHoaDon;
+    private Long maVe;
     private LocalDate thoiGianHoan;
     private int soLuongHoan;
     private String lyDoHoan;
     private String trangThaiHoan;
 
-    public Long getMaHoanVe() {
-        return maHoanVe;
-    }
-
-    public void setMaHoanVe(Long maHoanVe) {
-        this.maHoanVe = maHoanVe;
-    }
+    public Long getMaHoanVe() { return maHoanVe; }
+    public void setMaHoanVe(Long maHoanVe) { this.maHoanVe = maHoanVe; }
+    public Long getMaHoaDon() { return maHoaDon; }
+    public void setMaHoaDon(Long v) { this.maHoaDon = v; }
+    public Long getMaVe() { return maVe; }
+    public void setMaVe(Long v) { this.maVe = v; }
 
     public LocalDate getThoiGianHoan() {
         return thoiGianHoan;
