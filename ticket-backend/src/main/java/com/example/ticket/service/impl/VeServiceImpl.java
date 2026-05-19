@@ -60,6 +60,9 @@ public class VeServiceImpl implements VeService {
         r.setMoTa(ve.getMoTa());
         r.setMaSuKien(ve.getMaSuKien());
         if (suKien != null) r.setTenSuKien(suKien.getTenSuKien());
+        r.setSoLuong(ve.getSoLuong());
+        r.setDaBan(ve.getDaBan());
+        r.setConLai(ve.getConLai());  // tính động: soLuong - daBan
         return r;
     }
 
@@ -130,6 +133,8 @@ public class VeServiceImpl implements VeService {
         ve.setTrangThai(request.getTrangThai());
         ve.setMoTa(request.getMoTa());
         ve.setMaSuKien(sk.getMaSuKien());
+        ve.setSoLuong(request.getSoLuong());
+        ve.setDaBan(0); // vé mới tạo chưa bán được vé nào
 
         return mapToResponse(veRepository.save(ve), sk);
     }
@@ -146,6 +151,8 @@ public class VeServiceImpl implements VeService {
         existing.setGia(request.getGia());
         existing.setTrangThai(request.getTrangThai());
         existing.setMoTa(request.getMoTa());
+        existing.setSoLuong(request.getSoLuong());
+        existing.setDaBan(request.getDaBan());
 
         SuKien sk = suKienRepository.findById(existing.getMaSuKien()).orElse(null);
         return mapToResponse(veRepository.save(existing), sk);

@@ -149,6 +149,15 @@ public class HoanVeServiceImpl implements HoanVeService {
         hv.setTrangThaiHoan(trangThai.toLowerCase());
         hoanVeRepository.save(hv);
 
+        // Nếu duyệt approved → giảm daBan của vé lại
+        if ("approved".equalsIgnoreCase(trangThai)) {
+            veRepository.findById(hv.getMaVe()).ifPresent(ve -> {
+                int newDaBan = Math.max(0, ve.getDaBan() - hv.getSoLuongHoan());
+                ve.setDaBan(newDaBan);
+                veRepository.saveAndFlush(ve);
+            });
+        }
+
         // Reuse getByCreator logic — đơn giản build response trực tiếp
         Ve ve        = veRepository.findById(hv.getMaVe()).orElse(null);
         SuKien sk    = ve != null && ve.getMaSuKien() != null ? suKienRepository.findById(ve.getMaSuKien()).orElse(null) : null;

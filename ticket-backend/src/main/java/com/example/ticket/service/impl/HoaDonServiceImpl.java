@@ -107,9 +107,23 @@ public class HoaDonServiceImpl implements HoaDonService {
         hoaDon.setMaVoucher(maVoucher);
         HoaDon saved = hoaDonRepository.save(hoaDon);
 
-        // 6. Tạo ChiTietHoaDon cho từng item
+        // 6. Tạo ChiTietHoaDon cho từng item + tăng daBan của vé
         List<ChiTietHoaDonResponse> chiTietList = new ArrayList<>();
         for (MuaVeRequest.ItemRequest item : request.getItems()) {
+            Ve ve = veMap.get(item.getMaVe());
+
+            // Kiểm tra còn đủ vé không
+            int conLai = ve.getSoLuong() - ve.getDaBan();
+            if (item.getSoLuong() > conLai) {
+                throw new BadRequestException(
+                    "Vé '" + ve.getTenVe() + "' chỉ còn " + conLai + " vé, không đủ số lượng yêu cầu"
+                );
+            }
+
+            // Tăng daBan
+            ve.setDaBan(ve.getDaBan() + item.getSoLuong());
+            veRepository.saveAndFlush(ve);
+
             ChiTietHoaDonID id = new ChiTietHoaDonID(item.getMaVe(), saved.getMaHoaDon());
             ChiTietHoaDon ct = new ChiTietHoaDon();
             ct.setId(id);

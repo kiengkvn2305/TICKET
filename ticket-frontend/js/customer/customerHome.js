@@ -1,5 +1,8 @@
 /* ==========================================================
    js/customer/customerHome.js
+   - Modal mua vé: hiển thị số còn lại / đã bán / progress bar
+   - Event card: hiển thị tên nhà tổ chức
+   - Không cho thêm vào giỏ quá số vé còn lại
    ========================================================== */
 
 const currentUser = JSON.parse(localStorage.getItem("user"));
@@ -9,10 +12,9 @@ let cartMap          = {};
 let modalTickets     = [];
 let currentEvent     = null;
 let appliedDiscount  = 0;
-let allMyTickets     = [];      // raw list từ API
-let activeMyFilter   = "all";   // tab filter hiện tại
+let allMyTickets     = [];
+let activeMyFilter   = "all";
 
-/* ── KHỞI ĐỘNG ── */
 window.addEventListener("DOMContentLoaded", () => {
     if (!currentUser) { window.location.href = "loginpopup.html"; return; }
     const el = document.getElementById("welcomeName");
@@ -20,9 +22,7 @@ window.addEventListener("DOMContentLoaded", () => {
     loadAllEvents();
 });
 
-/* ========================================================
-   TAB CHÍNH
-   ======================================================== */
+/* ── TAB ─────────────────────────────────────────────────── */
 function showTab(tabName) {
     document.querySelectorAll(".tab-btn").forEach(b  => b.classList.remove("active"));
     document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
@@ -33,28 +33,25 @@ function showTab(tabName) {
     if (menu) menu.classList.remove("show");
 }
 
-/* ========================================================
-   SỰ KIỆN
-   ======================================================== */
+/* ── SỰ KIỆN ─────────────────────────────────────────────── */
 function loadAllEvents() {
     fetch(`${BASE_URL}/sukien`)
-        .then(res => { if (!res.ok) throw new Error("Không lấy được danh sách sự kiện"); return res.json(); })
+        .then(r => { if (!r.ok) throw new Error("Không lấy được sự kiện"); return r.json(); })
         .then(data => { allEvents = data; renderEvents(data); })
         .catch(err => { document.getElementById("eventGrid").innerHTML = errorState(err.message); });
 }
 
 function applyEventFilter() {
-    const keyword = document.getElementById("filterEvent").value.trim().toLowerCase();
-    const sort    = document.getElementById("filterSort").value;
-    let filtered  = allEvents.filter(sk => sk.tenSuKien.toLowerCase().includes(keyword));
-    if (sort === "asc")  filtered.sort((a, b) => new Date(a.thoiGianBatDau) - new Date(b.thoiGianBatDau));
-    if (sort === "desc") filtered.sort((a, b) => new Date(b.thoiGianBatDau) - new Date(a.thoiGianBatDau));
-    renderEvents(filtered);
+    const kw   = document.getElementById("filterEvent").value.trim().toLowerCase();
+    const sort = document.getElementById("filterSort").value;
+    let list   = allEvents.filter(sk => sk.tenSuKien.toLowerCase().includes(kw));
+    if (sort === "asc")  list.sort((a,b) => new Date(a.thoiGianBatDau) - new Date(b.thoiGianBatDau));
+    if (sort === "desc") list.sort((a,b) => new Date(b.thoiGianBatDau) - new Date(a.thoiGianBatDau));
+    renderEvents(list);
 }
 
 function onGlobalSearch() {
-    const keyword = document.getElementById("globalSearch").value.trim().toLowerCase();
-    document.getElementById("filterEvent").value = keyword;
+    document.getElementById("filterEvent").value = document.getElementById("globalSearch").value;
     applyEventFilter();
     showTab("events");
 }
@@ -66,49 +63,92 @@ function renderEvents(data) {
         return;
     }
     grid.innerHTML = data.map((sk, idx) => `
-        <div class="event-card-customer" style="animation-delay:${idx * 0.06}s">
+        <div class="event-card-customer" style="animation-delay:${idx*0.06}s">
             <div class="card-color-bar"></div>
             <div class="card-body">
                 <h3 class="card-event-name">${escHtml(sk.tenSuKien)}</h3>
+                <div id="org-${sk.maSuKien}" class="card-organizer">
+                    <span style="color:#ccc;font-size:0.78rem">🏢 Đang tải...</span>
+                </div>
                 <p class="card-event-desc">${escHtml(sk.moTa || "Không có mô tả")}</p>
                 <div class="card-dates">
-                    <span class="date-badge">📅 Bắt đầu: ${formatDate(sk.thoiGianBatDau)}</span>
-                    <span class="date-badge">🏁 Kết thúc: ${formatDate(sk.thoiGianKetThuc)}</span>
+                    <span class="date-badge">📅 ${formatDate(sk.thoiGianBatDau)}</span>
+                    <span class="date-badge">🏁 ${formatDate(sk.thoiGianKetThuc)}</span>
                 </div>
             </div>
             <div class="card-footer">
-                <span class="ticket-count-badge" id="min-price-${sk.maSuKien}">Đang tải...</span>
+                <div>
+                    <span class="ticket-count-badge" id="min-price-${sk.maSuKien}">Đang tải...</span>
+                    <span id="stock-badge-${sk.maSuKien}" style="display:block;font-size:0.75rem;color:#aaa;margin-top:2px"></span>
+                </div>
                 <button class="buy-btn" onclick="openBuyModal(${sk.maSuKien})">Mua vé</button>
             </div>
         </div>`).join("");
-    data.forEach(sk => loadMinPrice(sk.maSuKien));
+
+    data.forEach(sk => loadEventMeta(sk.maSuKien, sk.maCongTy));
 }
 
-function loadMinPrice(maSuKien) {
+function loadEventMeta(maSuKien, maCongTy) {
+    // Vé: giá + số còn lại
     fetch(`${BASE_URL}/ve/sukien/${maSuKien}`)
         .then(r => r.ok ? r.json() : [])
         .then(tickets => {
-            const el = document.getElementById(`min-price-${maSuKien}`);
-            if (!el) return;
-            if (!tickets || !tickets.length) { el.textContent = "Liên hệ"; return; }
-            el.textContent = "Từ " + formatPrice(Math.min(...tickets.map(v => v.gia)));
-        })
-        .catch(() => { const el = document.getElementById(`min-price-${maSuKien}`); if (el) el.textContent = "—"; });
+            const priceEl = document.getElementById(`min-price-${maSuKien}`);
+            const stockEl = document.getElementById(`stock-badge-${maSuKien}`);
+            if (priceEl) {
+                if (!tickets.length) { priceEl.textContent = "Liên hệ"; return; }
+                priceEl.textContent = "Từ " + formatPrice(Math.min(...tickets.map(v => v.gia)));
+            }
+            if (stockEl) {
+                const totalConLai  = tickets.reduce((s, v) => s + (v.conLai  ?? 0), 0);
+                const totalSoLuong = tickets.reduce((s, v) => s + (v.soLuong ?? 0), 0);
+                if (totalSoLuong > 0) {
+                    if (totalConLai === 0)
+                        stockEl.innerHTML = `<span style="color:#dc2626;font-weight:700">Hết vé</span>`;
+                    else if (totalConLai <= 10)
+                        stockEl.innerHTML = `<span style="color:#ea580c;font-weight:700">🔥 Còn ${totalConLai} vé</span>`;
+                    else
+                        stockEl.textContent = `Còn ${totalConLai.toLocaleString("vi-VN")} vé`;
+                }
+            }
+        }).catch(() => {});
+
+    // Nhà tổ chức (nếu maCongTy có sẵn trong SuKienResponse)
+    if (maCongTy) {
+        fetchOrganizer(maCongTy, maSuKien);
+    } else {
+        // Fallback: lấy qua endpoint chi tiết sự kiện
+        fetch(`${BASE_URL}/sukien/${maSuKien}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(sk => { if (sk?.maCongTy) fetchOrganizer(sk.maCongTy, maSuKien); })
+            .catch(() => {});
+    }
 }
 
-/* ========================================================
-   MODAL MUA VÉ
-   ======================================================== */
+function fetchOrganizer(maCongTy, maSuKien) {
+    fetch(`${BASE_URL}/nhatochuc/${maCongTy}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(org => {
+            const el = document.getElementById(`org-${maSuKien}`);
+            if (!el || !org) return;
+            el.innerHTML = `
+                <span style="font-size:0.8rem;color:#0d9488;font-weight:600">🏢 ${escHtml(org.tenCongTy || "—")}</span>
+                ${org.tenNguoiDaiDien ? `<span style="font-size:0.75rem;color:#888"> · ${escHtml(org.tenNguoiDaiDien)}</span>` : ""}
+            `;
+        }).catch(() => {
+            const el = document.getElementById(`org-${maSuKien}`);
+            if (el) el.innerHTML = "";
+        });
+}
+
+/* ── MODAL MUA VÉ ────────────────────────────────────────── */
 function openBuyModal(maSuKien) {
     const sk = allEvents.find(e => e.maSuKien === maSuKien);
     if (!sk) return;
+    currentEvent = sk; cartMap = {}; appliedDiscount = 0;
 
-    currentEvent    = sk;
-    cartMap         = {};
-    appliedDiscount = 0;
-
-    document.getElementById("buyMsg").textContent  = "";
-    document.getElementById("buyMsg").className    = "buy-msg";
+    document.getElementById("buyMsg").textContent = "";
+    document.getElementById("buyMsg").className   = "buy-msg";
     const vi = document.getElementById("voucherInput");  if (vi) vi.value = "";
     const vm = document.getElementById("voucherMsg");    if (vm) { vm.textContent = ""; vm.className = "buy-msg"; }
     const vld = document.getElementById("voucherListDrop"); if (vld) vld.style.display = "none";
@@ -130,7 +170,8 @@ function openBuyModal(maSuKien) {
         renderModalTickets(tickets);
         renderVoucherList(vouchers);
     }).catch(err => {
-        document.getElementById("modalTicketList").innerHTML = `<p style="color:#dc2626;text-align:center">${err.message}</p>`;
+        document.getElementById("modalTicketList").innerHTML =
+            `<p style="color:#dc2626;text-align:center">${err.message}</p>`;
     });
 }
 
@@ -144,63 +185,96 @@ function renderModalTickets(tickets) {
     const list         = document.getElementById("modalTicketList");
     const voucherRow   = document.getElementById("voucherRow");
     const modalSummary = document.getElementById("modalSummary");
-    const available    = tickets.filter(v => v.trangThai !== "Hết vé");
-
-    if (!available.length) {
-        list.innerHTML = `<div class="empty-state"><div class="empty-icon">😔</div><p>Sự kiện này đã hết vé.</p></div>`;
+    if (!tickets.length) {
+        list.innerHTML = `<div class="empty-state"><div class="empty-icon">😔</div><p>Sự kiện này chưa có vé nào.</p></div>`;
         if (voucherRow)   voucherRow.style.display   = "none";
         if (modalSummary) modalSummary.style.display = "none";
         return;
     }
 
-    list.innerHTML = available.map(ve => `
-        <div class="modal-ticket-row">
-            <div class="modal-ticket-info">
-                <div class="modal-ticket-name">${escHtml(ve.tenVe)}</div>
-                <div class="modal-ticket-type">${escHtml(ve.loaiVe || "")}
-                    ${ve.trangThai ? `<span class="status-badge ${ve.trangThai === "Còn vé" ? "status-available" : "status-sold"}">${ve.trangThai}</span>` : ""}
+    // Kiểm tra có ít nhất 1 vé còn hàng không
+    const hasAvailable = tickets.some(v => v.conLai == null || v.conLai > 0);
+    if (!hasAvailable) {
+        if (voucherRow)   voucherRow.style.display   = "none";
+        if (modalSummary) modalSummary.style.display = "none";
+    } else {
+        if (voucherRow)   voucherRow.style.display   = "";
+        if (modalSummary) modalSummary.style.display = "";
+    }
+
+    list.innerHTML = tickets.map(ve => {
+        const conLai   = ve.conLai  ?? null;
+        const soLuong  = ve.soLuong ?? null;
+        const daBan    = ve.daBan   ?? null;
+        const pct      = soLuong > 0 && daBan != null ? Math.round((daBan / soLuong) * 100) : null;
+        const lowStock = conLai != null && conLai > 0 && conLai <= 10;
+        const soldOut  = conLai != null && conLai === 0 && soLuong > 0;
+
+        return `
+        <div class="modal-ticket-row" style="${soldOut ? 'opacity:0.65' : ''}">
+            <div class="modal-ticket-info" style="flex:1">
+                <div style="display:flex;align-items:center;gap:8px">
+                    <div class="modal-ticket-name">${escHtml(ve.tenVe)}</div>
+                    ${soldOut ? '<span style="background:#fee2e2;color:#dc2626;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px">HẾT VÉ</span>' : ''}
+                </div>
+                <div class="modal-ticket-type">${escHtml(ve.loaiVe || "")}</div>
+                <!-- Số liệu -->
+                <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;align-items:center">
+                    ${soLuong != null ? chip(soLuong.toLocaleString("vi-VN") + " vé", "#e0f2fe","#0369a1") : ""}
+                    ${daBan   != null ? chip("Đã bán: " + daBan.toLocaleString("vi-VN"), "#f3f4f6","#555") : ""}
+                    ${conLai  != null
+                        ? lowStock
+                            ? chip("🔥 Còn " + conLai, "#fff7ed","#ea580c")
+                            : chip("✅ Còn " + conLai.toLocaleString("vi-VN"), "#dcfce7","#15803d")
+                        : ""}
+                </div>
+                ${pct != null ? `
+                <div style="background:#f3f4f6;border-radius:20px;height:4px;margin-top:8px;overflow:hidden;max-width:220px">
+                    <div style="width:${pct}%;height:100%;background:${pct>=90?"#ef4444":pct>=60?"#f59e0b":"#3cdbd8"};border-radius:20px;transition:width .4s"></div>
+                </div>` : ""}
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:120px">
+                <div class="modal-ticket-price-tag">${formatPrice(ve.gia)}</div>
+                <div class="qty-control">
+                    <button class="qty-btn" onclick="changeQty(${ve.maVe},-1,${conLai ?? 9999})" ${soldOut ? 'disabled style="opacity:0.4;cursor:not-allowed"' : ''}>−</button>
+                    <span class="qty-display" id="qty-${ve.maVe}">0</span>
+                    <button class="qty-btn" onclick="changeQty(${ve.maVe}, 1,${conLai ?? 9999})" ${soldOut ? 'disabled style="opacity:0.4;cursor:not-allowed"' : ''}>+</button>
                 </div>
             </div>
-            <div class="modal-ticket-price-tag">${formatPrice(ve.gia)}</div>
-            <div class="qty-control">
-                <button class="qty-btn" onclick="changeQty(${ve.maVe}, -1, ${ve.gia})">−</button>
-                <span class="qty-display" id="qty-${ve.maVe}">0</span>
-                <button class="qty-btn" onclick="changeQty(${ve.maVe},  1, ${ve.gia})">+</button>
-            </div>
-        </div>`).join("");
+        </div>`;
+    }).join("");
 
-    if (voucherRow)   voucherRow.style.display   = "";
-    if (modalSummary) modalSummary.style.display = "";
     updateTotal();
 }
 
-function changeQty(maVe, delta) {
-    cartMap[maVe] = Math.max(0, (cartMap[maVe] || 0) + delta);
-    const el = document.getElementById(`qty-${maVe}`);
-    if (el) el.textContent = cartMap[maVe];
+function chip(label, bg, color) {
+    return `<span style="background:${bg};color:${color};font-size:0.72rem;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap">${label}</span>`;
+}
+
+function changeQty(maVe, delta, maxConLai) {
+    const next = (cartMap[maVe] || 0) + delta;
+    if (next < 0 || (delta > 0 && next > maxConLai)) return;
+    cartMap[maVe] = next;
+    const el = document.getElementById(`qty-${maVe}`); if (el) el.textContent = next;
     updateTotal();
 }
 
 function updateTotal() {
     let total = 0;
     modalTickets.forEach(ve => { total += (cartMap[ve.maVe] || 0) * ve.gia; });
-    const el = document.getElementById("totalPrice");
-    if (!el) return;
+    const el = document.getElementById("totalPrice"); if (!el) return;
     if (appliedDiscount > 0) {
         const sau = Math.round(total * (1 - appliedDiscount / 100));
         el.innerHTML = `<span style="text-decoration:line-through;color:#aaa;font-weight:400">${formatPrice(total)}</span>
             &nbsp;→&nbsp;<span style="color:#e55">${formatPrice(sau)}</span>
             <span style="font-size:0.8rem;color:#e55;font-weight:600"> (-${appliedDiscount}%)</span>`;
-    } else {
-        el.textContent = formatPrice(total);
-    }
+    } else { el.textContent = formatPrice(total); }
 }
 
 let allVouchersForEvent = [];
 function renderVoucherList(vouchers) {
     allVouchersForEvent = vouchers;
-    const drop = document.getElementById("voucherListDrop");
-    if (!drop) return;
+    const drop = document.getElementById("voucherListDrop"); if (!drop) return;
     if (!vouchers.length) { drop.style.display = "none"; return; }
     drop.style.display = "block";
     drop.innerHTML = vouchers.map(v => `
@@ -214,19 +288,16 @@ function filterVoucherList() {
     const kw = document.getElementById("voucherInput").value.trim().toLowerCase();
     renderVoucherList(allVouchersForEvent.filter(v => v.maCode.toLowerCase().includes(kw)));
 }
-function selectVoucher(maCode) {
-    document.getElementById("voucherInput").value = maCode;
-    applyVoucher();
-}
+function selectVoucher(maCode) { document.getElementById("voucherInput").value = maCode; applyVoucher(); }
 
 function applyVoucher() {
-    const code  = document.getElementById("voucherInput").value.trim();
+    const code = document.getElementById("voucherInput").value.trim();
     const msgEl = document.getElementById("voucherMsg");
     if (!code) { msgEl.textContent = "Vui lòng nhập mã voucher"; msgEl.className = "buy-msg err"; return; }
     msgEl.textContent = "Đang kiểm tra..."; msgEl.className = "buy-msg";
     fetch(`${BASE_URL}/voucher/code/${encodeURIComponent(code)}/sukien/${currentEvent.maSuKien}`)
-        .then(async res => { if (!res.ok) { const t = await res.text(); throw new Error(t || "Mã voucher không hợp lệ"); } return res.json(); })
-        .then(v => { appliedDiscount = v.mucKhuyenMai || 0; updateTotal(); msgEl.textContent = `✅ Áp dụng thành công! Giảm ${appliedDiscount}%`; msgEl.className = "buy-msg ok"; })
+        .then(async r => { if (!r.ok) { const t = await r.text(); throw new Error(t || "Không hợp lệ"); } return r.json(); })
+        .then(v => { appliedDiscount = v.mucKhuyenMai || 0; updateTotal(); msgEl.textContent = `✅ Giảm ${appliedDiscount}%`; msgEl.className = "buy-msg ok"; })
         .catch(err => { appliedDiscount = 0; updateTotal(); msgEl.textContent = `❌ ${err.message}`; msgEl.className = "buy-msg err"; });
 }
 
@@ -241,391 +312,215 @@ function confirmBuy() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ maTaiKhoan: currentUser.maTaiKhoan, maSuKien: currentEvent.maSuKien, maVoucher: maVoucher || null, items })
     })
-    .then(async res => { if (!res.ok) { const t = await res.text(); throw new Error(t || "Mua vé thất bại"); } return res.json(); })
+    .then(async r => { if (!r.ok) { const t = await r.text(); throw new Error(t || "Mua vé thất bại"); } return r.json(); })
     .then(data => {
-        let msg = `🎉 Mua vé thành công! Mã hóa đơn: #${data.maHoaDon}`;
-        if (data.phanTramGiam) msg += ` — Giảm ${data.phanTramGiam}% → Còn ${formatPrice(data.thanhTienSau)}`;
-        showBuyMsg(msg, "ok");
+        showBuyMsg(`🎉 Mua thành công! Mã HĐ: #${data.maHoaDon}`, "ok");
         cartMap = {};
-        setTimeout(closeBuyModal, 2500);
+        setTimeout(() => {
+            closeBuyModal();
+            loadAllEvents(); // Cập nhật số vé còn lại trên trang
+        }, 2200);
     })
     .catch(err => showBuyMsg(err.message, "err"))
     .finally(() => { btn.disabled = false; btn.textContent = "Xác nhận mua"; });
 }
+function showBuyMsg(text, type) { const el = document.getElementById("buyMsg"); el.textContent = text; el.className = "buy-msg " + type; }
 
-function showBuyMsg(text, type) {
-    const el = document.getElementById("buyMsg"); el.textContent = text; el.className = "buy-msg " + type;
-}
-
-/* ========================================================
-   VÉ CỦA TÔI — nhóm theo hóa đơn
-   ======================================================== */
+/* ── VÉ CỦA TÔI ──────────────────────────────────────────── */
 function loadMyTickets() {
     const container = document.getElementById("myTicketsList");
-    container.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Đang tải vé của bạn...</p></div>`;
-
+    container.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Đang tải...</p></div>`;
     fetch(`${BASE_URL}/hoadon/khachhang/${currentUser.maTaiKhoan}`)
-        .then(res => { if (!res.ok) throw new Error("Không lấy được vé"); return res.json(); })
+        .then(r => { if (!r.ok) throw new Error("Không lấy được vé"); return r.json(); })
         .then(data => { allMyTickets = data; activeMyFilter = "all"; renderMyTickets(); })
         .catch(err => { document.getElementById("myTicketsList").innerHTML = errorState(err.message); });
 }
 
-/* ── Filter tab ── */
 function applyMyTicketFilter(filter) {
     activeMyFilter = filter;
-    document.querySelectorAll(".my-filter-btn").forEach(b =>
-        b.classList.toggle("active", b.dataset.filter === filter)
-    );
+    document.querySelectorAll(".my-filter-btn").forEach(b => b.classList.toggle("active", b.dataset.filter === filter));
     renderMyTickets();
 }
 
-/* ── Nhóm danh sách vé theo maHoaDon ── */
 function renderMyTickets() {
     const container = document.getElementById("myTicketsList");
-
-    // ── Lọc theo tab ──
     let filtered = allMyTickets;
     if (activeMyFilter === "pending")  filtered = allMyTickets.filter(v => v.trangThaiHoan === "pending");
     if (activeMyFilter === "approved") filtered = allMyTickets.filter(v => v.trangThaiHoan === "approved");
     if (activeMyFilter === "rejected") filtered = allMyTickets.filter(v => v.trangThaiHoan === "rejected");
     if (activeMyFilter === "normal")   filtered = allMyTickets.filter(v => !v.trangThaiHoan);
 
-    // ── Filter bar ──
-    const counts = {
-        all:      allMyTickets.length,
+    const counts = { all: allMyTickets.length,
         normal:   allMyTickets.filter(v => !v.trangThaiHoan).length,
         pending:  allMyTickets.filter(v => v.trangThaiHoan === "pending").length,
         approved: allMyTickets.filter(v => v.trangThaiHoan === "approved").length,
-        rejected: allMyTickets.filter(v => v.trangThaiHoan === "rejected").length,
-    };
+        rejected: allMyTickets.filter(v => v.trangThaiHoan === "rejected").length };
 
-    const filterBar = `
-        <div class="my-filter-bar">
-            ${[
-                { key: "all",      label: "🎫 Tất cả",           cnt: counts.all },
-                { key: "normal",   label: "✅ Đã thanh toán",     cnt: counts.normal },
-                { key: "pending",  label: "⏳ Đang chờ hoàn",     cnt: counts.pending },
-                { key: "approved", label: "💚 Hoàn thành công",   cnt: counts.approved },
-                { key: "rejected", label: "❌ Hoàn thất bại",     cnt: counts.rejected },
-            ].map(t => `
-                <button class="my-filter-btn ${activeMyFilter === t.key ? "active" : ""}"
-                        data-filter="${t.key}" onclick="applyMyTicketFilter('${t.key}')">
-                    ${t.label}
-                    ${t.cnt > 0 ? `<span class="filter-count">${t.cnt}</span>` : ""}
-                </button>`).join("")}
-        </div>`;
+    const filterBar = `<div class="my-filter-bar">${[
+        {key:"all",label:"🎫 Tất cả",cnt:counts.all},
+        {key:"normal",label:"✅ Đã thanh toán",cnt:counts.normal},
+        {key:"pending",label:"⏳ Đang chờ hoàn",cnt:counts.pending},
+        {key:"approved",label:"💚 Hoàn thành công",cnt:counts.approved},
+        {key:"rejected",label:"❌ Hoàn thất bại",cnt:counts.rejected}
+    ].map(t => `<button class="my-filter-btn ${activeMyFilter===t.key?"active":""}" data-filter="${t.key}" onclick="applyMyTicketFilter('${t.key}')">
+        ${t.label}${t.cnt>0?` <span class="filter-count">${t.cnt}</span>`:""}
+    </button>`).join("")}</div>`;
 
     if (!filtered.length) {
-        container.innerHTML = filterBar + `
-            <div class="empty-state">
-                <div class="empty-icon">🎫</div>
-                <p>${activeMyFilter === "all" ? "Bạn chưa có vé nào." : "Không có vé trong mục này."}</p>
-            </div>`;
+        container.innerHTML = filterBar + `<div class="empty-state"><div class="empty-icon">🎫</div>
+            <p>${activeMyFilter==="all"?"Bạn chưa có vé nào.":"Không có vé trong mục này."}</p></div>`;
         return;
     }
 
-    // ── Nhóm theo maHoaDon ──
     const groups = new Map();
     filtered.forEach(ve => {
-        const hdId = ve.maHoaDon;
-        if (!groups.has(hdId)) {
-            groups.set(hdId, {
-                maHoaDon:     ve.maHoaDon,
-                ngayMua:      ve.ngayMua,
-                tenSuKien:    ve.tenSuKien,
-                thanhTien:    ve.thanhTien,
-                thanhTienGoc: ve.thanhTienGoc,
-                tickets:      []
-            });
-        }
-        groups.get(hdId).tickets.push(ve);
+        if (!groups.has(ve.maHoaDon)) groups.set(ve.maHoaDon, {
+            maHoaDon: ve.maHoaDon, ngayMua: ve.ngayMua, tenSuKien: ve.tenSuKien,
+            thanhTien: ve.thanhTien, thanhTienGoc: ve.thanhTienGoc, tickets: [] });
+        groups.get(ve.maHoaDon).tickets.push(ve);
     });
 
-    const blocksHtml = [...groups.values()].map((group, gIdx) => {
-        // ── Trạng thái tổng của hóa đơn (worst-case: pending > rejected > approved > null) ──
-        const hasApproved = group.tickets.some(v => v.trangThaiHoan === "approved");
-        const hasPending  = group.tickets.some(v => v.trangThaiHoan === "pending");
-        const hasRejected = group.tickets.some(v => v.trangThaiHoan === "rejected");
-        const hasNormal   = group.tickets.some(v => !v.trangThaiHoan);
-
-        // ── Badge hóa đơn ──
-        let hdBadge = "";
-        if (hasPending)       hdBadge = `<span class="hd-badge badge-pending">⏳ Có yêu cầu hoàn đang chờ</span>`;
-        else if (hasRejected) hdBadge = `<span class="hd-badge badge-rejected">❌ Có yêu cầu hoàn bị từ chối</span>`;
-        else if (hasApproved && !hasNormal) hdBadge = `<span class="hd-badge badge-approved">💚 Đã hoàn thành công</span>`;
-        else if (hasApproved) hdBadge = `<span class="hd-badge badge-approved">💚 Một phần đã hoàn</span>`;
-        else                  hdBadge = `<span class="hd-badge badge-paid">✅ Đã thanh toán</span>`;
-
-        // ── Giá hóa đơn ──
-        const showDiscount = group.thanhTienGoc && group.thanhTien && group.thanhTien < group.thanhTienGoc;
+    const blocksHtml = [...groups.values()].map((g, idx) => {
+        const hasPending  = g.tickets.some(v => v.trangThaiHoan === "pending");
+        const hasRejected = g.tickets.some(v => v.trangThaiHoan === "rejected");
+        const hasApproved = g.tickets.some(v => v.trangThaiHoan === "approved");
+        const hasNormal   = g.tickets.some(v => !v.trangThaiHoan);
+        const hdBadge = hasPending  ? `<span class="hd-badge badge-pending">⏳ Có yêu cầu đang chờ</span>`
+                      : hasRejected ? `<span class="hd-badge badge-rejected">❌ Có hoàn bị từ chối</span>`
+                      : hasApproved && !hasNormal ? `<span class="hd-badge badge-approved">💚 Đã hoàn thành công</span>`
+                      : hasApproved ? `<span class="hd-badge badge-approved">💚 Một phần đã hoàn</span>`
+                      : `<span class="hd-badge badge-paid">✅ Đã thanh toán</span>`;
+        const showDiscount = g.thanhTienGoc && g.thanhTien && g.thanhTien < g.thanhTienGoc;
         const priceHtml = showDiscount
-            ? `<span class="hd-price-old">${formatPrice(group.thanhTienGoc)}</span>
-               <span class="hd-price-new">${formatPrice(group.thanhTien)}</span>`
-            : `<span class="hd-price-new">${formatPrice(group.thanhTien || group.tickets.reduce((s, v) => s + v.gia * v.soLuong, 0))}</span>`;
-
-        // ── Từng dòng vé ──
-        const ticketRows = group.tickets.map(ve => {
-            const hoanSection = buildHoanSection(ve);
-            return `
-                <div class="ticket-line ${ve.trangThaiHoan ? "ticket-line-hoan" : ""}">
-                    <div class="ticket-line-left">
-                        <span class="ticket-line-icon">🎟️</span>
-                        <div class="ticket-line-info">
-                            <div class="ticket-line-name">${escHtml(ve.tenVe || "—")}</div>
-                            <div class="ticket-line-meta">
-                                ${escHtml(ve.loaiVe || "—")} &nbsp;·&nbsp;
-                                SL: <strong>${ve.soLuong}</strong> &nbsp;·&nbsp;
-                                ${formatPrice(ve.gia)} / vé
-                            </div>
-                        </div>
-                    </div>
-                    <div class="ticket-line-right">
-                        <div class="ticket-line-subtotal">${formatPrice(ve.gia * ve.soLuong)}</div>
-                        ${hoanSection}
-                    </div>
-                </div>`;
-        }).join("");
-
-        return `
-            <div class="hoadon-block" style="animation-delay:${gIdx * 0.07}s">
-                <!-- HEADER HÓA ĐƠN -->
-                <div class="hoadon-header">
-                    <div class="hoadon-header-left">
-                        <span class="hoadon-num">Hóa đơn #${group.maHoaDon}</span>
-                        <span class="hoadon-date">📅 ${formatDate(group.ngayMua)}</span>
-                        <span class="hoadon-event">📍 ${escHtml(group.tenSuKien || "—")}</span>
-                    </div>
-                    <div class="hoadon-header-right">
-                        ${hdBadge}
-                        <div class="hoadon-total">${priceHtml}</div>
+            ? `<span class="hd-price-old">${formatPrice(g.thanhTienGoc)}</span><span class="hd-price-new">${formatPrice(g.thanhTien)}</span>`
+            : `<span class="hd-price-new">${formatPrice(g.thanhTien || 0)}</span>`;
+        const rows = g.tickets.map(ve => `
+            <div class="ticket-line ${ve.trangThaiHoan?"ticket-line-hoan":""}">
+                <div class="ticket-line-left">
+                    <span class="ticket-line-icon">🎟️</span>
+                    <div class="ticket-line-info">
+                        <div class="ticket-line-name">${escHtml(ve.tenVe||"—")}</div>
+                        <div class="ticket-line-meta">${escHtml(ve.loaiVe||"—")} · SL: <strong>${ve.soLuong}</strong> · ${formatPrice(ve.gia)}/vé</div>
                     </div>
                 </div>
-
-                <!-- DANH SÁCH VÉ BÊN TRONG HÓA ĐƠN -->
-                <div class="ticket-lines">
-                    ${ticketRows}
+                <div class="ticket-line-right">
+                    <div class="ticket-line-subtotal">${formatPrice(ve.gia*ve.soLuong)}</div>
+                    ${buildHoanSection(ve)}
                 </div>
-            </div>`;
+            </div>`).join("");
+        return `<div class="hoadon-block" style="animation-delay:${idx*0.07}s">
+            <div class="hoadon-header">
+                <div class="hoadon-header-left">
+                    <span class="hoadon-num">Hóa đơn #${g.maHoaDon}</span>
+                    <span class="hoadon-date">📅 ${formatDate(g.ngayMua)}</span>
+                    <span class="hoadon-event">📍 ${escHtml(g.tenSuKien||"—")}</span>
+                </div>
+                <div class="hoadon-header-right">${hdBadge}<div class="hoadon-total">${priceHtml}</div></div>
+            </div>
+            <div class="ticket-lines">${rows}</div>
+        </div>`;
     }).join("");
 
     container.innerHTML = filterBar + blocksHtml;
     injectMyTicketCSS();
 }
 
-/* ── Build phần hoàn vé cho từng dòng vé ── */
 function buildHoanSection(ve) {
-    if (ve.trangThaiHoan === "approved") {
-        return `<span class="hoan-badge hoan-approved">💚 Hoàn thành công</span>`;
-    }
-    if (ve.trangThaiHoan === "pending") {
-        return `<span class="hoan-badge hoan-pending">⏳ Đang chờ duyệt</span>`;
-    }
-    if (ve.trangThaiHoan === "rejected") {
-        return `
-            <span class="hoan-badge hoan-rejected">❌ Hoàn bị từ chối</span>
-            <button class="hoan-ve-btn" style="margin-top:6px"
-                onclick="openHoanVeModal(${ve.maVe}, ${ve.maHoaDon}, ${ve.soLuong}, '${escHtml(ve.tenVe || "")}')">
-                🔄 Gửi lại
-            </button>`;
-    }
-    // Chưa hoàn → nút hoàn vé
-    return `
-        <button class="hoan-ve-btn"
-            onclick="openHoanVeModal(${ve.maVe}, ${ve.maHoaDon}, ${ve.soLuong}, '${escHtml(ve.tenVe || "")}')">
-            🔄 Hoàn vé
-        </button>`;
+    if (ve.trangThaiHoan === "approved") return `<span class="hoan-badge hoan-approved">💚 Đã hoàn</span>`;
+    if (ve.trangThaiHoan === "pending")  return `<span class="hoan-badge hoan-pending">⏳ Chờ duyệt</span>`;
+    if (ve.trangThaiHoan === "rejected") return `<span class="hoan-badge hoan-rejected">❌ Bị từ chối</span>
+        <button class="hoan-ve-btn" style="margin-top:6px" onclick="openHoanVeModal(${ve.maVe},${ve.maHoaDon},${ve.soLuong},'${escHtml(ve.tenVe||"")}')">🔄 Gửi lại</button>`;
+    return `<button class="hoan-ve-btn" onclick="openHoanVeModal(${ve.maVe},${ve.maHoaDon},${ve.soLuong},'${escHtml(ve.tenVe||"")}')">🔄 Hoàn vé</button>`;
 }
 
-/* ── CSS inject (chạy 1 lần) ── */
-function injectMyTicketCSS() {
-    if (document.getElementById("my-ticket-style")) return;
-    const style = document.createElement("style");
-    style.id = "my-ticket-style";
-    style.textContent = `
-    /* Filter bar */
-    .my-filter-bar {
-        display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
-    }
-    .my-filter-btn {
-        display: flex; align-items: center; gap: 6px;
-        padding: 8px 16px; border-radius: 20px;
-        border: 1.5px solid #e0e0e0; background: #f8f9fb;
-        font-size: 0.83rem; font-weight: 600; color: #666;
-        cursor: pointer; font-family: 'Inter', sans-serif; transition: 0.18s;
-    }
-    .my-filter-btn:hover  { border-color: #0d9488; color: #0d9488; }
-    .my-filter-btn.active { background: #0d9488; border-color: #0d9488; color: #fff; }
-    .filter-count {
-        background: rgba(0,0,0,0.12); color: inherit;
-        font-size: 0.75rem; font-weight: 700;
-        padding: 1px 7px; border-radius: 20px; min-width: 20px; text-align: center;
-    }
-    .my-filter-btn.active .filter-count { background: rgba(255,255,255,0.25); }
-
-    /* Hóa đơn block */
-    .hoadon-block {
-        background: #fff; border-radius: 18px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-        overflow: hidden; margin-bottom: 18px;
-        animation: fadeUp 0.4s ease both;
-    }
-    .hoadon-header {
-        display: flex; align-items: flex-start; justify-content: space-between;
-        padding: 18px 22px 14px; flex-wrap: wrap; gap: 10px;
-        border-bottom: 1px solid #f0f0f0; background: #fafafa;
-    }
-    .hoadon-header-left {
-        display: flex; flex-direction: column; gap: 4px;
-    }
-    .hoadon-num {
-        font-size: 1rem; font-weight: 800; color: #1a1a2e;
-        font-family: 'Inter', sans-serif;
-    }
-    .hoadon-date {
-        font-size: 0.82rem; color: #999; font-family: 'Inter', sans-serif;
-    }
-    .hoadon-event {
-        font-size: 0.85rem; color: #555; font-weight: 600;
-        font-family: 'Inter', sans-serif;
-    }
-    .hoadon-header-right {
-        display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
-    }
-    .hoadon-total {
-        display: flex; align-items: baseline; gap: 8px;
-    }
-    .hd-price-old {
-        font-size: 0.82rem; color: #bbb; text-decoration: line-through;
-        font-family: 'Inter', sans-serif;
-    }
-    .hd-price-new {
-        font-size: 1.15rem; font-weight: 800; color: #0d9488;
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* Hóa đơn badges */
-    .hd-badge {
-        font-size: 0.75rem; font-weight: 700;
-        padding: 4px 12px; border-radius: 20px;
-        font-family: 'Inter', sans-serif;
-    }
-    .badge-paid     { background: #dcfce7; color: #15803d; }
-    .badge-pending  { background: #fef3c7; color: #92400e; }
-    .badge-rejected { background: #fee2e2; color: #991b1b; }
-    .badge-approved { background: #d1fae5; color: #065f46; }
-
-    /* Danh sách vé */
-    .ticket-lines {
-        padding: 0 22px 6px;
-    }
-    .ticket-line {
-        display: flex; align-items: flex-start; justify-content: space-between;
-        padding: 14px 0; border-bottom: 1px solid #f5f5f5; gap: 12px; flex-wrap: wrap;
-    }
-    .ticket-line:last-child { border-bottom: none; }
-    .ticket-line-hoan { background: #fffbf0; border-radius: 10px; padding: 14px 12px; margin: 4px -12px; }
-
-    .ticket-line-left {
-        display: flex; align-items: flex-start; gap: 12px; flex: 1;
-    }
-    .ticket-line-icon { font-size: 1.5rem; min-width: 28px; }
-    .ticket-line-name {
-        font-size: 0.95rem; font-weight: 700; color: #1a1a2e;
-        font-family: 'Inter', sans-serif; margin-bottom: 3px;
-    }
-    .ticket-line-meta {
-        font-size: 0.8rem; color: #888; font-family: 'Inter', sans-serif;
-    }
-
-    .ticket-line-right {
-        display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
-        min-width: 120px;
-    }
-    .ticket-line-subtotal {
-        font-size: 1rem; font-weight: 700; color: #1a1a2e;
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* Hoàn vé badges per-ticket */
-    .hoan-badge {
-        font-size: 0.75rem; font-weight: 700;
-        padding: 3px 10px; border-radius: 20px;
-        font-family: 'Inter', sans-serif; display: inline-block;
-    }
-    .hoan-approved { background: #d1fae5; color: #065f46; }
-    .hoan-pending  { background: #fef3c7; color: #92400e; }
-    .hoan-rejected { background: #fee2e2; color: #991b1b; }
-    `;
-    document.head.appendChild(style);
-}
-
-/* ========================================================
-   MODAL HOÀN VÉ
-   ======================================================== */
-let hoanVeData = { maVe: null, maHoaDon: null, soLuongMua: 1, hoanQty: 1 };
-
+/* ── MODAL HOÀN VÉ ───────────────────────────────────────── */
+let hoanVeData = { maVe:null, maHoaDon:null, soLuongMua:1, hoanQty:1 };
 function openHoanVeModal(maVe, maHoaDon, soLuongMua, tenVe) {
     hoanVeData = { maVe, maHoaDon, soLuongMua, hoanQty: 1 };
-    document.getElementById("hoanVeInfo").textContent       = `Vé: ${tenVe} — HĐ #${maHoaDon} — Đã mua: ${soLuongMua} vé`;
-    document.getElementById("hoanQtyDisplay").textContent   = 1;
-    document.getElementById("hoanQtyMax").textContent       = `(tối đa ${soLuongMua})`;
-    document.getElementById("hoanLyDo").value               = "";
-    document.getElementById("hoanVeMsg").textContent        = "";
-    document.getElementById("hoanVeMsg").className          = "buy-msg";
-    document.getElementById("hoanVeOverlay").style.display  = "block";
+    document.getElementById("hoanVeInfo").textContent      = `Vé: ${tenVe} — HĐ #${maHoaDon} — Đã mua: ${soLuongMua}`;
+    document.getElementById("hoanQtyDisplay").textContent  = 1;
+    document.getElementById("hoanQtyMax").textContent      = `(tối đa ${soLuongMua})`;
+    document.getElementById("hoanLyDo").value              = "";
+    document.getElementById("hoanVeMsg").textContent       = "";
+    document.getElementById("hoanVeMsg").className         = "buy-msg";
+    document.getElementById("hoanVeOverlay").style.display = "block";
     const box = document.getElementById("hoanVeModal");
     box.style.display = "block";
     requestAnimationFrame(() => box.classList.add("open"));
 }
-
 function closeHoanVeModal() {
     const box = document.getElementById("hoanVeModal");
     box.classList.remove("open");
-    setTimeout(() => { box.style.display = "none"; document.getElementById("hoanVeOverlay").style.display = "none"; }, 220);
+    setTimeout(() => { box.style.display="none"; document.getElementById("hoanVeOverlay").style.display="none"; }, 220);
 }
-
 function changeHoanQty(delta) {
     const next = hoanVeData.hoanQty + delta;
     if (next < 1 || next > hoanVeData.soLuongMua) return;
     hoanVeData.hoanQty = next;
     document.getElementById("hoanQtyDisplay").textContent = next;
 }
-
 function confirmHoanVe() {
-    const lyDo  = document.getElementById("hoanLyDo").value.trim();
-    const btn   = document.getElementById("confirmHoanBtn");
-    const msgEl = document.getElementById("hoanVeMsg");
+    const lyDo = document.getElementById("hoanLyDo").value.trim();
+    const btn  = document.getElementById("confirmHoanBtn");
+    const msgEl= document.getElementById("hoanVeMsg");
     btn.disabled = true; btn.textContent = "Đang xử lý..."; msgEl.textContent = "";
     fetch(`${BASE_URL}/hoanve`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ maHoaDon: hoanVeData.maHoaDon, maVe: hoanVeData.maVe, soLuongHoan: hoanVeData.hoanQty, lyDoHoan: lyDo || null })
     })
-    .then(async res => { if (!res.ok) { const t = await res.text(); throw new Error(t || "Gửi yêu cầu thất bại"); } return res.json(); })
-    .then(data => {
-        msgEl.textContent = `✅ Yêu cầu hoàn vé #${data.maHoanVe} đã được ghi nhận. Chúng tôi sẽ xử lý trong 3–5 ngày làm việc.`;
-        msgEl.className   = "buy-msg ok";
-        btn.textContent   = "Đã gửi";
-        setTimeout(() => { closeHoanVeModal(); loadMyTickets(); }, 2800);
-    })
-    .catch(err => { msgEl.textContent = err.message; msgEl.className = "buy-msg err"; btn.disabled = false; btn.textContent = "Xác nhận hoàn vé"; });
+    .then(async r => { if (!r.ok) { const t = await r.text(); throw new Error(t || "Gửi thất bại"); } return r.json(); })
+    .then(data => { msgEl.textContent=`✅ Yêu cầu hoàn #${data.maHoanVe} đã được ghi nhận.`; msgEl.className="buy-msg ok"; btn.textContent="Đã gửi";
+        setTimeout(() => { closeHoanVeModal(); loadMyTickets(); }, 2500); })
+    .catch(err => { msgEl.textContent=err.message; msgEl.className="buy-msg err"; btn.disabled=false; btn.textContent="Xác nhận hoàn vé"; });
 }
 
-/* ========================================================
-   HELPERS
-   ======================================================== */
+/* ── INJECT CSS ──────────────────────────────────────────── */
+function injectMyTicketCSS() {
+    if (document.getElementById("my-ticket-style")) return;
+    const s = document.createElement("style"); s.id="my-ticket-style";
+    s.textContent = `
+    .my-filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+    .my-filter-btn{display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;border:1.5px solid #e0e0e0;background:#f8f9fb;font-size:.83rem;font-weight:600;color:#666;cursor:pointer;font-family:'Inter',sans-serif;transition:.18s}
+    .my-filter-btn:hover{border-color:#0d9488;color:#0d9488}
+    .my-filter-btn.active{background:#0d9488;border-color:#0d9488;color:#fff}
+    .filter-count{background:rgba(0,0,0,.12);font-size:.75rem;font-weight:700;padding:1px 7px;border-radius:20px;min-width:20px;text-align:center}
+    .my-filter-btn.active .filter-count{background:rgba(255,255,255,.25)}
+    .hoadon-block{background:#fff;border-radius:18px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden;margin-bottom:18px;animation:fadeUp .4s ease both}
+    .hoadon-header{display:flex;align-items:flex-start;justify-content:space-between;padding:18px 22px 14px;flex-wrap:wrap;gap:10px;border-bottom:1px solid #f0f0f0;background:#fafafa}
+    .hoadon-header-left{display:flex;flex-direction:column;gap:4px}
+    .hoadon-num{font-size:1rem;font-weight:800;color:#1a1a2e;font-family:'Inter',sans-serif}
+    .hoadon-date,.hoadon-event{font-size:.82rem;color:#888;font-family:'Inter',sans-serif}
+    .hoadon-event{color:#555;font-weight:600}
+    .hoadon-header-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+    .hoadon-total{display:flex;align-items:baseline;gap:8px}
+    .hd-price-old{font-size:.82rem;color:#bbb;text-decoration:line-through;font-family:'Inter',sans-serif}
+    .hd-price-new{font-size:1.15rem;font-weight:800;color:#0d9488;font-family:'Inter',sans-serif}
+    .hd-badge{font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px;font-family:'Inter',sans-serif}
+    .badge-paid{background:#dcfce7;color:#15803d}.badge-pending{background:#fef3c7;color:#92400e}
+    .badge-rejected{background:#fee2e2;color:#991b1b}.badge-approved{background:#d1fae5;color:#065f46}
+    .ticket-lines{padding:0 22px 6px}
+    .ticket-line{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 0;border-bottom:1px solid #f5f5f5;gap:12px;flex-wrap:wrap}
+    .ticket-line:last-child{border-bottom:none}
+    .ticket-line-hoan{background:#fffbf0;border-radius:10px;padding:14px 12px;margin:4px -12px}
+    .ticket-line-left{display:flex;align-items:flex-start;gap:12px;flex:1}
+    .ticket-line-icon{font-size:1.5rem;min-width:28px}
+    .ticket-line-name{font-size:.95rem;font-weight:700;color:#1a1a2e;font-family:'Inter',sans-serif;margin-bottom:3px}
+    .ticket-line-meta{font-size:.8rem;color:#888;font-family:'Inter',sans-serif}
+    .ticket-line-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:120px}
+    .ticket-line-subtotal{font-size:1rem;font-weight:700;color:#1a1a2e;font-family:'Inter',sans-serif}
+    .hoan-badge{font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;font-family:'Inter',sans-serif}
+    .hoan-approved{background:#d1fae5;color:#065f46}.hoan-pending{background:#fef3c7;color:#92400e}.hoan-rejected{background:#fee2e2;color:#991b1b}
+    .card-organizer{margin-bottom:6px;min-height:18px}
+    `;
+    document.head.appendChild(s);
+}
+
+/* ── HELPERS ─────────────────────────────────────────────── */
 function formatDate(val) {
     if (!val) return "—";
-    if (Array.isArray(val)) { const [y,m,d] = val; return `${String(d).padStart(2,"0")}/${String(m).padStart(2,"0")}/${y}`; }
-    const d = new Date(val);
-    return isNaN(d) ? val : d.toLocaleDateString("vi-VN");
+    if (Array.isArray(val)) { const [y,m,d]=val; return `${String(d).padStart(2,"0")}/${String(m).padStart(2,"0")}/${y}`; }
+    const d = new Date(val); return isNaN(d) ? val : d.toLocaleDateString("vi-VN");
 }
-function formatPrice(amount) {
-    if (amount == null) return "—";
-    return Number(amount).toLocaleString("vi-VN") + " ₫";
-}
-function escHtml(str) {
-    return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-function errorState(msg) {
-    return `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⚠️</div><p>${escHtml(msg)}</p></div>`;
-}
+function formatPrice(n) { return Number(n||0).toLocaleString("vi-VN")+" ₫"; }
+function escHtml(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function errorState(msg) { return `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${escHtml(msg)}</p></div>`; }

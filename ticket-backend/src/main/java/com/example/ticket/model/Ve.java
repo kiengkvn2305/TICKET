@@ -16,62 +16,44 @@ public class Ve {
     private double gia;
     private String trangThai;
     private String moTa;
-    private int    soLuong;   // tổng số vé tối đa
     private Long   maSuKien;
 
-    public Long getMaVe() {
-        return maVe;
+    @Column(name = "SoLuong")
+    private int soLuong;  // tổng số vé niêm yết
+
+    @Column(name = "DaBan")
+    private int daBan;    // số vé đã bán
+
+    // Tính conLai động, không lưu vào DB
+    @Transient
+    public int getConLai() {
+        return soLuong - daBan;
     }
 
-    public void setMaVe(Long maVe) {
-        this.maVe = maVe;
-    }
+    public Long getMaVe() { return maVe; }
+    public void setMaVe(Long maVe) { this.maVe = maVe; }
 
-    public String getTenVe() {
-        return tenVe;
-    }
+    public String getTenVe() { return tenVe; }
+    public void setTenVe(String tenVe) { this.tenVe = tenVe; }
 
-    public void setTenVe(String tenVe) {
-        this.tenVe = tenVe;
-    }
+    public String getLoaiVe() { return loaiVe; }
+    public void setLoaiVe(String loaiVe) { this.loaiVe = loaiVe; }
 
-    public String getLoaiVe() {
-        return loaiVe;
-    }
+    public double getGia() { return gia; }
+    public void setGia(double gia) { this.gia = gia; }
 
-    public void setLoaiVe(String loaiVe) {
-        this.loaiVe = loaiVe;
-    }
+    public String getTrangThai() { return trangThai; }
+    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
 
-    public double getGia() {
-        return gia;
-    }
+    public String getMoTa() { return moTa; }
+    public void setMoTa(String moTa) { this.moTa = moTa; }
 
-    public void setGia(double gia) {
-        this.gia = gia;
-    }
+    public int getSoLuong() { return soLuong; }
+    public void setSoLuong(int soLuong) { this.soLuong = soLuong; }
 
-    public String getTrangThai() {
-        return trangThai;
-    }
+    public int getDaBan() { return daBan; }
+    public void setDaBan(int daBan) { this.daBan = daBan; }
 
-    public void setTrangThai(String trangThai) {
-        this.trangThai = trangThai;
-    }
-
-    public String getMoTa() {
-        return moTa;
-    }
-
-    public void setMoTa(String moTa) {
-        this.moTa = moTa;
-    }
-
-    public Long getMaSuKien() {
-        return maSuKien;
-    }
-
-    public void setMaSuKien(Long maSuKien) {
-        this.maSuKien = maSuKien;
-    }
+    public Long getMaSuKien() { return maSuKien; }
+    public void setMaSuKien(Long maSuKien) { this.maSuKien = maSuKien; }
 }

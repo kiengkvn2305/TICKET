@@ -1,43 +1,83 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Tạo Vé</title>
-  <link rel="stylesheet" href="css/createEvent.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tạo vé — TICKET</title>
+  <link rel="stylesheet" href="css/createEvent.css" />
+  <style>
+    .required-mark { color: #e55; margin-left: 2px; }
+    .price-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .stock-preview {
+      background: #f0faf9;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      color: #0d9488;
+      font-weight: 600;
+      margin-top: 6px;
+      display: none;
+    }
+    .form-hint { font-size: 0.78rem; color: #aaa; margin-top: 4px; }
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 15px;
+      box-sizing: border-box;
+      background: white;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>Tạo Vé</h1>
+    <h1>🎫 Tạo vé mới</h1>
 
     <div class="form-group">
-      <label>Tên vé</label>
-      <input type="text" id="tenVe" placeholder="Nhập tên vé">
-    </div>
-
-    <div class="form-group">
-      <label>Loại vé</label>
-      <input type="text" id="loaiVe" placeholder="Nhập loại vé">
-    </div>
-
-    <div class="form-group">
-      <label>Giá vé</label>
-      <input type="number" id="gia" placeholder="Nhập giá vé">
-    </div>
-
-    <div class="form-group">
-      <label>Mô tả</label>
-      <textarea id="moTa" placeholder="Nhập mô tả"></textarea>
-    </div>
-
-    <div class="form-group">
-      <label>Sự kiện</label>
-      <select id="maSuKien" style="width:100%; padding:12px; border:1px solid #ccc; border-radius:10px; font-size:15px; box-sizing:border-box;">
+      <label>Sự kiện <span class="required-mark">*</span></label>
+      <select id="maSuKien" onchange="onEventChange()">
         <option value="">-- Chọn sự kiện --</option>
       </select>
     </div>
 
+    <div class="form-group">
+      <label>Tên vé <span class="required-mark">*</span></label>
+      <input type="text" id="tenVe" placeholder="VD: Vé VIP, Vé Thường, Vé Early Bird" />
+    </div>
+
+    <div class="form-group">
+      <label>Loại vé <span class="required-mark">*</span></label>
+      <input type="text" id="loaiVe" placeholder="VD: VIP, Standard, Early Bird" />
+    </div>
+
+    <div class="price-row">
+      <div class="form-group">
+        <label>Giá vé (₫) <span class="required-mark">*</span></label>
+        <input type="number" id="gia" placeholder="VD: 500000" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Số lượng niêm yết <span class="required-mark">*</span></label>
+        <input type="number" id="soLuong" placeholder="VD: 100" min="1"
+               oninput="previewStock()" />
+        <div class="form-hint">Tổng vé phát hành cho loại vé này</div>
+        <div class="stock-preview" id="stockPreview"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Mô tả vé</label>
+      <textarea id="moTa" placeholder="Quyền lợi đi kèm, chỗ ngồi, lưu ý..."></textarea>
+    </div>
+
+    <div id="msgBox" style="margin-bottom:12px;font-size:0.88rem;"></div>
+
     <div class="button-group">
-      <button class="create-btn" onclick="createTicket()">Tạo Vé</button>
+      <button class="create-btn" onclick="createTicket()">Tạo vé</button>
       <button class="cancel-btn" onclick="goBack()">Hủy</button>
     </div>
   </div>
