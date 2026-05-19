@@ -21,9 +21,9 @@
 
 ## CÔNG NGHỆ SỬ DỤNG
 <a name="congnghesudung"></a>
--    **Backend:** [Java](https://www.java.com/en/), [Spring Boot](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)
+-    **Backend:** [Java](https://www.java.com/en/), [Spring Boot](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/).
 -    **Frontend:** [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML), [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS), [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript).
--    **Database:** [Oracle](https://www.oracle.com/)
+-    **Database:** [Oracle](https://www.oracle.com/).
 
 ## GIẢNG VIÊN HƯỚNG DẪN
 <a name="giangvien"></a>
