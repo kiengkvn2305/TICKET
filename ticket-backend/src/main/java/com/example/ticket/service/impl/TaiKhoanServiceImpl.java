@@ -17,20 +17,24 @@ import java.util.Set;
 @Transactional(readOnly = true)
 public class TaiKhoanServiceImpl implements TaiKhoanService {
 
-    private static final Set<String> LOAI_HOP_LE = Set.of("customer", "creator");
+    private static final Set<String> LOAI_HOP_LE = Set.of("Nhân viên", "Nhà tổ chức", "Khách hàng");
 
     private final TaiKhoanRepository  taiKhoanRepository;
     private final KhachHangRepository khachHangRepository;
     private final NhaToChucRepository nhaToChucRepository;
+    private final NhanVienRepository  nhanVienRepository;
     private final PasswordEncoder     passwordEncoder;
+
 
     public TaiKhoanServiceImpl(TaiKhoanRepository  taiKhoanRepository,
                                KhachHangRepository khachHangRepository,
                                NhaToChucRepository nhaToChucRepository,
+                               NhanVienRepository  nhanVienRepository,
                                PasswordEncoder     passwordEncoder) {
         this.taiKhoanRepository  = taiKhoanRepository;
         this.khachHangRepository = khachHangRepository;
         this.nhaToChucRepository = nhaToChucRepository;
+        this.nhanVienRepository  = nhanVienRepository;
         this.passwordEncoder     = passwordEncoder;
     }
 
@@ -86,19 +90,26 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         r.setTenDangNhap(tk.getTenTaiKhoan());
         r.setLoaiTaiKhoan(tk.getLoaiTaiKhoan());
 
-        if ("customer".equals(tk.getLoaiTaiKhoan())) {
+        if ("Khách hàng".equals(tk.getLoaiTaiKhoan())) {
             khachHangRepository.findByMaTaiKhoan(id).ifPresent(kh -> {
                 r.setTenKhachHang(kh.getTenKhachHang());
                 r.setEmail(kh.getEmail());
                 r.setSoDienThoai(kh.getSoDienThoai());
             });
-        } else {
+        } else if ("Nhà tổ chức".equals(tk.getLoaiTaiKhoan())){
             nhaToChucRepository.findByMaTaiKhoan(id).ifPresent(ntc -> {
                 r.setTenCongTy(ntc.getTenCongTy());
                 r.setTenNguoiDaiDien(ntc.getTenNguoiDaiDien());
                 r.setDiaChi(ntc.getDiaChi());
                 r.setEmail(ntc.getEmail());
                 r.setSoDienThoai(ntc.getSoDienThoai());
+            });
+        } else if ("Nhân viên".equals(tk.getLoaiTaiKhoan())){
+            nhanVienRepository.findByMaTaiKhoan(id).ifPresent(nv -> {
+                r.setTenNhanVien(nv.getTenNhanVien());
+                r.setNgayVaoLam(nv.getNgayVaoLam());
+                r.setEmail(nv.getEmail());
+                r.setSoDienThoai(nv.getSoDienThoai());
             });
         }
         return r;
@@ -113,7 +124,7 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
             throw new DuplicateResourceException("Tên tài khoản đã tồn tại");
         }
         if (!LOAI_HOP_LE.contains(request.getLoaiTaiKhoan())) {
-            throw new BadRequestException("Loại tài khoản không hợp lệ (customer / creator)");
+            throw new BadRequestException("Loại tài khoản không hợp lệ (Nhà tổ chức / Khách hàng / Nhân viên)");
         }
 
         TaiKhoan tk = new TaiKhoan();
@@ -122,14 +133,18 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         tk.setLoaiTaiKhoan(request.getLoaiTaiKhoan());
         TaiKhoan saved = taiKhoanRepository.save(tk);
 
-        if ("customer".equals(saved.getLoaiTaiKhoan())) {
+        if ("Khách hàng".equals(saved.getLoaiTaiKhoan())) {
             KhachHang kh = new KhachHang();
             kh.setMaTaiKhoan(saved.getMaTaiKhoan());
             khachHangRepository.save(kh);
-        } else {
+        } else if ("Nhà tổ chức".equals(saved.getLoaiTaiKhoan())) {
             NhaToChuc ntc = new NhaToChuc();
             ntc.setMaTaiKhoan(saved.getMaTaiKhoan());
             nhaToChucRepository.save(ntc);
+        } else {
+            NhanVien nv = new NhanVien();
+            nv.setMaTaiKhoan(saved.getMaTaiKhoan());
+            nhanVienRepository.save(nv);
         }
     }
 
@@ -178,14 +193,14 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
     public HoSoResponse updateHoSo(Long id, HoSoRequest request) {
         TaiKhoan tk = findTaiKhoan(id);
 
-        if ("customer".equals(tk.getLoaiTaiKhoan())) {
+        if ("Khách hàng".equals(tk.getLoaiTaiKhoan())) {
             KhachHang kh = khachHangRepository.findByMaTaiKhoan(id)
                     .orElseThrow(() -> new NotFoundException("Không tìm thấy hồ sơ khách hàng"));
             kh.setTenKhachHang(request.getTenKhachHang());
             kh.setEmail(request.getEmail());
             kh.setSoDienThoai(request.getSoDienThoai());
             khachHangRepository.save(kh);
-        } else {
+        } else if ("Nhà tổ chức".equals(tk.getLoaiTaiKhoan())){
             NhaToChuc ntc = nhaToChucRepository.findByMaTaiKhoan(id)
                     .orElseThrow(() -> new NotFoundException("Không tìm thấy hồ sơ nhà tổ chức"));
             ntc.setTenCongTy(request.getTenCongTy());
@@ -194,6 +209,14 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
             ntc.setEmail(request.getEmail());
             ntc.setSoDienThoai(request.getSoDienThoai());
             nhaToChucRepository.save(ntc);
+        } else if ("Nhân viên".equals(tk.getLoaiTaiKhoan())){
+            NhanVien nv = nhanVienRepository.findByMaTaiKhoan(id)
+                    .orElseThrow(() -> new NotFoundException("Không tìm thấy hồ sơ nhà tổ chức"));
+            nv.setTenNhanVien(request.getTenNhanVien());
+            nv.setNgayVaoLam(request.getNgayVaoLam());
+            nv.setEmail(request.getEmail());
+            nv.setSoDienThoai(request.getSoDienThoai());
+            nhanVienRepository.save(nv);
         }
 
         return getHoSo(id);
@@ -205,6 +228,7 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         TaiKhoan tk = findTaiKhoan(id);
         khachHangRepository.findByMaTaiKhoan(id).ifPresent(khachHangRepository::delete);
         nhaToChucRepository.findByMaTaiKhoan(id).ifPresent(nhaToChucRepository::delete);
+        nhanVienRepository.findByMaTaiKhoan(id).ifPresent(nhanVienRepository::delete);
         taiKhoanRepository.delete(tk);
     }
 

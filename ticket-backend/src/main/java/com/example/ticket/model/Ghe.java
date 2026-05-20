@@ -12,7 +12,10 @@ public class Ghe {
     private Long maGhe;
 
     private String khuVuc;
-
+    private Long maDiaDiem;
+    private String trangThai;
+    private Long maVe;
+    
     public Long getMaGhe() {
         return maGhe;
     }

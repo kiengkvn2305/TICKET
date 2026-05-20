@@ -28,10 +28,12 @@ function login() {
     .then(data => {
         localStorage.setItem("user", JSON.stringify(data));
 
-        if (data.loaiTaiKhoan === "customer") {
+        if (data.loaiTaiKhoan === "Khách hàng") {
             window.parent.location.href = "loginCustomer.html";
-        } else if (data.loaiTaiKhoan === "creator") {
+        } else if (data.loaiTaiKhoan === "Nhà tổ chức") {
             window.parent.location.href = "loginCreator.html";
+        } else if (data.loaiTaiKhoan === "Nhân viên") {
+            window.parent.location.href = "loginEmployee.html";
         } else {
             window.parent.location.href = "loginAdmin.html";
         }

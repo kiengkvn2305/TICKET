@@ -13,13 +13,11 @@ public class Voucher {
     private Long maVoucher;
 
     private String maCode;
-    private String dieuKien;
     private String danhSachSuKien;
     private Double mucKhuyenMai;
     private String trangThai;
     private Integer luotSuDung;
     private Long maCongTy;
-    private Long maSuKien;
     private LocalDate ngayBatDau;
     private LocalDate ngayKetThuc;
 
@@ -30,9 +28,6 @@ public class Voucher {
 
     public String getMaCode() { return maCode; }
     public void setMaCode(String maCode) { this.maCode = maCode; }
-
-    public String getDieuKien() { return dieuKien; }
-    public void setDieuKien(String dieuKien) { this.dieuKien = dieuKien; }
 
     public Double getMucKhuyenMai() { return mucKhuyenMai; }
     public void setMucKhuyenMai(Double mucKhuyenMai) { this.mucKhuyenMai = mucKhuyenMai; }
@@ -45,9 +40,6 @@ public class Voucher {
 
     public Long getMaCongTy() { return maCongTy; }
     public void setMaCongTy(Long maCongTy) { this.maCongTy = maCongTy; }
-
-    public Long getMaSuKien() { return maSuKien; }
-    public void setMaSuKien(Long maSuKien) { this.maSuKien = maSuKien; }
 
     public LocalDate getNgayBatDau() { return ngayBatDau; }
     public void setNgayBatDau(LocalDate ngayBatDau) { this.ngayBatDau = ngayBatDau; }

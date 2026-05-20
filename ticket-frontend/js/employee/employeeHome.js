@@ -14,6 +14,8 @@ let currentEvent     = null;
 let appliedDiscount  = 0;
 let allMyTickets     = [];
 let activeMyFilter   = "all";
+let paymentMethod = null;
+let finalTotal = 0;
 
 window.addEventListener("DOMContentLoaded", () => {
     if (!currentUser) { window.location.href = "loginpopup.html"; return; }
@@ -81,7 +83,7 @@ function renderEvents(data) {
                     <span class="ticket-count-badge" id="min-price-${sk.maSuKien}">Đang tải...</span>
                     <span id="stock-badge-${sk.maSuKien}" style="display:block;font-size:0.75rem;color:#aaa;margin-top:2px"></span>
                 </div>
-                <button class="buy-btn" onclick="openBuyModal(${sk.maSuKien})">Mua vé</button>
+                <button class="buy-btn" onclick="openBuyModal(${sk.maSuKien})">Bán vé</button>
             </div>
         </div>`).join("");
 
@@ -357,27 +359,35 @@ function applyVoucher() {
 }
 
 function confirmBuy() {
-    const items = modalTickets.filter(ve => (cartMap[ve.maVe] || 0) > 0)
-        .map(ve => ({ maVe: ve.maVe, soLuong: cartMap[ve.maVe], donGia: ve.gia }));
-    if (!items.length) { showBuyMsg("Vui lòng chọn ít nhất 1 vé.", "err"); return; }
-    const maVoucher = document.getElementById("voucherInput")?.value.trim() || null;
-    const btn = document.getElementById("confirmBuyBtn");
-    btn.disabled = true; btn.textContent = "Đang xử lý...";
-    fetch(`${BASE_URL}/hoadon/mua`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ maTaiKhoan: currentUser.maTaiKhoan, maSuKien: currentEvent.maSuKien, maVoucher: maVoucher || null, items })
-    })
-    .then(async r => { if (!r.ok) { const t = await r.text(); throw new Error(t || "Mua vé thất bại"); } return r.json(); })
-    .then(data => {
-        showBuyMsg(`🎉 Mua thành công! Mã HĐ: #${data.maHoaDon}`, "ok");
-        cartMap = {};
-        setTimeout(() => {
-            closeBuyModal();
-            loadAllEvents(); // Cập nhật số vé còn lại trên trang
-        }, 2200);
-    })
-    .catch(err => showBuyMsg(err.message, "err"))
-    .finally(() => { btn.disabled = false; btn.textContent = "Xác nhận mua"; });
+
+    const items = modalTickets
+        .filter(ve => (cartMap[ve.maVe] || 0) > 0)
+        .map(ve => ({
+            maVe: ve.maVe,
+            soLuong: cartMap[ve.maVe],
+            donGia: ve.gia
+        }));
+
+    if (!items.length) {
+        showBuyMsg("Vui lòng chọn vé.", "err");
+        return;
+    }
+
+    finalTotal = 0;
+
+    items.forEach(i => {
+        finalTotal += i.soLuong * i.donGia;
+    });
+
+    if (appliedDiscount > 0) {
+        finalTotal =
+            Math.round(
+                finalTotal *
+                (1 - appliedDiscount / 100)
+            );
+    }
+
+    openPaymentModal();
 }
 function showBuyMsg(text, type) { const el = document.getElementById("buyMsg"); el.textContent = text; el.className = "buy-msg " + type; }
 
@@ -579,3 +589,165 @@ function formatDate(val) {
 function formatPrice(n) { return Number(n||0).toLocaleString("vi-VN")+" ₫"; }
 function escHtml(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function errorState(msg) { return `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${escHtml(msg)}</p></div>`; }
+
+function openPaymentModal() {
+
+    document.getElementById("paymentOverlay")
+        .style.display = "block";
+
+    document.getElementById("paymentModal")
+        .style.display = "block";
+
+    document.getElementById("bankSection")
+        .style.display = "none";
+
+    document.getElementById("cashSection")
+        .style.display = "none";
+
+    document.getElementById("paymentMsg")
+        .textContent = "";
+}
+
+function closePaymentModal() {
+
+    document.getElementById("paymentOverlay")
+        .style.display = "none";
+
+    document.getElementById("paymentModal")
+        .style.display = "none";
+}
+function selectPaymentMethod(method) {
+
+    paymentMethod = method;
+
+    document.getElementById("bankSection")
+        .style.display =
+            method === "CHUYEN_KHOAN"
+            ? "block"
+            : "none";
+
+    document.getElementById("cashSection")
+        .style.display =
+            method === "TIEN_MAT"
+            ? "block"
+            : "none";
+}
+function calcCashBack() {
+
+    const receive =
+        Number(
+            document.getElementById("cashReceive").value
+        ) || 0;
+
+    const back = receive - finalTotal;
+
+    document.getElementById("cashBack")
+        .value =
+            back > 0
+            ? formatPrice(back)
+            : "0 ₫";
+}
+function confirmTransferPaid() {
+
+    completePayment({
+        phuongThuc: "CHUYEN_KHOAN",
+        tienKhachDua: null,
+        tienTraLai: null
+    });
+}
+function confirmCashPayment() {
+
+    const receive =
+        Number(
+            document.getElementById("cashReceive").value
+        ) || 0;
+
+    if (receive < finalTotal) {
+
+        document.getElementById("paymentMsg")
+            .textContent =
+                "Tiền khách đưa không đủ";
+
+        return;
+    }
+
+    completePayment({
+        phuongThuc: "TIEN_MAT",
+        tienKhachDua: receive,
+        tienTraLai: receive - finalTotal
+    });
+}
+
+function completePayment(paymentInfo) {
+
+    const items = modalTickets
+        .filter(ve => (cartMap[ve.maVe] || 0) > 0)
+        .map(ve => ({
+            maVe: ve.maVe,
+            soLuong: cartMap[ve.maVe],
+            donGia: ve.gia
+        }));
+
+    const maVoucher =
+        document.getElementById("voucherInput")
+            ?.value.trim() || null;
+
+    fetch(`${BASE_URL}/hoadon/mua`, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+            maTaiKhoan: currentUser.maTaiKhoan,
+
+            maSuKien: currentEvent.maSuKien,
+
+            maVoucher: maVoucher,
+
+            payment: paymentInfo,
+
+            items: items
+        })
+    })
+
+    .then(async r => {
+
+        if (!r.ok) {
+
+            const t = await r.text();
+
+            throw new Error(t);
+        }
+
+        return r.json();
+    })
+
+    .then(data => {
+
+        document.getElementById("paymentMsg")
+            .textContent =
+                "✅ Thanh toán thành công";
+
+        setTimeout(() => {
+
+            closePaymentModal();
+
+            closeBuyModal();
+
+            loadAllEvents();
+
+            loadMyTickets();
+
+        }, 1500);
+    })
+
+    .catch(err => {
+
+        document.getElementById("paymentMsg")
+            .textContent = err.message;
+    });
+}

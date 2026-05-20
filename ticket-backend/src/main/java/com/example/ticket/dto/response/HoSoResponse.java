@@ -1,5 +1,7 @@
 package com.example.ticket.dto.response;
 
+import java.time.LocalDate;
+
 public class HoSoResponse {
 
     private Long   maTaiKhoan;
@@ -13,7 +15,11 @@ public class HoSoResponse {
     private String tenCongTy;
     private String tenNguoiDaiDien;
     private String diaChi;
-
+    
+    // NhanVien
+    private String tenNhanVien;
+    private LocalDate ngayVaoLam;
+            
     // Chung
     private String email;
     private String soDienThoai;
@@ -36,4 +42,8 @@ public class HoSoResponse {
     public void   setEmail(String v)          { this.email = v; }
     public String getSoDienThoai()            { return soDienThoai; }
     public void   setSoDienThoai(String v)    { this.soDienThoai = v; }
+    public String getTenNhanVien()            { return tenNhanVien; }
+    public void setTenNhanVien(String v)      { this.tenNhanVien = v; }
+    public LocalDate getNgayVaoLam()          { return ngayVaoLam; }
+    public void setNgayVaoLam(LocalDate v)    { this.ngayVaoLam = v; }
 }

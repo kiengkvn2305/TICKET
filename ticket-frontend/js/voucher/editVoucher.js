@@ -38,7 +38,6 @@ window.addEventListener("DOMContentLoaded", function () {
     })
     .then(data => {
         document.getElementById("maCode").value       = data.maCode;
-        document.getElementById("dieuKien").value     = data.dieuKien || "";
         document.getElementById("mucKhuyenMai").value = data.mucKhuyenMai;
         document.getElementById("luotSuDung").value   = data.luotSuDung;
         document.getElementById("trangThai").value    = data.trangThai;
@@ -72,7 +71,6 @@ function updateVoucher() {
     const currentUser = JSON.parse(localStorage.getItem("user"));
 
     const maCode       = document.getElementById("maCode").value.trim();
-    const dieuKien     = document.getElementById("dieuKien").value.trim();
     // FIX: parse sang số
     const mucKhuyenMai = parseFloat(document.getElementById("mucKhuyenMai").value);
     const luotSuDung   = parseInt(document.getElementById("luotSuDung").value);
@@ -104,7 +102,6 @@ function updateVoucher() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             maCode,
-            dieuKien,
             mucKhuyenMai,   // number
             luotSuDung,     // number
             trangThai,

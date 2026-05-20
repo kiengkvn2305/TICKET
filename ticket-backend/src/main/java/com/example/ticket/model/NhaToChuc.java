@@ -17,6 +17,7 @@ public class NhaToChuc {
     private String email;
     private String soDienThoai;
     private Long maTaiKhoan;
+    private String maQR;
 
     public NhaToChuc() {}
 

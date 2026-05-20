@@ -49,7 +49,6 @@ function createVoucher() {
     }
 
     const maCode       = document.getElementById("maCode").value.trim();
-    const dieuKien     = document.getElementById("dieuKien").value.trim();
     // FIX: parse sang số thay vì để string → backend không bị lỗi validate
     const mucKhuyenMai = parseFloat(document.getElementById("mucKhuyenMai").value);
     const luotSuDung   = parseInt(document.getElementById("luotSuDung").value);
@@ -80,7 +79,6 @@ function createVoucher() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             maCode,
-            dieuKien,
             mucKhuyenMai,   // number
             luotSuDung,     // number
             ngayBatDau,

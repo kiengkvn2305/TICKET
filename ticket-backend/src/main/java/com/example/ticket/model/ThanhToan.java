@@ -16,6 +16,7 @@ public class ThanhToan {
     private Long soTien;
     private LocalDateTime thoiGian;
     private String phuongThuc;
+    private Long maHoaDon;
 
     public Long getMaThanhToan() {
         return maThanhToan;

@@ -28,6 +28,9 @@ public class SuKien {
     @Column(name = "MACONGTY")
     private Long maCongTy;
 
+    private String trangThai;
+    private Long maDiaDiem;
+    
     public SuKien() {}
 
     public Long getMaSuKien() {

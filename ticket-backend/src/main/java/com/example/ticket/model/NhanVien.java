@@ -16,8 +16,8 @@ public class NhanVien {
     private String email;
     private String soDienThoai;
     private LocalDate ngayVaoLam;
-    private Long luong;
-
+    
+    private Long maTaiKhoan;
     public Long getMaNhanVien() {
         return maNhanVien;
     }
@@ -57,12 +57,12 @@ public class NhanVien {
     public void setNgayVaoLam(LocalDate ngayVaoLam) {
         this.ngayVaoLam = ngayVaoLam;
     }
-
-    public Long getLuong() {
-        return luong;
+    
+    public Long getMaTaiKhoan() {
+        return maTaiKhoan;
     }
 
-    public void setLuong(Long luong) {
-        this.luong = luong;
+    public void setMaTaiKhoan(Long maTaiKhoan) {
+        this.maTaiKhoan = maTaiKhoan;
     }
 }

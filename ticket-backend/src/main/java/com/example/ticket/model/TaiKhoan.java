@@ -14,6 +14,7 @@ public class TaiKhoan {
     private String tenTaiKhoan;
     private String loaiTaiKhoan;
     private String matKhau;
+    private String trangThai;
 
     public TaiKhoan() {}
 

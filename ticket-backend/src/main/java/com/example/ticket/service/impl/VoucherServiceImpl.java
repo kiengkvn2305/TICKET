@@ -86,7 +86,6 @@ public class VoucherServiceImpl implements VoucherService {
         VoucherResponse r = new VoucherResponse();
         r.setMaVoucher(v.getMaVoucher());
         r.setMaCode(v.getMaCode());
-        r.setDieuKien(v.getDieuKien());
         r.setMucKhuyenMai(v.getMucKhuyenMai());
         r.setTrangThai(v.getTrangThai());
         r.setLuotSuDung(v.getLuotSuDung());
@@ -176,7 +175,6 @@ public class VoucherServiceImpl implements VoucherService {
 
         Voucher v = new Voucher();
         v.setMaCode(request.getMaCode());
-        v.setDieuKien(request.getDieuKien());
         v.setMucKhuyenMai(request.getMucKhuyenMai());
         v.setTrangThai("active");
         v.setLuotSuDung(request.getLuotSuDung() != null ? request.getLuotSuDung() : 0);
@@ -203,10 +201,10 @@ public class VoucherServiceImpl implements VoucherService {
         validateSuKienBelongToCompany(suKienIds, ntc.getMaCongTy());
 
         existing.setMaCode(request.getMaCode());
-        existing.setDieuKien(request.getDieuKien());
         existing.setMucKhuyenMai(request.getMucKhuyenMai());
         existing.setDanhSachSuKien(request.getDanhSachSuKien());
         existing.setNgayBatDau(request.getNgayBatDau());
+        existing.setTrangThai(request.getTrangThai());
         existing.setNgayKetThuc(request.getNgayKetThuc());
         if (request.getLuotSuDung() != null)
             existing.setLuotSuDung(request.getLuotSuDung());

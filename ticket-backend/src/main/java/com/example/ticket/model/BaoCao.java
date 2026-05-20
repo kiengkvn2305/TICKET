@@ -17,6 +17,8 @@ public class BaoCao {
     private LocalDate ngayKetThuc;
     private int soVeDaBan;
     private int soVeTon;
+    
+    private Long maNhanVien;
 
     public Long getMaBaoCao() {
         return maBaoCao;
@@ -64,5 +66,13 @@ public class BaoCao {
 
     public void setSoVeTon(int soVeTon) {
         this.soVeTon = soVeTon;
+    }
+    
+    public Long getMaNhanVien(){
+        return maNhanVien;
+    }
+    
+    public void setMaNhanVien(Long maNhanVien){
+        this.maNhanVien = maNhanVien;
     }
 }

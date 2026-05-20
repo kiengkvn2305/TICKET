@@ -76,7 +76,6 @@ function renderVouchers(data) {
             <div class="ticket-card">
                 <p><strong>Mã voucher: ${v.maCode}</strong></p>
                 <p>Sự kiện áp dụng: ${suKienHtml}</p>
-                <p>Điều kiện: ${v.dieuKien || "—"}</p>
                 <p>Mức giảm: ${v.mucKhuyenMai}%</p>
                 <p>Lượt sử dụng: ${v.luotSuDung}</p>
                 <p>Trạng thái: <span class="${v.trangThai === 'active' ? 'status-active' : 'status-inactive'}">${v.trangThai === 'active' ? 'Đang hoạt động' : 'Ngừng hoạt động'}</span></p>
