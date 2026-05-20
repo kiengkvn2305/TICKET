@@ -7,9 +7,7 @@ import com.example.ticket.dto.response.VeKhachHangResponse;
 import java.util.List;
 
 public interface HoaDonService {
-    /** Tạo HoaDon + ChiTietHoaDon trong 1 transaction, áp dụng voucher nếu có */
     MuaVeResponse muaVe(MuaVeRequest request);
-
-    /** Lấy tất cả vé đã mua của 1 khách hàng (theo maTaiKhoan) */
     List<VeKhachHangResponse> getVeByKhachHang(Long maTaiKhoan);
+    List<VeKhachHangResponse> getAllVe();
 }

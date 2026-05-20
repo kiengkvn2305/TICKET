@@ -1,339 +1,129 @@
-/* ==========================================================
-   js/ticket/ticketList.js
-   Quản lý vé - Creator
-========================================================== */
-
 let allTickets = [];
 
-/* ==========================================================
-   LOAD
-========================================================== */
-
-async function loadTickets() {
+function loadTickets() {
 
     clearContent();
 
     const ticketList = document.getElementById("ticketList");
-
     ticketList.innerHTML = `
         <div class="top-actions">
-            <button class="create-btn" onclick="openCreateTicket()">
-                + Tạo vé mới
-            </button>
+            <button class="create-btn" onclick="openCreateTicket()">+ Tạo vé</button>
         </div>
-
         <div class="filter-panel">
-            <input
-                type="text"
-                id="filterTenVe"
-                placeholder="🔍 Tìm theo tên vé..."
-                oninput="applyTicketFilter()"
-            />
-
-            <input
-                type="text"
-                id="filterTenSuKien"
-                placeholder="🔍 Tìm theo sự kiện..."
-                oninput="applyTicketFilter()"
-            />
+            <input type="text" id="filterTenVe"     placeholder="🔍 Tìm theo tên vé..."   oninput="applyTicketFilter()" />
+            <input type="text" id="filterTenSuKien" placeholder="🔍 Tìm theo sự kiện..." oninput="applyTicketFilter()" />
         </div>
-
-        <div id="ticketContent">
-            <div class="ticket-loading">
-                Đang tải danh sách vé...
-            </div>
-        </div>
+        <div id="ticketContent"></div>
     `;
 
-    injectTicketCSS();
-
     const currentUser = JSON.parse(localStorage.getItem("user"));
+    if (!currentUser) { window.location.href = "loginpopup.html"; return; }
 
-    if (!currentUser) {
-        window.location.href = "loginpopup.html";
-        return;
-    }
-
-    try {
-
-        const response = await fetch(
-            `${BASE_URL}/ve/creator/${currentUser.maTaiKhoan}`
-        );
-
-        if (!response.ok) {
-            throw new Error("Không lấy được danh sách vé");
-        }
-
-        const data = await response.json();
-
-        allTickets = Array.isArray(data)
-            ? data
-            : [];
-
-        renderTickets(allTickets);
-
-    } catch (err) {
-
-        document.getElementById("ticketContent").innerHTML = `
-            <div class="ticket-error">
-                ⚠️ ${escHtml(err.message)}
-            </div>
-        `;
-    }
+    fetch(`${BASE_URL}/ve/creator/${currentUser.maTaiKhoan}`)
+        .then(r => { if (!r.ok) throw new Error("Không lấy được danh sách vé"); return r.json(); })
+        .then(data => { allTickets = data; renderTickets(data); })
+        .catch(err => {
+            document.getElementById("ticketContent").innerHTML =
+                `<div style="text-align:center;padding:40px;color:#e55">⚠️ ${escHtml(err.message)}</div>`;
+        });
 }
 
-
-/* ==========================================================
-   FILTER
-========================================================== */
-
 function applyTicketFilter() {
-
-    const tenVe = (
-        document.getElementById("filterTenVe").value || ""
-    )
-        .trim()
-        .toLowerCase();
-
-    const tenSuKien = (
-        document.getElementById("filterTenSuKien").value || ""
-    )
-        .trim()
-        .toLowerCase();
-
-    const filtered = allTickets.filter(ve => {
-
-        const ticketName = String(ve.tenVe || "")
-            .toLowerCase();
-
-        const eventName = String(ve.tenSuKien || "")
-            .toLowerCase();
-
-        return (
-            ticketName.includes(tenVe) &&
-            eventName.includes(tenSuKien)
-        );
-    });
-
+    const tenVe     = (document.getElementById("filterTenVe")?.value     || "").trim().toLowerCase();
+    const tenSuKien = (document.getElementById("filterTenSuKien")?.value || "").trim().toLowerCase();
+    const filtered  = allTickets.filter(ve =>
+        (ve.tenVe     || "").toLowerCase().includes(tenVe) &&
+        (ve.tenSuKien || "").toLowerCase().includes(tenSuKien)
+    );
     renderTickets(filtered);
 }
 
-
-/* ==========================================================
-   RENDER
-========================================================== */
-
 function renderTickets(data) {
 
-    const container =
-        document.getElementById("ticketContent");
-
+    const container = document.getElementById("ticketContent");
     if (!container) return;
 
-    if (!Array.isArray(data) || data.length === 0) {
-
+    if (!data.length) {
         container.innerHTML = `
-            <div class="ticket-empty">
-                <div class="ticket-empty-icon">
-                    🎫
-                </div>
-
-                <p>
-                    Không có vé nào.
-                </p>
-            </div>
-        `;
-
+            <div style="text-align:center;padding:60px 20px;color:#bbb">
+                <div style="font-size:3rem;margin-bottom:12px">🎫</div>
+                <p>Không có vé nào.</p>
+            </div>`;
         return;
     }
 
-    /* ==============================
-       GROUP BY EVENT
-    ============================== */
-
-    const grouped = {};
-
+    // Group theo sự kiện
+    const grouped = new Map();
     data.forEach(ve => {
-
-        const key = ve.maSuKien || "unknown";
-
-        if (!grouped[key]) {
-
-            grouped[key] = {
-                tenSuKien: ve.tenSuKien || "—",
-                ves: []
-            };
-        }
-
-        grouped[key].ves.push(ve);
+        const key = ve.maSuKien ?? "unknown";
+        if (!grouped.has(key)) grouped.set(key, { tenSuKien: ve.tenSuKien || "—", ves: [] });
+        grouped.get(key).ves.push(ve);
     });
 
     let html = "";
-
-    Object.values(grouped).forEach(group => {
-
-        const tongNiemYet = group.ves.reduce(
-            (s, v) => s + Number(v.soLuong || 0),
-            0
-        );
-
-        const tongDaBan = group.ves.reduce(
-            (s, v) => s + Number(v.daBan || 0),
-            0
-        );
-
-        const tongConLai = Math.max(
-            tongNiemYet - tongDaBan,
-            0
-        );
-
-        const tyLe = tongNiemYet > 0
-            ? Math.round((tongDaBan / tongNiemYet) * 100)
-            : 0;
-
+    grouped.forEach(group => {
         html += `
-            <div class="event-group">
-
-                <div class="event-header">
-
-                    <h2 class="event-title">
-                        📍 ${escHtml(group.tenSuKien)}
-                    </h2>
-
-                    <div class="ticket-stats">
-
-                        ${statChip(
-                            "📦 Niêm yết",
-                            tongNiemYet,
-                            "info"
-                        )}
-
-                        ${statChip(
-                            "🎟 Đã bán",
-                            tongDaBan,
-                            "success"
-                        )}
-
-                        ${statChip(
-                            "✅ Còn lại",
-                            tongConLai,
-                            tongConLai === 0
-                                ? "danger"
-                                : "green"
-                        )}
-                    </div>
-                </div>
-
-                <div class="progress-wrapper">
-                    <div
-                        class="progress-bar"
-                        style="width:${tyLe}%"
-                    ></div>
-                </div>
-        `;
+            <div class="event-group" style="margin-bottom:24px">
+                <h2 style="font-size:1rem;font-weight:700;color:#1a1a2e;
+                            border-left:4px solid #0d9488;padding-left:10px;margin-bottom:12px">
+                    🎪 ${escHtml(group.tenSuKien)}
+                </h2>`;
 
         group.ves.forEach(ve => {
+            const conLai  = ve.conLai  ?? null;
+            const soLuong = ve.soLuong ?? null;
+            const daBan   = ve.daBan   ?? null;
+            const pct     = soLuong > 0 && daBan != null
+                ? Math.round(daBan / soLuong * 100) : null;
 
-            const total = Number(ve.soLuong || 0);
+            // FIX: trangThai badge + format đúng
+            const badge = trangThaiBadgeVe(ve.trangThai);
 
-            const sold = Number(ve.daBan || 0);
-
-            const remain = Math.max(total - sold, 0);
-
-            const soldPercent = total > 0
-                ? Math.round((sold / total) * 100)
-                : 0;
-
-            const soldOut =
-                remain === 0 &&
-                total > 0;
+            // FIX: hiển thị soLuong / conLai / daBan đầy đủ
+            const stockInfo = soLuong != null ? `
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px;align-items:center">
+                    ${chip(soLuong.toLocaleString("vi-VN") + " vé", "#e0f2fe","#0369a1")}
+                    ${daBan != null  ? chip("Đã bán: " + daBan, "#f3f4f6","#555") : ""}
+                    ${conLai != null
+                        ? conLai === 0
+                            ? chip("Hết vé", "#fee2e2","#dc2626")
+                            : conLai <= 10
+                                ? chip("🔥 Còn " + conLai, "#fff7ed","#ea580c")
+                                : chip("Còn " + conLai.toLocaleString("vi-VN"), "#dcfce7","#15803d")
+                        : ""}
+                </div>
+                ${pct != null ? `
+                <div style="background:#f3f4f6;border-radius:20px;height:5px;overflow:hidden;max-width:200px;margin-bottom:8px">
+                    <div style="width:${pct}%;height:100%;
+                        background:${pct>=90?"#ef4444":pct>=60?"#f59e0b":"#3cdbd8"};
+                        border-radius:20px;transition:width .4s"></div>
+                </div>` : ""}
+            ` : "";
 
             html += `
-                <div class="ticket-card ${soldOut ? "sold-out" : ""}">
-
-                    ${soldOut
-                        ? `<span class="sold-badge">
-                                HẾT VÉ
-                           </span>`
-                        : ""
-                    }
-
-                    <div class="ticket-header">
-
-                        <div>
-
-                            <p class="ticket-name">
-                                ${escHtml(ve.tenVe)}
+                <div class="ticket-card" style="margin-bottom:12px">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                        <div style="flex:1">
+                            <p style="font-weight:700;font-size:.95rem;margin:0 0 4px">
+                                🎟️ ${escHtml(ve.tenVe)}
                             </p>
-
-                            <p class="ticket-type">
+                            <p style="color:#888;font-size:.82rem;margin:0 0 6px">
                                 ${escHtml(ve.loaiVe || "—")}
                             </p>
+                            ${stockInfo}
+                            ${ve.moTa ? `<p style="color:#666;font-size:.82rem;margin:0">📝 ${escHtml(ve.moTa)}</p>` : ""}
                         </div>
-
-                        <p class="ticket-price">
-                            ${fmtPrice(ve.gia)}
-                        </p>
+                        <div style="text-align:right;min-width:120px">
+                            <!-- FIX: format giá đúng thay vì hiển thị raw number -->
+                            <div style="font-size:1.1rem;font-weight:800;color:#0d9488;margin-bottom:6px">
+                                ${formatPrice(ve.gia)}
+                            </div>
+                            ${badge}
+                        </div>
                     </div>
-
-                    <div class="ticket-stats">
-
-                        ${statChip(
-                            "📦 Niêm yết",
-                            total,
-                            "info"
-                        )}
-
-                        ${statChip(
-                            "🎟 Đã bán",
-                            sold,
-                            "success"
-                        )}
-
-                        ${statChip(
-                            "✅ Còn lại",
-                            remain,
-                            remain === 0
-                                ? "danger"
-                                : "green"
-                        )}
-                    </div>
-
-                    <div class="mini-progress">
-
-                        <div
-                            class="mini-progress-bar"
-                            style="width:${soldPercent}%"
-                        ></div>
-
-                    </div>
-
-                    ${ve.moTa
-                        ? `
-                            <p class="ticket-desc">
-                                ${escHtml(ve.moTa)}
-                            </p>
-                        `
-                        : ""
-                    }
-
-                    <div class="event-actions">
-
-                        <button
-                            class="edit-btn"
-                            onclick="editTicket(${ve.maVe})"
-                        >
-                            ✏️ Sửa
-                        </button>
-
-                        <button
-                            class="delete-btn"
-                            onclick="deleteTicket(${ve.maVe}, ${sold})"
-                            ${sold > 0 ? "disabled" : ""}
-                        >
-                            🗑 Xóa
-                        </button>
-
+                    <div class="event-actions" style="margin-top:12px">
+                        <button class="edit-btn"   onclick="editTicket(${ve.maVe})">✏️ Chỉnh sửa</button>
+                        <button class="delete-btn" onclick="deleteTicket(${ve.maVe})">🗑 Xóa</button>
                     </div>
                 </div>
             `;
@@ -345,276 +135,42 @@ function renderTickets(data) {
     container.innerHTML = html;
 }
 
-
-/* ==========================================================
-   CHIP
-========================================================== */
-
-function statChip(label, value, type) {
-
-    return `
-        <span class="stat-chip ${type}">
-            ${label}: ${Number(value).toLocaleString("vi-VN")}
-        </span>
-    `;
+function trangThaiBadgeVe(trangThai) {
+    const map = {
+        "available":   { bg: "#dcfce7", color: "#15803d", label: "✅ Còn vé" },
+        "soldout":     { bg: "#fee2e2", color: "#dc2626", label: "🚫 Hết vé" },
+        "unavailable": { bg: "#f3f4f6", color: "#6b7280", label: "⏸ Tạm ngưng" },
+    };
+    const b = map[trangThai] || { bg: "#f3f4f6", color: "#888", label: trangThai || "—" };
+    return `<span style="font-size:.75rem;font-weight:700;padding:3px 10px;
+        border-radius:20px;background:${b.bg};color:${b.color};white-space:nowrap">${b.label}</span>`;
 }
 
+function chip(label, bg, color) {
+    return `<span style="background:${bg};color:${color};font-size:.72rem;
+        font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap">${label}</span>`;
+}
 
-/* ==========================================================
-   EDIT
-========================================================== */
+function formatPrice(n) {
+    return Number(n || 0).toLocaleString("vi-VN") + " ₫";
+}
+
+function escHtml(s) {
+    return String(s || "")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 
 function editTicket(maVe) {
-
-    window.location.href =
-        `editVe.html?id=${maVe}`;
+    window.location.href = `editVe.html?id=${maVe}`;
 }
 
-
-/* ==========================================================
-   DELETE
-========================================================== */
-
-async function deleteTicket(maVe, daBan) {
-
-    if (daBan > 0) {
-        alert("Không thể xóa vé đã bán");
-        return;
-    }
-
-    if (!confirm("Bạn có chắc muốn xóa vé này?")) {
-        return;
-    }
-
-    try {
-
-        const response = await fetch(
-            `${BASE_URL}/ve/${maVe}`,
-            {
-                method: "DELETE"
-            }
-        );
-
-        if (!response.ok) {
-
-            const text = await response.text();
-
-            throw new Error(
-                text || "Xóa thất bại"
-            );
-        }
-
-        loadTickets();
-
-    } catch (err) {
-
-        alert(err.message);
-    }
-}
-
-
-/* ==========================================================
-   HELPERS
-========================================================== */
-
-function fmtPrice(n) {
-
-    return Number(n || 0)
-        .toLocaleString("vi-VN") + " ₫";
-}
-
-
-function escHtml(str) {
-
-    return String(str || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-
-/* ==========================================================
-   CSS
-========================================================== */
-
-function injectTicketCSS() {
-
-    if (
-        document.getElementById("ticket-list-style")
-    ) {
-        return;
-    }
-
-    const style = document.createElement("style");
-
-    style.id = "ticket-list-style";
-
-    style.textContent = `
-
-        .ticket-loading,
-        .ticket-error,
-        .ticket-empty {
-            text-align: center;
-            padding: 50px 20px;
-        }
-
-        .ticket-error {
-            color: #dc2626;
-        }
-
-        .ticket-empty-icon {
-            font-size: 3rem;
-            margin-bottom: 12px;
-        }
-
-        .event-group {
-            background: #f8f9fb;
-            border-radius: 16px;
-            padding: 18px;
-            margin-bottom: 20px;
-        }
-
-        .event-header {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 14px;
-        }
-
-        .event-title {
-            margin: 0;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #1a1a2e;
-        }
-
-        .ticket-card {
-            position: relative;
-            background: #fff;
-            border-radius: 14px;
-            padding: 18px 20px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            transition: 0.2s;
-        }
-
-        .ticket-card:hover {
-            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-        }
-
-        .sold-out {
-            opacity: 0.75;
-        }
-
-        .sold-badge {
-            position: absolute;
-            top: 14px;
-            right: 14px;
-            background: #fee2e2;
-            color: #dc2626;
-            font-size: 0.72rem;
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: 20px;
-        }
-
-        .ticket-header {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .ticket-name {
-            margin: 0 0 4px;
-            font-size: 1rem;
-            font-weight: 700;
-        }
-
-        .ticket-type {
-            margin: 0;
-            font-size: 0.82rem;
-            color: #888;
-        }
-
-        .ticket-price {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: #0d9488;
-        }
-
-        .ticket-stats {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin: 10px 0;
-        }
-
-        .stat-chip {
-            font-size: 0.78rem;
-            font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 20px;
-            white-space: nowrap;
-        }
-
-        .stat-chip.info {
-            background: #e0f2fe;
-            color: #0369a1;
-        }
-
-        .stat-chip.success {
-            background: #dcfce7;
-            color: #15803d;
-        }
-
-        .stat-chip.green {
-            background: #f0fdf4;
-            color: #16a34a;
-        }
-
-        .stat-chip.danger {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .progress-wrapper,
-        .mini-progress {
-            background: #f3f4f6;
-            border-radius: 20px;
-            overflow: hidden;
-        }
-
-        .progress-wrapper {
-            height: 7px;
-            margin-bottom: 16px;
-        }
-
-        .mini-progress {
-            height: 5px;
-            margin-bottom: 12px;
-        }
-
-        .progress-bar,
-        .mini-progress-bar {
-            height: 100%;
-            background: linear-gradient(
-                90deg,
-                #0d9488,
-                #3cdbd8
-            );
-        }
-
-        .ticket-desc {
-            margin: 0 0 12px;
-            font-size: 0.82rem;
-            color: #888;
-        }
-    `;
-
-    document.head.appendChild(style);
+function deleteTicket(maVe) {
+    if (!confirm("Bạn có chắc muốn xóa vé này?")) return;
+    fetch(`${BASE_URL}/ve/${maVe}`, { method: "DELETE" })
+        .then(async r => {
+            if (!r.ok) { const t = await r.text(); throw new Error(t || "Xóa vé thất bại"); }
+            loadTickets();
+        })
+        .catch(err => alert(err.message));
 }

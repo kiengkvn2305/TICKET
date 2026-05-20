@@ -151,6 +151,76 @@ public class HoaDonServiceImpl implements HoaDonService {
         return response;
     }
 
+    /**
+     * Lấy toàn bộ vé đã bán — dùng cho tab "Vé đã bán" của nhân viên.
+     * Không lọc theo khách hàng — trả về tất cả hóa đơn trong hệ thống.
+     */
+    @Override
+    public List<VeKhachHangResponse> getAllVe() {
+        List<HoaDon> hoaDons = hoaDonRepository.findAll();
+        if (hoaDons.isEmpty()) return List.of();
+
+        List<Long> maHoaDonList = hoaDons.stream().map(HoaDon::getMaHoaDon).toList();
+        Map<Long, HoaDon> hoaDonMap = hoaDons.stream()
+                .collect(Collectors.toMap(HoaDon::getMaHoaDon, h -> h));
+
+        List<ChiTietHoaDon> chiTiets = chiTietHoaDonRepository
+                .findByIdMaHoaDonIn(maHoaDonList);
+        if (chiTiets.isEmpty()) return List.of();
+
+        List<Long> maVeList = chiTiets.stream()
+                .map(ct -> ct.getId().getMaVe()).distinct().toList();
+        Map<Long, Ve> veMap = veRepository.findAllById(maVeList)
+                .stream().collect(Collectors.toMap(Ve::getMaVe, v -> v));
+
+        List<Long> maSuKienList = veMap.values().stream()
+                .map(Ve::getMaSuKien).filter(Objects::nonNull).distinct().toList();
+        Map<Long, SuKien> skMap = suKienRepository.findAllById(maSuKienList)
+                .stream().collect(Collectors.toMap(SuKien::getMaSuKien, s -> s));
+
+        Map<Long, Long> thanhTienGocMap = chiTiets.stream()
+                .collect(Collectors.groupingBy(
+                        ct -> ct.getId().getMaHoaDon(),
+                        Collectors.summingLong(ct -> ct.getDonGia() * ct.getSoLuong())
+                ));
+
+        Map<String, String> hoanVeMap = new HashMap<>();
+        hoanVeRepository.findByMaHoaDonIn(maHoaDonList).forEach(hv ->
+            hoanVeMap.put(hv.getMaHoaDon() + "_" + hv.getMaVe(), hv.getTrangThaiHoan())
+        );
+
+        return chiTiets.stream().map(ct -> {
+            Ve     ve = veMap.get(ct.getId().getMaVe());
+            HoaDon hd = hoaDonMap.get(ct.getId().getMaHoaDon());
+            SuKien sk = ve != null && ve.getMaSuKien() != null
+                        ? skMap.get(ve.getMaSuKien()) : null;
+
+            VeKhachHangResponse r = new VeKhachHangResponse();
+            if (ve != null) {
+                r.setMaVe(ve.getMaVe());
+                r.setTenVe(ve.getTenVe());
+                r.setLoaiVe(ve.getLoaiVe());
+                r.setGia(ct.getDonGia());
+                r.setTrangThai(ve.getTrangThai());
+            }
+            if (sk != null) {
+                r.setTenSuKien(sk.getTenSuKien());
+                r.setThoiGianBatDau(sk.getThoiGianBatDau());
+                r.setThoiGianKetThuc(sk.getThoiGianKetThuc());
+            }
+            if (hd != null) {
+                r.setMaHoaDon(hd.getMaHoaDon());
+                r.setNgayMua(hd.getNgayLap());
+                r.setThanhTien(hd.getThanhTien());
+                r.setThanhTienGoc(thanhTienGocMap.getOrDefault(hd.getMaHoaDon(), hd.getThanhTien()));
+            }
+            r.setSoLuong(ct.getSoLuong());
+            String keyHoan = (hd != null ? hd.getMaHoaDon() : 0) + "_" + (ve != null ? ve.getMaVe() : 0);
+            r.setTrangThaiHoan(hoanVeMap.get(keyHoan));
+            return r;
+        }).toList();
+    }
+
     @Override
     public List<VeKhachHangResponse> getVeByKhachHang(Long maTaiKhoan) {
         // 1. Tìm KhachHang

@@ -591,30 +591,29 @@ function escHtml(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&
 function errorState(msg) { return `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${escHtml(msg)}</p></div>`; }
 
 function openPaymentModal() {
+    // Ẩn buyModal trước để không chồng lên paymentModal
+    const buyBox = document.getElementById("buyModal");
+    buyBox.classList.remove("open");
+    buyBox.style.display = "none";
+    document.getElementById("buyOverlay").style.display = "none";
 
-    document.getElementById("paymentOverlay")
-        .style.display = "block";
+    document.getElementById("paymentOverlay").style.display = "block";
+    const pm = document.getElementById("paymentModal");
+    pm.style.display = "block";
+    requestAnimationFrame(() => pm.classList.add("open"));
 
-    document.getElementById("paymentModal")
-        .style.display = "block";
-
-    document.getElementById("bankSection")
-        .style.display = "none";
-
-    document.getElementById("cashSection")
-        .style.display = "none";
-
-    document.getElementById("paymentMsg")
-        .textContent = "";
+    document.getElementById("bankSection").style.display = "none";
+    document.getElementById("cashSection").style.display = "none";
+    document.getElementById("paymentMsg").textContent = "";
 }
 
 function closePaymentModal() {
-
-    document.getElementById("paymentOverlay")
-        .style.display = "none";
-
-    document.getElementById("paymentModal")
-        .style.display = "none";
+    const pm = document.getElementById("paymentModal");
+    pm.classList.remove("open");
+    setTimeout(() => {
+        pm.style.display = "none";
+        document.getElementById("paymentOverlay").style.display = "none";
+    }, 220);
 }
 function selectPaymentMethod(method) {
 
@@ -728,20 +727,10 @@ function completePayment(paymentInfo) {
 
     .then(data => {
 
-        document.getElementById("paymentMsg")
-            .textContent =
-                "✅ Thanh toán thành công";
-
+        document.getElementById("paymentMsg").textContent = "✅ Thanh toán thành công! Đang cập nhật...";
         setTimeout(() => {
-
             closePaymentModal();
-
-            closeBuyModal();
-
             loadAllEvents();
-
-            loadMyTickets();
-
         }, 1500);
     })
 

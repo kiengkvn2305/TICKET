@@ -50,7 +50,7 @@
   <!-- ===== TAB NAV ===== -->
   <div class="tab-nav">
     <button class="tab-btn active" id="tab-events"    onclick="showTab('events')">🎪 Sự kiện</button>
-    <button class="tab-btn"        id="tab-myTickets" onclick="showTab('myTickets')">🎫Vé đã bán</button>
+    <button class="tab-btn"        id="tab-myTickets" onclick="showTab('myTickets')">🎫 Vé đã bán</button>
   </div>
 
   <!-- ===== MAIN CONTENT ===== -->
@@ -67,28 +67,21 @@
         </select>
         <button class="filter-btn" onclick="applyEventFilter()">Lọc</button>
       </div>
-
       <div id="eventGrid" class="event-grid">
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Đang tải sự kiện...</p>
-        </div>
+        <div class="loading-state"><div class="spinner"></div><p>Đang tải sự kiện...</p></div>
       </div>
     </div>
 
     <!-- TAB: VÉ ĐÃ BÁN -->
     <div id="pane-myTickets" class="tab-pane">
       <div id="myTicketsList" class="my-tickets-list">
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Đang tải vé...</p>
-        </div>
+        <div class="loading-state"><div class="spinner"></div><p>Đang tải vé...</p></div>
       </div>
     </div>
 
   </main>
 
-  <!-- ===== MODAL MUA VÉ ===== -->
+  <!-- ===== MODAL BÁN VÉ ===== -->
   <div id="buyOverlay" class="modal-overlay" onclick="closeBuyModal()"></div>
   <div id="buyModal" class="modal-box">
     <button class="modal-close" onclick="closeBuyModal()">✕</button>
@@ -97,122 +90,48 @@
     <hr class="modal-divider">
     <div id="modalTicketList" class="modal-ticket-list"></div>
     <div class="voucher-row" id="voucherRow" style="display:none">
-        <input type="text" id="voucherInput" placeholder="Nhập mã voucher (nếu có)"
-              oninput="filterVoucherList()" />
-        <button class="filter-btn" style="white-space:nowrap" onclick="applyVoucher()">Áp dụng</button>
+      <input type="text" id="voucherInput" placeholder="Nhập mã voucher (nếu có)"
+             oninput="filterVoucherList()" />
+      <button class="filter-btn" style="white-space:nowrap" onclick="applyVoucher()">Áp dụng</button>
     </div>
-    <!-- ✅ Thêm: danh sách voucher để chọn -->
-    <div id="voucherListDrop" style="display:none; margin-top:8px; border:1px solid #e0e0e0;
-        border-radius:10px; overflow:hidden; max-height:200px; overflow-y:auto;"></div>
-    <div id="voucherMsg" class="buy-msg" style="margin-top:6px"></div>
+    <div id="voucherListDrop" style="display:none;margin-top:8px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto;"></div>
     <div id="voucherMsg" class="buy-msg" style="margin-top:6px"></div>
     <div class="modal-summary" id="modalSummary" style="display:none">
       <div class="modal-total">Tổng cộng: <strong id="totalPrice">0 ₫</strong></div>
-      <button class="confirm-buy-btn" id="confirmBuyBtn" onclick="confirmBuy()">Xác nhận bán</button>
+      <button class="confirm-buy-btn" onclick="confirmBuy()">Xác nhận bán</button>
     </div>
     <div id="buyMsg" class="buy-msg"></div>
   </div>
 
   <!-- ===== MODAL THANH TOÁN ===== -->
-<div id="paymentOverlay"
-     class="modal-overlay"
-     style="display:none">
-
-</div>
-
-<div id="paymentModal"
-     class="modal-box"
-     style="display:none">
-
-  <button class="modal-close"
-          onclick="closePaymentModal()">
-    ✕
-  </button>
-
-  <h2 class="modal-event-name">
-    💳 Thanh toán
-  </h2>
-
-  <div style="
-      display:flex;
-      gap:12px;
-      margin-top:20px;
-      margin-bottom:20px;
-  ">
-
-    <button class="confirm-buy-btn"
-            onclick="selectPaymentMethod('CHUYEN_KHOAN')">
-      📱 Chuyển khoản
-    </button>
-
-    <button class="confirm-buy-btn"
-            onclick="selectPaymentMethod('TIEN_MAT')">
-      💵 Tiền mặt
-    </button>
-
-  </div>
-
-  <!-- QR -->
-  <div id="bankSection"
-       style="display:none;text-align:center">
-
-    <img src="images/qr-demo.png"
-         style="
-            width:220px;
-            border-radius:14px;
-            border:1px solid #ddd;
-         ">
-
-    <p style="margin-top:10px">
-      Quét mã QR để thanh toán
-    </p>
-
-    <button class="confirm-buy-btn"
-            onclick="confirmTransferPaid()">
-      Đã thanh toán
-    </button>
-
-  </div>
-
-  <!-- CASH -->
-  <div id="cashSection"
-       style="display:none">
-
-    <div class="form-group">
-
-      <label>Tiền khách đưa</label>
-
-      <input type="number"
-             id="cashReceive"
-             oninput="calcCashBack()">
-
+  <div id="paymentOverlay" class="modal-overlay" style="display:none"></div>
+  <div id="paymentModal" class="modal-box" style="display:none">
+    <button class="modal-close" onclick="closePaymentModal()">✕</button>
+    <h2 class="modal-event-name">💳 Thanh toán</h2>
+    <div style="display:flex;gap:12px;margin:20px 0">
+      <button class="confirm-buy-btn" onclick="selectPaymentMethod('CHUYEN_KHOAN')">📱 Chuyển khoản</button>
+      <button class="confirm-buy-btn" onclick="selectPaymentMethod('TIEN_MAT')">💵 Tiền mặt</button>
     </div>
-
-    <div class="form-group">
-
-      <label>Tiền trả lại</label>
-
-      <input type="text"
-             id="cashBack"
-             readonly>
-
+    <!-- QR chuyển khoản -->
+    <div id="bankSection" style="display:none;text-align:center">
+      <img src="assets/qrcodes/MaQR_ThanhToan.jpg" style="width:220px;border-radius:14px;border:1px solid #ddd;">
+      <p style="margin-top:10px">Quét mã QR để thanh toán</p>
+      <button class="confirm-buy-btn" onclick="confirmTransferPaid()">Đã thanh toán</button>
     </div>
-
-    <button class="confirm-buy-btn"
-            onclick="confirmCashPayment()">
-
-      Xác nhận thanh toán
-
-    </button>
-
+    <!-- Tiền mặt -->
+    <div id="cashSection" style="display:none">
+      <div class="form-group">
+        <label>Tiền khách đưa</label>
+        <input type="number" id="cashReceive" oninput="calcCashBack()">
+      </div>
+      <div class="form-group">
+        <label>Tiền trả lại</label>
+        <input type="text" id="cashBack" readonly>
+      </div>
+      <button class="confirm-buy-btn" onclick="confirmCashPayment()">Xác nhận thanh toán</button>
+    </div>
+    <div id="paymentMsg" class="buy-msg" style="margin-top:14px"></div>
   </div>
-
-  <div id="paymentMsg"
-       class="buy-msg"
-       style="margin-top:14px">
-  </div>
-
-</div>
 
   <!-- ===== MODAL HOÀN VÉ ===== -->
   <div id="hoanVeOverlay" class="modal-overlay" onclick="closeHoanVeModal()"></div>
@@ -223,28 +142,31 @@
     <hr class="modal-divider">
     <div class="hoan-ve-form">
       <label class="hoan-label">Số lượng hoàn</label>
-      <div class="qty-control" style="justify-content:flex-start; margin-bottom:16px">
+      <div class="qty-control" style="justify-content:flex-start;margin-bottom:16px">
         <button class="qty-btn" onclick="changeHoanQty(-1)">−</button>
         <span class="qty-display" id="hoanQtyDisplay">1</span>
         <button class="qty-btn" onclick="changeHoanQty(1)">+</button>
-        <span style="margin-left:12px;color:#888;font-size:0.85rem" id="hoanQtyMax"></span>
+        <span style="margin-left:12px;color:#888;font-size:.85rem" id="hoanQtyMax"></span>
       </div>
       <label class="hoan-label">Lý do hoàn vé</label>
       <textarea id="hoanLyDo" class="hoan-textarea" rows="3"
                 placeholder="Nhập lý do hoàn vé (không bắt buộc)..."></textarea>
     </div>
     <div id="hoanVeMsg" class="buy-msg" style="margin-top:10px"></div>
-    <div style="text-align:right; margin-top:16px">
-      <button class="confirm-buy-btn" id="confirmHoanBtn" onclick="confirmHoanVe()">
-        Xác nhận hoàn vé
-      </button>
+    <div style="text-align:right;margin-top:16px">
+      <button class="confirm-buy-btn" id="confirmHoanBtn" onclick="confirmHoanVe()">Xác nhận hoàn vé</button>
     </div>
   </div>
 
   <!-- ===== SCRIPTS ===== -->
   <script src="js/common/api.js"></script>
+  <script src="js/common/helpers.js"></script>
   <script src="js/common/authGuard.js"></script>
   <script src="js/common/ui.js"></script>
-  <script src="js/employee/employeeHome.js"></script>
+  <script src="js/customer/eventService.js"></script>
+  <script src="js/customer/cartModel.js"></script>
+  <script src="js/customer/eventView.js"></script>
+  <script src="js/customer/myTicketsView.js"></script>
+  <script src="js/customer/customerController.js"></script>
 </body>
 </html>

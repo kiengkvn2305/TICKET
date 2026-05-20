@@ -30,12 +30,21 @@ public class HoaDonController {
     }
 
     /**
-     * Lấy tất cả vé đã mua của khách hàng (theo maTaiKhoan).
-     * Dùng cho tab "Vé của tôi".
+     * Lấy tất cả vé đã mua của một khách hàng (theo maTaiKhoan).
+     * Dùng cho tab "Vé của tôi" phía khách.
      */
     @GetMapping("/khachhang/{maTaiKhoan}")
     public ResponseEntity<List<VeKhachHangResponse>> getVeByKhachHang(
             @PathVariable Long maTaiKhoan) {
         return ResponseEntity.ok(service.getVeByKhachHang(maTaiKhoan));
+    }
+
+    /**
+     * Lấy toàn bộ vé đã bán — dùng cho tab "Vé đã bán" của nhân viên.
+     * GET /api/hoadon/tatca
+     */
+    @GetMapping("/tatca")
+    public ResponseEntity<List<VeKhachHangResponse>> getAllVe() {
+        return ResponseEntity.ok(service.getAllVe());
     }
 }

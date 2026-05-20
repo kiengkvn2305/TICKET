@@ -3,44 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <title>Cập Nhật Vé</title>
-  <link rel="stylesheet" href="css/Ve.css">
+  <link rel="stylesheet" href="css/createEvent.css">
 </head>
 <body>
   <div class="container">
-    <h1>Cập Nhật Vé</h1>
+    <h1>✏️ Cập Nhật Vé</h1>
 
     <div class="form-group">
-      <label>Tên vé</label>
-      <input type="text" id="tenVe">
+      <label>Tên vé <span style="color:#e55">*</span></label>
+      <input type="text" id="tenVe" placeholder="VD: Vé VIP, Vé Thường...">
     </div>
 
     <div class="form-group">
-      <label>Loại vé</label>
-      <input type="text" id="loaiVe">
+      <label>Loại vé <span style="color:#e55">*</span></label>
+      <input type="text" id="loaiVe" placeholder="VD: VIP, Standard, Early Bird">
     </div>
 
-    <div class="form-group">
-      <label>Giá vé</label>
-      <input type="number" id="gia">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="form-group">
+        <label>Giá vé (₫) <span style="color:#e55">*</span></label>
+        <input type="number" id="gia" min="0" placeholder="VD: 500000">
+      </div>
+      <!-- FIX: thêm trường soLuong bị thiếu hoàn toàn -->
+      <div class="form-group">
+        <label>Số lượng <span style="color:#e55">*</span></label>
+        <input type="number" id="soLuong" min="1" placeholder="VD: 100">
+      </div>
     </div>
 
+    <!-- FIX: đổi input text thành select để tránh nhập sai giá trị -->
     <div class="form-group">
       <label>Trạng thái</label>
-      <input type="text" id="trangThai">
+      <select id="trangThai" style="width:100%;padding:12px;border:1px solid #ccc;border-radius:10px;font-size:15px;box-sizing:border-box;background:white">
+        <option value="available">Còn vé</option>
+        <option value="soldout">Hết vé</option>
+        <option value="unavailable">Tạm ngưng</option>
+      </select>
     </div>
 
     <div class="form-group">
-      <label>Mô tả</label>
-      <textarea id="moTa"></textarea>
+      <label>Mô tả vé</label>
+      <textarea id="moTa" placeholder="Quyền lợi đi kèm, chỗ ngồi, lưu ý..."></textarea>
     </div>
 
+    <!-- FIX: thêm msgBox để hiển thị lỗi thay vì dùng alert -->
+    <div id="msgBox" style="margin-bottom:12px;font-size:0.88rem;"></div>
+
     <div class="button-group">
-      <button onclick="updateTicket()">Cập nhật vé</button>
-      <button onclick="goBack()">Quay Lại</button>
+      <button class="create-btn" onclick="updateTicket()">Cập nhật vé</button>
+      <button class="cancel-btn" onclick="goBack()">Quay lại</button>
     </div>
   </div>
 
-  <!-- Model: api.js | Controller: editTicket.js -->
   <script src="js/common/api.js"></script>
   <script src="js/common/authGuard.js"></script>
   <script src="js/ticket/editTicket.js"></script>

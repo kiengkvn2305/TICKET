@@ -68,22 +68,15 @@
         </select>
         <button class="filter-btn" onclick="applyEventFilter()">Lọc</button>
       </div>
-
       <div id="eventGrid" class="event-grid">
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Đang tải sự kiện...</p>
-        </div>
+        <div class="loading-state"><div class="spinner"></div><p>Đang tải sự kiện...</p></div>
       </div>
     </div>
 
     <!-- TAB: VÉ CỦA TÔI -->
     <div id="pane-myTickets" class="tab-pane">
       <div id="myTicketsList" class="my-tickets-list">
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Đang tải vé...</p>
-        </div>
+        <div class="loading-state"><div class="spinner"></div><p>Đang tải vé...</p></div>
       </div>
     </div>
 
@@ -98,18 +91,15 @@
     <hr class="modal-divider">
     <div id="modalTicketList" class="modal-ticket-list"></div>
     <div class="voucher-row" id="voucherRow" style="display:none">
-        <input type="text" id="voucherInput" placeholder="Nhập mã voucher (nếu có)"
-              oninput="filterVoucherList()" />
-        <button class="filter-btn" style="white-space:nowrap" onclick="applyVoucher()">Áp dụng</button>
+      <input type="text" id="voucherInput" placeholder="Nhập mã voucher (nếu có)"
+             oninput="filterVoucherList()" />
+      <button class="filter-btn" style="white-space:nowrap" onclick="applyVoucher()">Áp dụng</button>
     </div>
-    <!-- ✅ Thêm: danh sách voucher để chọn -->
-    <div id="voucherListDrop" style="display:none; margin-top:8px; border:1px solid #e0e0e0;
-        border-radius:10px; overflow:hidden; max-height:200px; overflow-y:auto;"></div>
-    <div id="voucherMsg" class="buy-msg" style="margin-top:6px"></div>
+    <div id="voucherListDrop" style="display:none;margin-top:8px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto;"></div>
     <div id="voucherMsg" class="buy-msg" style="margin-top:6px"></div>
     <div class="modal-summary" id="modalSummary" style="display:none">
       <div class="modal-total">Tổng cộng: <strong id="totalPrice">0 ₫</strong></div>
-      <button class="confirm-buy-btn" id="confirmBuyBtn" onclick="confirmBuy()">Xác nhận mua</button>
+      <button class="confirm-buy-btn" onclick="confirmBuy()">Xác nhận mua</button>
     </div>
     <div id="buyMsg" class="buy-msg"></div>
   </div>
@@ -123,28 +113,31 @@
     <hr class="modal-divider">
     <div class="hoan-ve-form">
       <label class="hoan-label">Số lượng hoàn</label>
-      <div class="qty-control" style="justify-content:flex-start; margin-bottom:16px">
+      <div class="qty-control" style="justify-content:flex-start;margin-bottom:16px">
         <button class="qty-btn" onclick="changeHoanQty(-1)">−</button>
         <span class="qty-display" id="hoanQtyDisplay">1</span>
         <button class="qty-btn" onclick="changeHoanQty(1)">+</button>
-        <span style="margin-left:12px;color:#888;font-size:0.85rem" id="hoanQtyMax"></span>
+        <span style="margin-left:12px;color:#888;font-size:.85rem" id="hoanQtyMax"></span>
       </div>
       <label class="hoan-label">Lý do hoàn vé</label>
       <textarea id="hoanLyDo" class="hoan-textarea" rows="3"
                 placeholder="Nhập lý do hoàn vé (không bắt buộc)..."></textarea>
     </div>
     <div id="hoanVeMsg" class="buy-msg" style="margin-top:10px"></div>
-    <div style="text-align:right; margin-top:16px">
-      <button class="confirm-buy-btn" id="confirmHoanBtn" onclick="confirmHoanVe()">
-        Xác nhận hoàn vé
-      </button>
+    <div style="text-align:right;margin-top:16px">
+      <button class="confirm-buy-btn" id="confirmHoanBtn" onclick="confirmHoanVe()">Xác nhận hoàn vé</button>
     </div>
   </div>
 
   <!-- ===== SCRIPTS ===== -->
   <script src="js/common/api.js"></script>
+  <script src="js/common/helpers.js"></script>
   <script src="js/common/authGuard.js"></script>
   <script src="js/common/ui.js"></script>
-  <script src="js/customer/customerHome.js"></script>
+  <script src="js/customer/eventService.js"></script>
+  <script src="js/customer/cartModel.js"></script>
+  <script src="js/customer/eventView.js"></script>
+  <script src="js/customer/myTicketsView.js"></script>
+  <script src="js/customer/customerController.js"></script>
 </body>
 </html>
