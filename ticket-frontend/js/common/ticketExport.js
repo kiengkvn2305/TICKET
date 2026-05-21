@@ -63,12 +63,18 @@
                 </div>
                 <div style="text-align:right">
                     <div style="font-weight:700;font-size:1rem">${fmt(ve.gia * ve.soLuong)}</div>
+                    ${ve.trangThaiHoan === "approved" ? `
+                    <span style="margin-top:6px;display:inline-block;padding:5px 14px;
+                                 background:#d1fae5;color:#065f46;border-radius:20px;
+                                 font-size:.78rem;font-weight:700;font-family:'Inter',sans-serif">
+                        💚 Đã hoàn
+                    </span>` : `
                     <button onclick="window.exportTickets(${JSON.stringify(group).replace(/"/g,'&quot;')}, ${ve.maVe})"
                         style="margin-top:6px;padding:5px 14px;background:#0d9488;color:#fff;
                                border:none;border-radius:20px;font-size:.78rem;font-weight:700;
                                cursor:pointer;font-family:'Inter',sans-serif">
                         🎫 Xuất vé
-                    </button>
+                    </button>`}
                 </div>
             </div>`).join("");
 
@@ -101,6 +107,7 @@
 
             <div style="margin-bottom:18px">${rows}</div>
 
+            ${group.tickets.every(v => v.trangThaiHoan === "approved") ? "" : `
             <div style="text-align:center">
                 <button onclick="window.exportTickets(${JSON.stringify(group).replace(/"/g,'&quot;')}, null)"
                     style="padding:11px 28px;background:#0d9488;color:#fff;border:none;
@@ -108,7 +115,7 @@
                            font-family:'Inter',sans-serif;width:100%">
                     🎫 Xuất tất cả vé trong hóa đơn
                 </button>
-            </div>
+            </div>`}
         `;
 
         document.getElementById("hdDetailOverlay").style.display = "block";

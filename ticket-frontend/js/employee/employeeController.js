@@ -14,11 +14,10 @@ const currentUser = JSON.parse(localStorage.getItem("user"));
 let allEvents           = [];
 let allVouchersForEvent = [];
 let currentEvent        = null;
-let allMyTickets        = [];
-let activeMyFilter      = "all";
+// allMyTickets, activeMyFilter, _ticketsLoaded — khai báo trong myTicketsController.js
 let paymentMethod       = null;
 let finalTotal          = 0;
-let _ticketsLoaded      = false; // cache flag — tránh gọi API lại mỗi lần click tab
+
 
 // ── KHỞI ĐỘNG ────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
@@ -204,7 +203,7 @@ async function _doCompletePayment(paymentInfo) {
             method: "POST",
             body: JSON.stringify({
                 maTaiKhoan: null,
-                maNhanVien: currentUser.maTaiKhoan, // nhân viên bán trực tiếp
+                maNhanVien: currentUser.maNhanVien, // nhân viên bán trực tiếp
                 maSuKien:   currentEvent.maSuKien,
                 maVoucher:  maVoucher || null,
                 items:      CartModel.getItems(),
@@ -391,60 +390,7 @@ function closeInvoiceModal() {
     document.getElementById("invoiceModal").style.display   = "none";
 }
 
-// ── VÉ ĐÃ BÁN ────────────────────────────────────────────
-// Tab "Vé đã bán" — chỉ lấy hóa đơn do nhân viên hiện tại bán
-function loadMyTickets() {
-    MyTicketsView.showLoading();
-    OrderService.getByEmployee(currentUser.maTaiKhoan)
-        .then(data => { allMyTickets = data; _ticketsLoaded = true; activeMyFilter = "all"; renderMyTickets(); })
-        .catch(err  => MyTicketsView.showError(err.message));
-}
-
-function applyMyTicketFilter(filter) {
-    activeMyFilter = filter;
-    renderMyTickets();
-}
-
-function renderMyTickets() {
-    MyTicketsView.render(allMyTickets, activeMyFilter, "applyMyTicketFilter", "openHoanVeModal");
-}
-
-// ── HOÀN VÉ ──────────────────────────────────────────────
-let hoanVeData = { maVe: null, maHoaDon: null, soLuongMua: 1, hoanQty: 1 };
-
-function openHoanVeModal(maVe, maHoaDon, soLuongMua, tenVe) {
-    hoanVeData = { maVe, maHoaDon, soLuongMua, hoanQty: 1 };
-    EventView.openHoanVeModal(maVe, maHoaDon, soLuongMua, tenVe);
-}
-
-function closeHoanVeModal() { EventView.closeHoanVeModal(); }
-
-function changeHoanQty(delta) {
-    const next = hoanVeData.hoanQty + delta;
-    if (next < 1 || next > hoanVeData.soLuongMua) return;
-    hoanVeData.hoanQty = next;
-    EventView.setHoanQtyDisplay(next);
-}
-
-function confirmHoanVe() {
-    EventView.setHoanBtnState(true);
-    EventView.showHoanVeMsg("", "");
-    OrderService.requestRefund({
-        maHoaDon:    hoanVeData.maHoaDon,
-        maVe:        hoanVeData.maVe,
-        soLuongHoan: hoanVeData.hoanQty,
-        lyDoHoan:    EventView.getHoanLyDo() || null,
-    })
-    .then(data => {
-        EventView.showHoanVeMsg(`✅ Yêu cầu hoàn #${data.maHoanVe} đã được ghi nhận.`, "ok");
-        EventView.setHoanBtnState(false);
-        setTimeout(() => { closeHoanVeModal(); _ticketsLoaded = false; loadMyTickets(); }, 2500);
-    })
-    .catch(err => {
-        EventView.showHoanVeMsg(err.message, "err");
-        EventView.setHoanBtnState(false);
-    });
-}
+// ── VÉ ĐÃ BÁN + HOÀN VÉ → tách sang js/employee/myTicketsController.js ──────
 // ── XEM HÓA ĐƠN CHI TIẾT (click vào block hóa đơn trong tab Vé đã bán) ──────
 /**
  * Được gọi từ MyTicketsView khi nhân viên click vào một hóa đơn.

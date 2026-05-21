@@ -103,7 +103,7 @@ const MyTicketsView = {
                         <span class="hoadon-date">📅 ${formatDate(g.ngayMua)}</span>
                         <span class="hoadon-event">📍 ${escHtml(g.tenSuKien || "—")}</span>
                     </div>
-                    <div class="hoadon-header-right">${hdBadge}<div class="hoadon-total">${priceHtml}</div><button class="export-ticket-btn" onclick="event.stopPropagation();exportTickets(JSON.parse(decodeURIComponent('${groupJson}')))">🖨️ Xuất vé</button></div>
+                    <div class="hoadon-header-right">${hdBadge}<div class="hoadon-total">${priceHtml}</div>${!hasNormal ? "" : `<button class="export-ticket-btn" onclick="event.stopPropagation();exportTickets(JSON.parse(decodeURIComponent('${groupJson}')))">🖨️ Xuất vé</button>`}</div>
                 </div>
                 <div class="ticket-lines">${rows}</div>
             </div>`;
