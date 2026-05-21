@@ -13,6 +13,7 @@ import com.example.ticket.service.VeService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.List;
 import java.util.Map;
@@ -136,7 +137,13 @@ public class VeServiceImpl implements VeService {
         ve.setSoLuong(request.getSoLuong());
         ve.setDaBan(0); // vé mới tạo chưa bán được vé nào
 
-        return mapToResponse(veRepository.save(ve), sk);
+        try {
+            return mapToResponse(veRepository.save(ve), sk);
+        } catch (DataIntegrityViolationException ex) {
+            throw new DuplicateResourceException(
+                "Vé '" + request.getTenVe() + "' đã tồn tại trong sự kiện này"
+            );
+        }
     }
 
     @Override

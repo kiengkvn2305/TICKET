@@ -174,6 +174,7 @@ CREATE TABLE VOUCHER (
     NgayBatDau      DATE,
     NgayKetThuc     DATE,
     TrangThai       VARCHAR2(50),
+    SoLuong         NUMBER DEFAULT 0,
     LuotSuDung      NUMBER,
     MaCongTy        NUMBER,
     CONSTRAINT fk_vc_ct FOREIGN KEY (MaCongTy)

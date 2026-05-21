@@ -75,7 +75,7 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .map(MuaVeRequest.ItemRequest::getMaVe).toList();
 
         // FIX #3: dùng findAllByIdWithLock (PESSIMISTIC_WRITE) để tránh race condition oversell
-        Map<Long, Ve> veMap = veRepository.findAllById(maVeList)
+        Map<Long, Ve> veMap = veRepository.findAllByIdWithLock(maVeList)
                 .stream().collect(Collectors.toMap(Ve::getMaVe, v -> v));
 
         long thanhTienGoc = 0;
@@ -86,7 +86,7 @@ public class HoaDonServiceImpl implements HoaDonService {
             if (item.getSoLuong() <= 0) {
                 throw new BadRequestException("Số lượng vé phải lớn hơn 0");
             }
-            thanhTienGoc += (long)(item.getDonGia() * item.getSoLuong());
+            thanhTienGoc += (long)(veMap.get(item.getMaVe()).getGia() * item.getSoLuong());
         }
 
         // FIX #2: Kiểm tra tồn kho TRƯỚC khi tạo HoaDon → tránh hóa đơn rác trong DB
@@ -106,7 +106,7 @@ public class HoaDonServiceImpl implements HoaDonService {
         long   thanhTienSau = thanhTienGoc;
 
         if (request.getMaVoucher() != null && !request.getMaVoucher().isBlank()) {
-            Voucher voucher = voucherRepository.findByMaCode(request.getMaVoucher().trim())
+            Voucher voucher = voucherRepository.findByCodeWithLock(request.getMaVoucher().trim())
                     .orElseThrow(() -> new BadRequestException("Mã voucher không tồn tại"));
 
             if (!"active".equalsIgnoreCase(voucher.getTrangThai())) {
@@ -128,7 +128,7 @@ public class HoaDonServiceImpl implements HoaDonService {
         HoaDon hoaDon = new HoaDon();
         hoaDon.setMaKhachHang(kh.getMaKhachHang());
         hoaDon.setNgayLap(LocalDate.now());
-        hoaDon.setTrangThai("paid");
+        hoaDon.setTrangThai("pending");
         hoaDon.setThanhTien(thanhTienSau);
         hoaDon.setMaVoucher(maVoucher);
         hoaDon.setMaNhanVien(request.getMaNhanVien());
@@ -140,19 +140,20 @@ public class HoaDonServiceImpl implements HoaDonService {
             Ve ve = veMap.get(item.getMaVe());
 
             ve.setDaBan(ve.getDaBan() + item.getSoLuong());
-            veRepository.saveAndFlush(ve);
+            veRepository.save(ve);
 
             ChiTietHoaDonID id = new ChiTietHoaDonID(item.getMaVe(), saved.getMaHoaDon());
             ChiTietHoaDon ct = new ChiTietHoaDon();
             ct.setId(id);
-            ct.setDonGia((long) item.getDonGia());
+            long donGia = (long) ve.getGia();
+            ct.setDonGia(donGia);
             ct.setSoLuong(item.getSoLuong());
             chiTietHoaDonRepository.save(ct);
 
             ChiTietHoaDonResponse r = new ChiTietHoaDonResponse();
             r.setMaVe(item.getMaVe());
             r.setMaHoaDon(saved.getMaHoaDon());
-            r.setDonGia((long) item.getDonGia());
+            r.setDonGia(donGia);
             r.setSoLuong(item.getSoLuong());
             chiTietList.add(r);
         }
@@ -186,7 +187,7 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         List<Long> maVeList = chiTiets.stream()
                 .map(ct -> ct.getId().getMaVe()).distinct().toList();
-        Map<Long, Ve> veMap = veRepository.findAllById(maVeList)
+        Map<Long, Ve> veMap = veRepository.findAllByIdWithLock(maVeList)
                 .stream().collect(Collectors.toMap(Ve::getMaVe, v -> v));
 
         List<Long> maSuKienList = veMap.values().stream()
@@ -254,7 +255,7 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         List<Long> maVeList = chiTiets.stream()
                 .map(ct -> ct.getId().getMaVe()).distinct().toList();
-        Map<Long, Ve> veMap = veRepository.findAllById(maVeList)
+        Map<Long, Ve> veMap = veRepository.findAllByIdWithLock(maVeList)
                 .stream().collect(Collectors.toMap(Ve::getMaVe, v -> v));
 
         List<Long> maSuKienList = veMap.values().stream()
@@ -319,7 +320,7 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         List<Long> maVeList = chiTiets.stream()
                 .map(ct -> ct.getId().getMaVe()).distinct().toList();
-        Map<Long, Ve> veMap = veRepository.findAllById(maVeList)
+        Map<Long, Ve> veMap = veRepository.findAllByIdWithLock(maVeList)
                 .stream().collect(Collectors.toMap(Ve::getMaVe, v -> v));
 
         List<Long> maSuKienList = veMap.values().stream()

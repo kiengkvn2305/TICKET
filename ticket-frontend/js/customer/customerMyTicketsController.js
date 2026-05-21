@@ -6,9 +6,7 @@
               common/ui (EventView)
    ========================================================== */
 
-// ── STATE ─────────────────────────────────────────────────
-let allMyTickets   = [];
-let activeMyFilter = "all";
+
 
 // ── LOAD & RENDER ─────────────────────────────────────────
 function loadMyTickets() {

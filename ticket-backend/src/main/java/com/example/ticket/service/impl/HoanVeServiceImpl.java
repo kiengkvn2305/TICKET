@@ -151,10 +151,10 @@ public class HoanVeServiceImpl implements HoanVeService {
 
         // Nếu duyệt approved → giảm daBan của vé lại
         if ("approved".equalsIgnoreCase(trangThai)) {
-            veRepository.findById(hv.getMaVe()).ifPresent(ve -> {
+            veRepository.findByIdWithLock(hv.getMaVe()).ifPresent(ve -> {
                 int newDaBan = Math.max(0, ve.getDaBan() - hv.getSoLuongHoan());
                 ve.setDaBan(newDaBan);
-                veRepository.saveAndFlush(ve);
+                veRepository.save(ve);
             });
         }
 
