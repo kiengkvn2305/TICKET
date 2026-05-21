@@ -158,15 +158,22 @@
     </div>
   </div>
 
-  <!-- ===== SCRIPTS ===== -->
+  <!-- ===== LAYER 1: Tiện ích chung ===== -->
   <script src="js/common/api.js"></script>
   <script src="js/common/helpers.js"></script>
   <script src="js/common/authGuard.js"></script>
   <script src="js/common/ui.js"></script>
-  <script src="js/customer/eventService.js"></script>
-  <script src="js/customer/cartModel.js"></script>
-  <script src="js/customer/eventView.js"></script>
-  <script src="js/customer/myTicketsView.js"></script>
-  <script src="js/customer/customerController.js"></script>
+  <script src="js/common/ticketExport.js"></script>
+
+  <!-- ===== LAYER 2: Model & Service (dùng chung với customer) ===== -->
+  <script src="js/common/eventService.js"></script>
+  <script src="js/common/cartModel.js"></script>
+
+  <!-- ===== LAYER 3: View (dùng chung với customer) ===== -->
+  <script src="js/common/eventView.js"></script>
+  <script src="js/common/myTicketsView.js"></script>
+
+  <!-- ===== LAYER 4: Controller dành riêng nhân viên ===== -->
+  <script src="js/employee/employeeController.js"></script>
 </body>
 </html>

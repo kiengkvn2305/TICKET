@@ -431,7 +431,8 @@ function renderMyTickets() {
     filtered.forEach(ve => {
         if (!groups.has(ve.maHoaDon)) groups.set(ve.maHoaDon, {
             maHoaDon: ve.maHoaDon, ngayMua: ve.ngayMua, tenSuKien: ve.tenSuKien,
-            thanhTien: ve.thanhTien, thanhTienGoc: ve.thanhTienGoc, tickets: [] });
+            thanhTien: ve.thanhTien, thanhTienGoc: ve.thanhTienGoc,
+            thoiGianBatDau: ve.thoiGianBatDau, thoiGianKetThuc: ve.thoiGianKetThuc, tickets: [] });
         groups.get(ve.maHoaDon).tickets.push(ve);
     });
 
@@ -463,7 +464,8 @@ function renderMyTickets() {
                     ${buildHoanSection(ve)}
                 </div>
             </div>`).join("");
-        return `<div class="hoadon-block" style="animation-delay:${idx*0.07}s">
+        const groupJson = encodeURIComponent(JSON.stringify(g));
+        return `<div class="hoadon-block" style="animation-delay:${idx*0.07}s;cursor:pointer" onclick="window.openHoaDonDetail(JSON.parse(decodeURIComponent('${groupJson}')))">
             <div class="hoadon-header">
                 <div class="hoadon-header-left">
                     <span class="hoadon-num">Hóa đơn #${g.maHoaDon}</span>

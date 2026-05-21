@@ -50,6 +50,13 @@ const OrderService = {
     },
 
     /**
+     * Lấy vé đã bán theo nhân viên — dùng cho tab "Vé đã bán" của nhân viên.
+     */
+    getByEmployee(maNhanVien) {
+        return apiFetch(`/hoadon/nhanvien/${maNhanVien}`);
+    },
+
+    /**
      * Lấy vé theo khách hàng — dùng nếu cần lọc riêng.
      */
     getByCustomer(maTaiKhoan) {

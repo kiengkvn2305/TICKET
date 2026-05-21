@@ -18,4 +18,5 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Long> {
     // Lấy tất cả hóa đơn đã dùng voucher — để trừ đúng doanh thu
     @Query("SELECT h FROM HoaDon h WHERE h.maVoucher IS NOT NULL AND h.maVoucher IN :maVoucherIds")
     List<HoaDon> findByMaVoucherIn(@Param("maVoucherIds") List<Long> maVoucherIds);
+    List<HoaDon> findByMaNhanVien(Long maNhanVien);
 }

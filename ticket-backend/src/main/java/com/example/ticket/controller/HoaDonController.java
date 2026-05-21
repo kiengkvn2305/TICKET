@@ -47,4 +47,14 @@ public class HoaDonController {
     public ResponseEntity<List<VeKhachHangResponse>> getAllVe() {
         return ResponseEntity.ok(service.getAllVe());
     }
+
+    /**
+     * Lấy vé đã bán theo nhân viên — dùng cho tab "Vé đã bán" phía nhân viên.
+     * GET /api/hoadon/nhanvien/{maNhanVien}
+     */
+    @GetMapping("/nhanvien/{maNhanVien}")
+    public ResponseEntity<List<VeKhachHangResponse>> getVeByNhanVien(
+            @PathVariable Long maNhanVien) {
+        return ResponseEntity.ok(service.getVeByNhanVien(maNhanVien));
+    }
 }

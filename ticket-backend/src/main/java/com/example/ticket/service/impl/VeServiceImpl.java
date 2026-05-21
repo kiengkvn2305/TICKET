@@ -145,14 +145,21 @@ public class VeServiceImpl implements VeService {
         Ve existing = findVe(id);
         validateGia(request.getGia());
 
-        // ✅ Không cho đổi sự kiện — giữ nguyên maSuKien cũ
+        // Không cho đặt soLuong thấp hơn số đã bán
+        if (request.getSoLuong() < existing.getDaBan()) {
+            throw new BadRequestException(
+                "Số lượng không thể nhỏ hơn số vé đã bán (" + existing.getDaBan() + ")"
+            );
+        }
+
+        // Không cho đổi sự kiện — giữ nguyên maSuKien cũ
         existing.setTenVe(request.getTenVe());
         existing.setLoaiVe(request.getLoaiVe());
         existing.setGia(request.getGia());
         existing.setTrangThai(request.getTrangThai());
         existing.setMoTa(request.getMoTa());
         existing.setSoLuong(request.getSoLuong());
-        existing.setDaBan(request.getDaBan());
+        // KHÔNG setDaBan — giữ nguyên giá trị từ database
 
         SuKien sk = suKienRepository.findById(existing.getMaSuKien()).orElse(null);
         return mapToResponse(veRepository.save(existing), sk);

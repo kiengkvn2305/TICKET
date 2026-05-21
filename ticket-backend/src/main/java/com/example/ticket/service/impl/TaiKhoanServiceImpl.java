@@ -79,6 +79,21 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         r.setMaTaiKhoan(tk.getMaTaiKhoan());
         r.setTenDangNhap(tk.getTenTaiKhoan());
         r.setLoaiTaiKhoan(tk.getLoaiTaiKhoan());
+
+        // Gắn ID nghiệp vụ tương ứng với từng loại tài khoản
+        switch (tk.getLoaiTaiKhoan() == null ? "" : tk.getLoaiTaiKhoan()) {
+            case "Nhân viên" ->
+                nhanVienRepository.findByMaTaiKhoan(tk.getMaTaiKhoan())
+                        .ifPresent(nv -> r.setMaNhanVien(nv.getMaNhanVien()));
+            case "Nhà tổ chức" ->
+                nhaToChucRepository.findByMaTaiKhoan(tk.getMaTaiKhoan())
+                        .ifPresent(ntc -> r.setMaNhaToChuc(ntc.getMaCongTy()));
+            case "Khách hàng" ->
+                khachHangRepository.findByMaTaiKhoan(tk.getMaTaiKhoan())
+                        .ifPresent(kh -> r.setMaKhachHang(kh.getMaKhachHang()));
+            // Quản lý: không có bảng riêng, dùng maTaiKhoan là đủ
+        }
+
         return r;
     }
 
@@ -211,7 +226,7 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
             nhaToChucRepository.save(ntc);
         } else if ("Nhân viên".equals(tk.getLoaiTaiKhoan())){
             NhanVien nv = nhanVienRepository.findByMaTaiKhoan(id)
-                    .orElseThrow(() -> new NotFoundException("Không tìm thấy hồ sơ nhà tổ chức"));
+                    .orElseThrow(() -> new NotFoundException("Không tìm thấy hồ sơ nhân viên"));
             nv.setTenNhanVien(request.getTenNhanVien());
             nv.setNgayVaoLam(request.getNgayVaoLam());
             nv.setEmail(request.getEmail());

@@ -10,4 +10,5 @@ public interface HoaDonService {
     MuaVeResponse muaVe(MuaVeRequest request);
     List<VeKhachHangResponse> getVeByKhachHang(Long maTaiKhoan);
     List<VeKhachHangResponse> getAllVe();
+    List<VeKhachHangResponse> getVeByNhanVien(Long maNhanVien);
 }

@@ -1,5 +1,8 @@
 /* ==========================================================
    js/customer/customerController.js  (Controller)
+   Controller dành riêng cho khách hàng.
+   Phụ thuộc (common): api, helpers, authGuard, ui
+   Phụ thuộc (shared): eventService, cartModel, eventView, myTicketsView
    ========================================================== */
 
 const currentUser = JSON.parse(localStorage.getItem("user"));
@@ -10,7 +13,6 @@ let allVouchersForEvent = [];
 let currentEvent        = null;
 let allMyTickets        = [];
 let activeMyFilter      = "all";
-let paymentMethod       = null;
 let finalTotal          = 0;
 
 // ── KHỞI ĐỘNG ────────────────────────────────────────────
@@ -19,8 +21,6 @@ window.addEventListener("DOMContentLoaded", () => {
     const el = document.getElementById("welcomeName");
     if (el) el.textContent = currentUser.tenDangNhap || "bạn";
     loadAllEvents();
-    _injectInvoiceModal();
-    _injectToastContainer();
 });
 
 // ── TAB ──────────────────────────────────────────────────
@@ -149,247 +149,35 @@ function applyVoucher() {
 // ── XÁC NHẬN MUA ─────────────────────────────────────────
 function confirmBuy() {
     const items = CartModel.getItems();
-    if (!items.length) { EventView.showBuyMsg("Vui lòng chọn vé.", "err"); return; }
-    finalTotal = CartModel.getTotal();
-    EventView.openPaymentModal();
-}
+    if (!items.length) { EventView.showBuyMsg("Vui lòng chọn ít nhất 1 vé.", "err"); return; }
 
-// ── THANH TOÁN ────────────────────────────────────────────
-function closePaymentModal() { EventView.closePaymentModal(); }
+    const maVoucher = document.getElementById("voucherInput")?.value.trim() || null;
+    const btn = document.getElementById("confirmBuyBtn");
+    if (btn) { btn.disabled = true; btn.textContent = "Đang xử lý..."; }
 
-function selectPaymentMethod(method) {
-    paymentMethod = method;
-    EventView.showPaymentSection(method);
-}
-
-function calcCashBack() {
-    const receive = EventView.getCashReceive();
-    EventView.showCashBack(receive - finalTotal);
-}
-
-function confirmTransferPaid() {
-    _doCompletePayment({ phuongThuc: "CHUYEN_KHOAN", tienKhachDua: null, tienTraLai: null });
-}
-
-function confirmCashPayment() {
-    const receive = EventView.getCashReceive();
-    if (receive < finalTotal) { EventView.showPaymentMsg("Tiền khách đưa không đủ"); return; }
-    _doCompletePayment({
-        phuongThuc:   "TIEN_MAT",
-        tienKhachDua: receive,
-        tienTraLai:   receive - finalTotal,
+    OrderService.purchase({
+        maTaiKhoan: currentUser.maTaiKhoan,
+        maSuKien:   currentEvent.maSuKien,
+        maVoucher:  maVoucher || null,
+        items,
+    })
+    .then(data => {
+        EventView.showBuyMsg(`🎉 Mua thành công! Mã HĐ: #${data.maHoaDon}`, "ok");
+        CartModel.reset();
+        setTimeout(() => { closeBuyModal(); loadAllEvents(); }, 2200);
+    })
+    .catch(err => EventView.showBuyMsg(err.message, "err"))
+    .finally(() => {
+        if (btn) { btn.disabled = false; btn.textContent = "Xác nhận mua"; }
     });
 }
 
-/**
- * Bước 1 — POST /api/hoadon/mua        → tạo hóa đơn, maKhachHang tự sinh (bán trực tiếp)
- * Bước 2 — POST /api/thanhtoan         → lưu phương thức + số tiền
- * Bước 3 — Đóng modal, hiện hóa đơn chi tiết + toast thành công
- */
-async function _doCompletePayment(paymentInfo) {
-    EventView.showPaymentMsg("⏳ Đang xử lý...");
-
-    const maVoucher = document.getElementById("voucherInput")?.value.trim() || null;
-
-    try {
-        // ── BƯỚC 1: Tạo hóa đơn ──────────────────────────────
-        const hoaDon = await apiFetch("/hoadon/mua", {
-            method: "POST",
-            body: JSON.stringify({
-                maTaiKhoan: null,   // bán trực tiếp — backend tự tạo KhachHang rỗng
-                maSuKien:   currentEvent.maSuKien,
-                maVoucher:  maVoucher || null,
-                items:      CartModel.getItems(),
-            }),
-        });
-
-        // ── BƯỚC 2: Tạo thanh toán với phương thức cụ thể ────
-        const thanhToan = await apiFetch("/thanhtoan", {
-            method: "POST",
-            body: JSON.stringify({
-                maHoaDon:   hoaDon.maHoaDon,
-                phuongThuc: paymentInfo.phuongThuc,  // "TIEN_MAT" | "CHUYEN_KHOAN"
-                soTien:     hoaDon.thanhTienSau,
-                trangThai:  "THANH_CONG",
-            }),
-        });
-
-        // ── BƯỚC 3: Đóng modal, hiện hóa đơn + toast ─────────
-        EventView.closePaymentModal();
-        EventView.closeBuyModal();
-        _showInvoiceModal(hoaDon, thanhToan, paymentInfo);
-        showToast(`✅ Bán vé thành công! Hóa đơn #${hoaDon.maHoaDon}`, "success");
-        loadAllEvents();
-
-    } catch (err) {
-        EventView.showPaymentMsg(`❌ ${err.message}`);
-    }
-}
-
-// ── TOAST THÔNG BÁO ───────────────────────────────────────
-function _injectToastContainer() {
-    if (document.getElementById("toast-container")) return;
-    const el = document.createElement("div");
-    el.id = "toast-container";
-    el.style.cssText = `
-        position: fixed; top: 24px; right: 24px; z-index: 99999;
-        display: flex; flex-direction: column; gap: 10px;
-        pointer-events: none;
-    `;
-    document.body.appendChild(el);
-}
-
-function showToast(message, type = "success") {
-    const container = document.getElementById("toast-container");
-    if (!container) return;
-
-    const colors = {
-        success: { bg: "#ecfdf5", border: "#6ee7b7", text: "#065f46" },
-        error:   { bg: "#fef2f2", border: "#fca5a5", text: "#991b1b" },
-        info:    { bg: "#eff6ff", border: "#93c5fd", text: "#1e40af" },
-    };
-    const c = colors[type] || colors.success;
-
-    const toast = document.createElement("div");
-    toast.style.cssText = `
-        background: ${c.bg}; border: 1.5px solid ${c.border}; color: ${c.text};
-        padding: 14px 20px; border-radius: 14px; font-size: .92rem; font-weight: 600;
-        font-family: 'Inter', sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,.12);
-        pointer-events: auto; max-width: 360px;
-        animation: toastIn .3s ease;
-        transition: opacity .4s, transform .4s;
-    `;
-    toast.textContent = message;
-
-    if (!document.getElementById("toast-keyframes")) {
-        const style = document.createElement("style");
-        style.id = "toast-keyframes";
-        style.textContent = `
-            @keyframes toastIn {
-                from { opacity: 0; transform: translateX(40px); }
-                to   { opacity: 1; transform: translateX(0); }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(40px)";
-        setTimeout(() => toast.remove(), 400);
-    }, 3500);
-}
-
-// ── MODAL HÓA ĐƠN CHI TIẾT ───────────────────────────────
-function _injectInvoiceModal() {
-    if (document.getElementById("invoiceModal")) return;
-    document.body.insertAdjacentHTML("beforeend", `
-        <div id="invoiceOverlay" class="modal-overlay" onclick="closeInvoiceModal()" style="display:none"></div>
-        <div id="invoiceModal" class="modal-box" style="display:none;max-width:520px">
-            <button class="modal-close" onclick="closeInvoiceModal()">✕</button>
-            <div id="invoiceContent"></div>
-            <div style="text-align:right;margin-top:20px">
-                <button class="confirm-buy-btn" onclick="closeInvoiceModal()">Đóng</button>
-            </div>
-        </div>
-    `);
-}
-
-function _showInvoiceModal(hoaDon, thanhToan, paymentInfo) {
-    const fmt       = (n) => Number(n).toLocaleString("vi-VN") + " ₫";
-    const fmtMethod = (m) => m === "TIEN_MAT" ? "💵 Tiền mặt" : "📱 Chuyển khoản";
-    const now  = new Date();
-    const date = now.toLocaleDateString("vi-VN");
-    const time = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-
-    const chiTietRows = (hoaDon.chiTiet || []).map(ct => `
-        <tr>
-            <td style="padding:6px 8px">Vé #${ct.maVe}</td>
-            <td style="padding:6px 8px;text-align:center">${ct.soLuong}</td>
-            <td style="padding:6px 8px;text-align:right">${fmt(ct.donGia)}</td>
-            <td style="padding:6px 8px;text-align:right;font-weight:600">${fmt(ct.donGia * ct.soLuong)}</td>
-        </tr>
-    `).join("");
-
-    const discountRow = hoaDon.phanTramGiam
-        ? `<tr style="color:#16a34a">
-               <td colspan="3" style="padding:6px 8px;text-align:right">Giảm giá (${hoaDon.phanTramGiam}%)</td>
-               <td style="padding:6px 8px;text-align:right">-${fmt(hoaDon.thanhTienGoc - hoaDon.thanhTienSau)}</td>
-           </tr>`
-        : "";
-
-    const cashInfo = paymentInfo.tienKhachDua != null
-        ? `<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:.9rem;color:#555">
-               <span>Tiền khách đưa</span><span>${fmt(paymentInfo.tienKhachDua)}</span>
-           </div>
-           <div style="display:flex;justify-content:space-between;font-size:.9rem;color:#555">
-               <span>Tiền trả lại</span><span>${fmt(paymentInfo.tienTraLai)}</span>
-           </div>`
-        : "";
-
-    document.getElementById("invoiceContent").innerHTML = `
-        <div style="text-align:center;margin-bottom:16px">
-            <div style="font-size:2rem">🎫</div>
-            <h2 style="margin:4px 0;font-size:1.25rem">Hóa đơn bán vé</h2>
-            <p style="color:#888;font-size:.85rem;margin:0">${date} · ${time}</p>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:.85rem;color:#666;margin-bottom:12px">
-            <span>Mã hóa đơn: <strong style="color:#111">#${hoaDon.maHoaDon}</strong></span>
-            <span>Mã TT: <strong style="color:#111">#${thanhToan.maThanhToan}</strong></span>
-        </div>
-        <div style="background:#f9fafb;border-radius:10px;padding:10px;margin-bottom:14px;font-size:.85rem;color:#555">
-            <div>🎪 Sự kiện: <strong style="color:#111">${currentEvent?.tenSuKien || "—"}</strong></div>
-            <div style="margin-top:4px">👤 Nhân viên: <strong style="color:#111">${currentUser.tenDangNhap}</strong></div>
-        </div>
-        <table style="width:100%;border-collapse:collapse;font-size:.88rem">
-            <thead>
-                <tr style="background:#f3f4f6;color:#374151">
-                    <th style="padding:6px 8px;text-align:left">Loại vé</th>
-                    <th style="padding:6px 8px;text-align:center">SL</th>
-                    <th style="padding:6px 8px;text-align:right">Đơn giá</th>
-                    <th style="padding:6px 8px;text-align:right">Thành tiền</th>
-                </tr>
-            </thead>
-            <tbody>${chiTietRows}</tbody>
-            <tfoot>
-                ${discountRow}
-                <tr style="border-top:2px solid #e5e7eb">
-                    <td colspan="3" style="padding:8px;text-align:right;font-weight:700">Tổng cộng</td>
-                    <td style="padding:8px;text-align:right;font-weight:700;color:#dc2626;font-size:1rem">${fmt(hoaDon.thanhTienSau)}</td>
-                </tr>
-            </tfoot>
-        </table>
-        <div style="margin-top:14px;padding:10px;background:#f0fdf4;border-radius:10px;font-size:.88rem">
-            <div style="display:flex;justify-content:space-between">
-                <span>Phương thức</span>
-                <strong>${fmtMethod(thanhToan.phuongThuc)}</strong>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:4px">
-                <span>Trạng thái</span>
-                <strong style="color:#16a34a">✅ ${thanhToan.trangThai}</strong>
-            </div>
-            ${cashInfo}
-        </div>
-    `;
-
-    document.getElementById("invoiceOverlay").style.display = "block";
-    document.getElementById("invoiceModal").style.display   = "block";
-}
-
-function closeInvoiceModal() {
-    document.getElementById("invoiceOverlay").style.display = "none";
-    document.getElementById("invoiceModal").style.display   = "none";
-}
-
-// ── VÉ ĐÃ BÁN ────────────────────────────────────────────
-// Tab "Vé đã bán" dành cho nhân viên — lấy toàn bộ hóa đơn hệ thống
+// ── VÉ CỦA TÔI ──────────────────────────────────────────
 function loadMyTickets() {
     MyTicketsView.showLoading();
-    OrderService.getAll()
+    OrderService.getByCustomer(currentUser.maTaiKhoan)
         .then(data => { allMyTickets = data; activeMyFilter = "all"; renderMyTickets(); })
-        .catch(err  => MyTicketsView.showError(err.message));
+        .catch(err => MyTicketsView.showError(err.message));
 }
 
 function applyMyTicketFilter(filter) {
@@ -401,7 +189,7 @@ function renderMyTickets() {
     MyTicketsView.render(allMyTickets, activeMyFilter, "applyMyTicketFilter", "openHoanVeModal");
 }
 
-// ── HOÀN VÉ ──────────────────────────────────────────────
+// ── MODAL HOÀN VÉ ────────────────────────────────────────
 let hoanVeData = { maVe: null, maHoaDon: null, soLuongMua: 1, hoanQty: 1 };
 
 function openHoanVeModal(maVe, maHoaDon, soLuongMua, tenVe) {
@@ -436,4 +224,98 @@ function confirmHoanVe() {
         EventView.showHoanVeMsg(err.message, "err");
         EventView.setHoanBtnState(false);
     });
+}
+
+// ── XEM HÓA ĐƠN CHI TIẾT ─────────────────────────────────
+window.openHoaDonDetail = function (g) {
+    const fmt = (n) => Number(n || 0).toLocaleString("vi-VN") + " ₫";
+    const showDiscount = g.thanhTienGoc && g.thanhTien && g.thanhTien < g.thanhTienGoc;
+
+    const rows = (g.tickets || []).map(ve => `
+        <tr>
+            <td style="padding:7px 8px">
+                <div style="font-weight:600;color:#1a1a2e">${escHtml(ve.tenVe || "—")}</div>
+                <div style="font-size:.78rem;color:#888">${escHtml(ve.loaiVe || "")}</div>
+            </td>
+            <td style="padding:7px 8px;text-align:center">${ve.soLuong}</td>
+            <td style="padding:7px 8px;text-align:right">${fmt(ve.gia)}</td>
+            <td style="padding:7px 8px;text-align:right;font-weight:700">${fmt(ve.gia * ve.soLuong)}</td>
+        </tr>
+    `).join("");
+
+    const discountRow = showDiscount
+        ? `<tr style="color:#16a34a">
+               <td colspan="3" style="padding:6px 8px;text-align:right;font-size:.88rem">Giảm giá (voucher)</td>
+               <td style="padding:6px 8px;text-align:right">-${fmt(g.thanhTienGoc - g.thanhTien)}</td>
+           </tr>`
+        : "";
+
+    const hasPending  = (g.tickets || []).some(v => v.trangThaiHoan === "pending");
+    const hasApproved = (g.tickets || []).some(v => v.trangThaiHoan === "approved");
+    const hasRejected = (g.tickets || []).some(v => v.trangThaiHoan === "rejected");
+    const statusBadge = hasPending
+        ? `<span style="background:#fef3c7;color:#92400e;font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px">⏳ Có yêu cầu đang chờ hoàn</span>`
+        : hasApproved
+        ? `<span style="background:#d1fae5;color:#065f46;font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px">💚 Đã hoàn (một phần hoặc toàn bộ)</span>`
+        : hasRejected
+        ? `<span style="background:#fee2e2;color:#991b1b;font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px">❌ Có hoàn bị từ chối</span>`
+        : `<span style="background:#dcfce7;color:#15803d;font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px">✅ Đã thanh toán</span>`;
+
+    // Inject modal nếu chưa có
+    if (!document.getElementById("invoiceModal")) {
+        document.body.insertAdjacentHTML("beforeend", `
+            <div id="invoiceOverlay" class="modal-overlay" onclick="closeInvoiceModal()" style="display:none"></div>
+            <div id="invoiceModal" class="modal-box" style="display:none;max-width:520px">
+                <button class="modal-close" onclick="closeInvoiceModal()">✕</button>
+                <div id="invoiceContent"></div>
+                <div style="text-align:right;margin-top:20px">
+                    <button class="confirm-buy-btn" onclick="closeInvoiceModal()">Đóng</button>
+                </div>
+            </div>
+        `);
+    }
+
+    document.getElementById("invoiceContent").innerHTML = `
+        <div style="text-align:center;margin-bottom:18px">
+            <div style="font-size:2.2rem">🎫</div>
+            <h2 style="margin:6px 0 4px;font-size:1.2rem;font-family:'Inter',sans-serif">Chi tiết hóa đơn #${g.maHoaDon}</h2>
+            <p style="color:#888;font-size:.83rem;margin:0">${formatDate(g.ngayMua)}</p>
+        </div>
+        <div style="background:#f9fafb;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:.85rem;color:#555;line-height:1.7">
+            <div>🎪 Sự kiện: <strong style="color:#1a1a2e">${escHtml(g.tenSuKien || "—")}</strong></div>
+            ${g.thoiGianBatDau ? `<div>📅 Thời gian: <strong style="color:#1a1a2e">${formatDate(g.thoiGianBatDau)} → ${formatDate(g.thoiGianKetThuc)}</strong></div>` : ""}
+            <div style="margin-top:6px">${statusBadge}</div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:.87rem">
+            <thead>
+                <tr style="background:#f3f4f6;color:#374151">
+                    <th style="padding:8px;text-align:left">Loại vé</th>
+                    <th style="padding:8px;text-align:center">SL</th>
+                    <th style="padding:8px;text-align:right">Đơn giá</th>
+                    <th style="padding:8px;text-align:right">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot>
+                ${discountRow}
+                <tr style="border-top:2px solid #e5e7eb">
+                    <td colspan="3" style="padding:10px 8px;text-align:right;font-weight:700;font-size:.95rem">Tổng cộng</td>
+                    <td style="padding:10px 8px;text-align:right;font-weight:800;color:#0d9488;font-size:1.1rem">${fmt(g.thanhTien || 0)}</td>
+                </tr>
+            </tfoot>
+        </table>
+    `;
+
+    const overlay = document.getElementById("invoiceOverlay");
+    const modal   = document.getElementById("invoiceModal");
+    overlay.style.display = "block";
+    modal.style.display   = "block";
+    requestAnimationFrame(() => modal.classList.add("open"));
+};
+
+function closeInvoiceModal() {
+    const modal   = document.getElementById("invoiceModal");
+    const overlay = document.getElementById("invoiceOverlay");
+    if (modal)   { modal.classList.remove("open"); setTimeout(() => modal.style.display = "none", 220); }
+    if (overlay) overlay.style.display = "none";
 }

@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface KhachHangRepository extends JpaRepository<KhachHang, Long> {
     // BUG FIX: thiếu method này → compile error trong TaiKhoanServiceImpl.delete()
     Optional<KhachHang> findByMaTaiKhoan(Long maTaiKhoan);
+    Optional<KhachHang> findFirstByMaTaiKhoan(Long maTaiKhoan);
+    
 }

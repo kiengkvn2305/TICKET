@@ -41,8 +41,8 @@ window.addEventListener("DOMContentLoaded", function () {
         document.getElementById("mucKhuyenMai").value = data.mucKhuyenMai;
         document.getElementById("luotSuDung").value   = data.luotSuDung;
         document.getElementById("trangThai").value    = data.trangThai;
-        document.getElementById("ngayBatDau").value   = data.ngayBatDau;
-        document.getElementById("ngayKetThuc").value  = data.ngayKetThuc;
+        document.getElementById("ngayBatDau").value   = toDateOnly(data.ngayBatDau);
+        document.getElementById("ngayKetThuc").value  = toDateOnly(data.ngayKetThuc);
 
         // FIX: restore các sự kiện đã chọn trong multi-select
         // danhSachSuKien trả về dạng "1,2,3"
@@ -123,6 +123,18 @@ function updateVoucher() {
     .catch(error => {
         alert(error.message);
     });
+}
+
+
+function toDateOnly(val) {
+    if (!val) return "";
+    if (Array.isArray(val)) {
+        const [y, m, d] = val;
+        return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    }
+    const d = new Date(val);
+    if (isNaN(d)) return val;
+    return d.toISOString().slice(0, 10);
 }
 
 function goBack() {

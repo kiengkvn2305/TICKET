@@ -56,7 +56,7 @@ const MyTicketsView = {
         filtered.forEach(ve => {
             if (!groups.has(ve.maHoaDon)) {
                 groups.set(ve.maHoaDon, {
-                    maHoaDon: ve.maHoaDon, ngayMua: ve.ngayMua, tenSuKien: ve.tenSuKien,
+                    maHoaDon: ve.maHoaDon, ngayMua: ve.ngayMua, tenSuKien: ve.tenSuKien, thoiGianBatDau: ve.thoiGianBatDau, thoiGianKetThuc: ve.thoiGianKetThuc,
                     thanhTien: ve.thanhTien, thanhTienGoc: ve.thanhTienGoc, tickets: [],
                 });
             }
@@ -95,14 +95,15 @@ const MyTicketsView = {
                     </div>
                 </div>`).join("");
 
-            return `<div class="hoadon-block" style="animation-delay:${idx * 0.07}s">
+            const groupJson = encodeURIComponent(JSON.stringify(g));
+            return `<div class="hoadon-block" style="animation-delay:${idx * 0.07}s;cursor:pointer" onclick="window.openHoaDonDetail(JSON.parse(decodeURIComponent('${groupJson}')))">
                 <div class="hoadon-header">
                     <div class="hoadon-header-left">
                         <span class="hoadon-num">Hóa đơn #${g.maHoaDon}</span>
                         <span class="hoadon-date">📅 ${formatDate(g.ngayMua)}</span>
                         <span class="hoadon-event">📍 ${escHtml(g.tenSuKien || "—")}</span>
                     </div>
-                    <div class="hoadon-header-right">${hdBadge}<div class="hoadon-total">${priceHtml}</div></div>
+                    <div class="hoadon-header-right">${hdBadge}<div class="hoadon-total">${priceHtml}</div><button class="export-ticket-btn" onclick="event.stopPropagation();exportTickets(JSON.parse(decodeURIComponent('${groupJson}')))">🖨️ Xuất vé</button></div>
                 </div>
                 <div class="ticket-lines">${rows}</div>
             </div>`;
@@ -118,9 +119,9 @@ const MyTicketsView = {
         if (ve.trangThaiHoan === "rejected") return `
             <span class="hoan-badge hoan-rejected">❌ Bị từ chối</span>
             <button class="hoan-ve-btn" style="margin-top:6px"
-                onclick="${onHoanVe}(${ve.maVe},${ve.maHoaDon},${ve.soLuong},'${escHtml(ve.tenVe || "")}')">🔄 Gửi lại</button>`;
+                onclick="event.stopPropagation();${onHoanVe}(${ve.maVe},${ve.maHoaDon},${ve.soLuong},'${escHtml(ve.tenVe || "")}')">🔄 Gửi lại</button>`;
         return `<button class="hoan-ve-btn"
-            onclick="${onHoanVe}(${ve.maVe},${ve.maHoaDon},${ve.soLuong},'${escHtml(ve.tenVe || "")}')">🔄 Hoàn vé</button>`;
+            onclick="event.stopPropagation();${onHoanVe}(${ve.maVe},${ve.maHoaDon},${ve.soLuong},'${escHtml(ve.tenVe || "")}')">🔄 Hoàn vé</button>`;
     },
 
     _injectCSS() {
@@ -159,7 +160,9 @@ const MyTicketsView = {
         .ticket-line-subtotal{font-size:1rem;font-weight:700;color:#1a1a2e;font-family:'Inter',sans-serif}
         .hoan-badge{font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;font-family:'Inter',sans-serif}
         .hoan-approved{background:#d1fae5;color:#065f46}.hoan-pending{background:#fef3c7;color:#92400e}.hoan-rejected{background:#fee2e2;color:#991b1b}
-        .card-organizer{margin-bottom:6px;min-height:18px}`;
+        .card-organizer{margin-bottom:6px;min-height:18px}
+        .export-ticket-btn{background:#0d9488;color:#fff;border:none;border-radius:12px;padding:6px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:.18s;white-space:nowrap}
+        .export-ticket-btn:hover{background:#0f766e}`;
         document.head.appendChild(s);
     },
 };

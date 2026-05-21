@@ -9,6 +9,7 @@ import java.util.List;
 public class MuaVeRequest {
 
     private Long   maTaiKhoan;  // dùng để tìm KhachHang
+    private Long   maNhanVien;  // nhân viên bán trực tiếp (null nếu khách tự mua online)
     private Long   maSuKien;    // chỉ để log, không bắt buộc
     private String maVoucher;   // nullable — mã giảm giá
 
@@ -29,6 +30,8 @@ public class MuaVeRequest {
 
     public Long   getMaTaiKhoan()           { return maTaiKhoan; }
     public void   setMaTaiKhoan(Long v)     { this.maTaiKhoan = v; }
+    public Long   getMaNhanVien()           { return maNhanVien; }
+    public void   setMaNhanVien(Long v)     { this.maNhanVien = v; }
     public Long   getMaSuKien()             { return maSuKien; }
     public void   setMaSuKien(Long v)       { this.maSuKien = v; }
     public String getMaVoucher()            { return maVoucher; }

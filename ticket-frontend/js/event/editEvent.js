@@ -63,13 +63,12 @@ function updateEvent() {
 function toDatetimeLocal(val) {
     if (!val) return "";
     if (Array.isArray(val)) {
-        const [y, mo, d, h = 0, mi = 0] = val;
-        return `${y}-${pad(mo)}-${pad(d)}T${pad(h)}:${pad(mi)}`;
+        const [y, mo, d] = val;
+        return `${y}-${pad(mo)}-${pad(d)}`;
     }
-    // ISO string → cắt bỏ seconds/timezone
     const dt = new Date(val);
     if (isNaN(dt)) return val;
-    return dt.toISOString().slice(0, 16);
+    return dt.toISOString().slice(0, 10);
 }
 
 function pad(n) { return String(n).padStart(2, "0"); }
