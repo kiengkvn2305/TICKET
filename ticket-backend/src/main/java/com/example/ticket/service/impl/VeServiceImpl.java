@@ -127,6 +127,10 @@ public class VeServiceImpl implements VeService {
                 "Vé '" + request.getTenVe() + "' đã tồn tại trong sự kiện này"
             );
         }
+        // Số lượng mặc định theo loại vé: VIP = 30, còn lại = 70
+        int soLuongMacDinh = (request.getLoaiVe() != null
+                && request.getLoaiVe().toUpperCase().contains("VIP")) ? 30 : 70;
+
         Ve ve = new Ve();
         ve.setTenVe(request.getTenVe());
         ve.setLoaiVe(request.getLoaiVe());
@@ -134,7 +138,7 @@ public class VeServiceImpl implements VeService {
         ve.setTrangThai(request.getTrangThai());
         ve.setMoTa(request.getMoTa());
         ve.setMaSuKien(sk.getMaSuKien());
-        ve.setSoLuong(request.getSoLuong());
+        ve.setSoLuong(soLuongMacDinh);
         ve.setDaBan(0); // vé mới tạo chưa bán được vé nào
 
         try {
@@ -152,21 +156,13 @@ public class VeServiceImpl implements VeService {
         Ve existing = findVe(id);
         validateGia(request.getGia());
 
-        // Không cho đặt soLuong thấp hơn số đã bán
-        if (request.getSoLuong() < existing.getDaBan()) {
-            throw new BadRequestException(
-                "Số lượng không thể nhỏ hơn số vé đã bán (" + existing.getDaBan() + ")"
-            );
-        }
-
         // Không cho đổi sự kiện — giữ nguyên maSuKien cũ
         existing.setTenVe(request.getTenVe());
         existing.setLoaiVe(request.getLoaiVe());
         existing.setGia(request.getGia());
         existing.setTrangThai(request.getTrangThai());
         existing.setMoTa(request.getMoTa());
-        existing.setSoLuong(request.getSoLuong());
-        // KHÔNG setDaBan — giữ nguyên giá trị từ database
+        // KHÔNG setDaBan, KHÔNG setSoLuong — số lượng cố định theo loại vé
 
         SuKien sk = suKienRepository.findById(existing.getMaSuKien()).orElse(null);
         return mapToResponse(veRepository.save(existing), sk);

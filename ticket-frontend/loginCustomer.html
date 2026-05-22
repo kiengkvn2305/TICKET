@@ -397,24 +397,17 @@
     required: 0,         // how many seats user must pick
   };
 
-  function buildSeatMap() {
+  function buildSeatMap(bookedSet) {
     const state = window._seatState;
     state.seats = [];
-    const ROWS = 10, COLS = 10;
-    // Rows A-J, cols 1-10
-    // Rows A-C are VIP (first 3 rows), rest are normal
-    // ~20% random booked
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < 10; r++) {
+      for (let c = 0; c < 10; c++) {
         const rowLabel = String.fromCharCode(65 + r);
-        const isVip = r < 3;
-        const isBooked = Math.random() < 0.18;
+        const id = `${rowLabel}${c + 1}`;
         state.seats.push({
-          id: `${rowLabel}${c + 1}`,
-          row: r,
-          col: c,
-          type: isVip ? 'vip' : 'normal',
-          booked: isBooked,
+          id, row: r, col: c,
+          type:   r < 3 ? 'vip' : 'normal',
+          booked: bookedSet ? bookedSet.has(id) : (Math.random() < 0.18),
         });
       }
     }

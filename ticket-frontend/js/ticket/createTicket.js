@@ -26,29 +26,13 @@ window.addEventListener("DOMContentLoaded", function () {
         .catch(err => showMsg(err.message, "err"));
 });
 
-function onEventChange() {
-    previewStock();
-}
-
-function previewStock() {
-    const sl = parseInt(document.getElementById("soLuong")?.value) || 0;
-    const el = document.getElementById("stockPreview");
-    if (!el) return;
-    if (sl > 0) {
-        el.style.display = "block";
-        el.textContent   = `✅ Sẽ phát hành ${sl.toLocaleString("vi-VN")} vé cho loại này`;
-    } else {
-        el.style.display = "none";
-    }
-}
+function onEventChange() {}
 
 function createTicket() {
 
     const tenVe    = document.getElementById("tenVe").value.trim();
     const loaiVe   = document.getElementById("loaiVe").value.trim();
-    // FIX: parse sang number — backend nhận Double/Integer
     const gia      = parseFloat(document.getElementById("gia").value);
-    const soLuong  = parseInt(document.getElementById("soLuong")?.value || "0");
     const moTa     = document.getElementById("moTa").value.trim();
     const maSuKien = document.getElementById("maSuKien").value;
 
@@ -57,10 +41,6 @@ function createTicket() {
     }
     if (isNaN(gia) || gia < 0) {
         showMsg("⚠️ Giá vé không hợp lệ.", "err"); return;
-    }
-    // FIX: validate soLuong — trường quan trọng để tính conLai
-    if (isNaN(soLuong) || soLuong < 1) {
-        showMsg("⚠️ Số lượng vé phải ít nhất là 1.", "err"); return;
     }
 
     const btn = document.querySelector("button.create-btn");
@@ -72,8 +52,7 @@ function createTicket() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             tenVe, loaiVe,
-            gia,        // number
-            soLuong,    // number
+            gia,
             moTa,
             maSuKien: parseInt(maSuKien),
             trangThai: "available"

@@ -21,12 +21,17 @@ public class Ghe {
     @Column(name = "MAVE")
     private Long maVe;
 
-    public Long   getMaGhe()              { return maGhe; }
-    public void   setMaGhe(Long v)        { this.maGhe = v; }
-    public String getKhuVuc()             { return khuVuc; }
-    public void   setKhuVuc(String v)     { this.khuVuc = v; }
-    public String getTrangThai()          { return trangThai; }
-    public void   setTrangThai(String v)  { this.trangThai = v; }
-    public Long   getMaVe()               { return maVe; }
-    public void   setMaVe(Long v)         { this.maVe = v; }
+    @Column(name = "MAHOADON")
+    private Long maHoaDon;
+
+    public Long   getMaGhe()               { return maGhe; }
+    public void   setMaGhe(Long v)         { this.maGhe = v; }
+    public String getKhuVuc()              { return khuVuc; }
+    public void   setKhuVuc(String v)      { this.khuVuc = v; }
+    public String getTrangThai()           { return trangThai; }
+    public void   setTrangThai(String v)   { this.trangThai = v; }
+    public Long   getMaVe()                { return maVe; }
+    public void   setMaVe(Long v)          { this.maVe = v; }
+    public Long   getMaHoaDon()            { return maHoaDon; }
+    public void   setMaHoaDon(Long v)      { this.maHoaDon = v; }
 }

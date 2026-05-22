@@ -1,6 +1,7 @@
 package com.example.ticket.dto.response;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /** Trả về cho tab "Vé của tôi" — gộp thông tin Ve + SuKien + HoaDon */
 public class VeKhachHangResponse {
@@ -19,9 +20,15 @@ public class VeKhachHangResponse {
     private Long      thanhTien;     // tổng tiền thực tế của hóa đơn (đã trừ voucher)
     private Long      thanhTienGoc;  // tổng tiền gốc trước khi trừ voucher
     private String trangThaiHoan; // null = chưa gửi, "pending", "approved", "rejected"
+    private List<String> gheDat;  // danh sách ghế đã đặt, vd: ["A1", "B3"]
+    private Long   maSuKien;      // để frontend gọi API ghế theo sự kiện
 
     public String    getTrangThaiHoan()         { return trangThaiHoan; }
     public void      setTrangThaiHoan(String v) { this.trangThaiHoan = v; }
+    public List<String> getGheDat()             { return gheDat; }
+    public void      setGheDat(List<String> v)  { this.gheDat = v; }
+    public Long      getMaSuKien()              { return maSuKien; }
+    public void      setMaSuKien(Long v)        { this.maSuKien = v; }
     public Long      getMaVe()                   { return maVe; }
     public void      setMaVe(Long v)             { this.maVe = v; }
     public String    getTenVe()                  { return tenVe; }

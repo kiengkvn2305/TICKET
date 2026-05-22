@@ -56,7 +56,8 @@ const MyTicketsView = {
         filtered.forEach(ve => {
             if (!groups.has(ve.maHoaDon)) {
                 groups.set(ve.maHoaDon, {
-                    maHoaDon: ve.maHoaDon, ngayMua: ve.ngayMua, tenSuKien: ve.tenSuKien, thoiGianBatDau: ve.thoiGianBatDau, thoiGianKetThuc: ve.thoiGianKetThuc,
+                    maHoaDon: ve.maHoaDon, ngayMua: ve.ngayMua, tenSuKien: ve.tenSuKien, maSuKien: ve.maSuKien,
+                    thoiGianBatDau: ve.thoiGianBatDau, thoiGianKetThuc: ve.thoiGianKetThuc,
                     thanhTien: ve.thanhTien, thanhTienGoc: ve.thanhTienGoc, tickets: [],
                 });
             }

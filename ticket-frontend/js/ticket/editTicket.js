@@ -15,18 +15,12 @@ window.addEventListener("DOMContentLoaded", function () {
             document.getElementById("trangThai").value = data.trangThai || "available";
             document.getElementById("moTa").value      = data.moTa      || "";
 
-            // Lưu lại số đã bán để validate khi update
+            // Hiển thị stock info readonly
             daBan = data.daBan || 0;
-
-            // Hiển thị thông tin stock ngay khi load
             renderStockInfo(data.soLuong || 0, data.daBan || 0, data.conLai ?? 0);
-
-            // Khi người dùng thay đổi soLuong → cập nhật preview realtime
-            document.getElementById("soLuong").addEventListener("input", function () {
-                const val = parseInt(this.value) || 0;
-                const conLai = Math.max(0, val - daBan);
-                renderStockInfo(val, daBan, conLai);
-            });
+            // soLuong disabled — chỉ hiển thị, không cho sửa
+            const slInput = document.getElementById("soLuong");
+            if (slInput) slInput.value = data.soLuong || 0;
         })
         .catch(err => showMsg("❌ " + err.message, "err"));
 });
@@ -71,7 +65,6 @@ function updateTicket() {
     const tenVe     = document.getElementById("tenVe").value.trim();
     const loaiVe    = document.getElementById("loaiVe").value.trim();
     const gia       = parseFloat(document.getElementById("gia").value);
-    const soLuong   = parseInt(document.getElementById("soLuong").value);
     const trangThai = document.getElementById("trangThai").value;
     const moTa      = document.getElementById("moTa").value.trim();
 
@@ -81,23 +74,6 @@ function updateTicket() {
     if (isNaN(gia) || gia < 0) {
         showMsg("⚠️ Giá vé không hợp lệ.", "err"); return;
     }
-    if (isNaN(soLuong) || soLuong < 1) {
-        showMsg("⚠️ Số lượng phải ít nhất là 1.", "err"); return;
-    }
-
-    // KIỂM TRA SỐ ĐÃ BÁN: không cho giảm soLuong xuống dưới số đã bán
-    if (soLuong < daBan) {
-        showMsg(
-            `⚠️ Không thể đặt số lượng ${soLuong} — đã bán ${daBan} vé. Số lượng tối thiểu là ${daBan}.`,
-            "err"
-        );
-        // Highlight ô soLuong
-        const input = document.getElementById("soLuong");
-        input.style.borderColor = "#dc2626";
-        input.focus();
-        setTimeout(() => input.style.borderColor = "", 2500);
-        return;
-    }
 
     const btn = document.querySelector(".create-btn");
     if (btn) { btn.disabled = true; btn.textContent = "Đang cập nhật..."; }
@@ -105,7 +81,7 @@ function updateTicket() {
     fetch(`${BASE_URL}/ve/${maVe}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenVe, loaiVe, gia, soLuong, trangThai, moTa })
+        body: JSON.stringify({ tenVe, loaiVe, gia, trangThai, moTa })
     })
     .then(async r => {
         if (!r.ok) { const t = await r.text(); throw new Error(t || "Cập nhật thất bại"); }

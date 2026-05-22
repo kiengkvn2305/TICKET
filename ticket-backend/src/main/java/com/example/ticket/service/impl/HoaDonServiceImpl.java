@@ -237,6 +237,7 @@ public class HoaDonServiceImpl implements HoaDonService {
             Ghe ghe = new Ghe();
             ghe.setKhuVuc(gr.getKhuVuc());
             ghe.setMaVe(gr.getMaVe());
+            ghe.setMaHoaDon(saved.getMaHoaDon());
             ghe.setTrangThai("da_dat");
             gheRepository.save(ghe);
         }
@@ -302,6 +303,14 @@ public class HoaDonServiceImpl implements HoaDonService {
         Map<Long, SuKien> skMap = suKienRepository.findAllById(maSuKienList)
                 .stream().collect(Collectors.toMap(SuKien::getMaSuKien, s -> s));
 
+        // Lấy ghế đã đặt theo maHoaDon — đúng theo từng khách, không lẫn ghế người khác
+        Map<String, List<String>> gheMap = gheRepository.findByMaHoaDonIn(maHoaDonList)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        g -> g.getMaHoaDon() + "_" + g.getMaVe(),
+                        Collectors.mapping(Ghe::getKhuVuc, Collectors.toList())
+                ));
+
         Map<Long, Long> thanhTienGocMap = chiTiets.stream()
                 .collect(Collectors.groupingBy(
                         ct -> ct.getId().getMaHoaDon(),
@@ -329,6 +338,11 @@ public class HoaDonServiceImpl implements HoaDonService {
                 r.setTenSuKien(sk.getTenSuKien());
                 r.setThoiGianBatDau(sk.getThoiGianBatDau());
                 r.setThoiGianKetThuc(sk.getThoiGianKetThuc());
+            }
+            if (ve != null) {
+                r.setMaSuKien(ve.getMaSuKien());
+                String gheKey = (hd != null ? hd.getMaHoaDon() : 0) + "_" + ve.getMaVe();
+                r.setGheDat(gheMap.getOrDefault(gheKey, List.of()));
             }
             if (hd != null) {
                 r.setMaHoaDon(hd.getMaHoaDon());

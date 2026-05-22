@@ -152,12 +152,15 @@ CREATE TABLE GHE (
     KhuVuc          VARCHAR2(50),
     TrangThai       VARCHAR(50),
     MaVe            NUMBER,
-        
+    MaHoaDon        NUMBER,
     CONSTRAINT fk_ghe_mv FOREIGN KEY (MaVe)
-        REFERENCES VE(MaVe)
+        REFERENCES VE(MaVe),
+
+    CONSTRAINT fk_ghe_hd FOREIGN KEY (MaHoaDon)
+        REFERENCES HOADON(MaHoaDon)
 );
-
-
+COMMIT;
+DELETE FROM HOADON
 -- =========================
 -- 9. VOUCHER
 -- =========================

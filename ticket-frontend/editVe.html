@@ -24,10 +24,13 @@
         <label>Giá vé (₫) <span style="color:#e55">*</span></label>
         <input type="number" id="gia" min="0" placeholder="VD: 500000">
       </div>
-      <!-- FIX: thêm trường soLuong bị thiếu hoàn toàn -->
       <div class="form-group">
-        <label>Số lượng <span style="color:#e55">*</span></label>
-        <input type="number" id="soLuong" min="1" placeholder="VD: 100">
+        <label>Số lượng</label>
+        <input type="number" id="soLuong" disabled
+               style="background:#f3f4f6;color:#888;cursor:not-allowed">
+        <div style="font-size:.75rem;color:#aaa;margin-top:4px">
+          Số lượng cố định theo loại vé (VIP = 30, Thường = 70)
+        </div>
       </div>
     </div>
 
