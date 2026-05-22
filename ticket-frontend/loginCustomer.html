@@ -392,25 +392,56 @@
   <script>
   // ─── Seat Map State ───────────────────────────────────────────────
   window._seatState = {
-    seats: [],           // 10x10 array: { id, row, col, type, booked }
-    selected: new Set(), // selected seat ids
-    required: 0,         // how many seats user must pick
+    seats: [],
+    selected: new Set(),
+    required: 0,
+    requiredByType: { vip: 0, normal: 0 },
   };
+
+  function _resolveSeatRequirements() {
+    const items = (typeof CartModel !== 'undefined' && CartModel.getItems)
+      ? CartModel.getItems()
+      : [];
+
+    const result = { vip: 0, normal: 0 };
+
+    items.forEach(item => {
+      const qty = Number(item.soLuong || 0);
+      const type = (item.loaiVe || '').toUpperCase();
+      if (type.includes('VIP')) result.vip += qty;
+      else result.normal += qty;
+    });
+
+    return result;
+  }
 
   function buildSeatMap(bookedSet) {
     const state = window._seatState;
     state.seats = [];
+
     for (let r = 0; r < 10; r++) {
       for (let c = 0; c < 10; c++) {
         const rowLabel = String.fromCharCode(65 + r);
         const id = `${rowLabel}${c + 1}`;
+        const type = r < 3 ? 'vip' : 'normal';
+
         state.seats.push({
-          id, row: r, col: c,
-          type:   r < 3 ? 'vip' : 'normal',
-          booked: bookedSet ? bookedSet.has(id) : (Math.random() < 0.18),
+          id,
+          row: r,
+          col: c,
+          type,
+          booked: bookedSet ? bookedSet.has(id) : false,
         });
       }
     }
+  }
+
+  function _getSelectedCountByType(type) {
+    const state = window._seatState;
+    return Array.from(state.selected).filter(id => {
+      const seat = state.seats.find(s => s.id === id);
+      return seat && seat.type === type;
+    }).length;
   }
 
   function renderSeatGrid() {
@@ -420,27 +451,43 @@
 
     state.seats.forEach(seat => {
       const cell = document.createElement('div');
-      cell.className = 'seat-cell ' +
-        (seat.booked ? 'seat-booked' :
-         state.selected.has(seat.id) ? 'seat-selected' :
-         seat.type === 'vip' ? 'seat-vip' : 'seat-normal');
+
+      const maxForType = state.requiredByType[seat.type] || 0;
+      const selectedForType = _getSelectedCountByType(seat.type);
+
+      const disabledByType =
+        maxForType === 0 ||
+        (!state.selected.has(seat.id) && selectedForType >= maxForType);
+
+      cell.className = 'seat-cell ' + (
+        seat.booked
+          ? 'seat-booked'
+          : state.selected.has(seat.id)   // ← selected TRƯỚC disabledByType
+            ? 'seat-selected'
+            : disabledByType
+              ? 'seat-booked'
+              : seat.type === 'vip'
+                ? 'seat-vip'
+                : 'seat-normal'
+      );
+
       cell.setAttribute('title', seat.id);
 
-      // Tooltip
       const tip = document.createElement('span');
       tip.className = 'seat-tooltip';
-      tip.textContent = `${seat.id} · ${seat.type === 'vip' ? 'VIP' : 'Thường'}`;
+      tip.textContent =
+        `${seat.id} · ${seat.type === 'vip' ? 'VIP' : 'Thường'}`;
       cell.appendChild(tip);
 
-      // Label inside cell
       const lbl = document.createElement('span');
       lbl.style.pointerEvents = 'none';
       lbl.textContent = seat.id;
       cell.appendChild(lbl);
 
-      if (!seat.booked) {
+      if (!seat.booked && (!disabledByType || state.selected.has(seat.id))) {
         cell.onclick = () => toggleSeat(seat.id);
       }
+
       grid.appendChild(cell);
     });
 
@@ -449,16 +496,31 @@
 
   function toggleSeat(seatId) {
     const state = window._seatState;
+    const seat = state.seats.find(s => s.id === seatId);
+
+    if (!seat || seat.booked) return;
+
     if (state.selected.has(seatId)) {
       state.selected.delete(seatId);
     } else {
+      const selectedForType = _getSelectedCountByType(seat.type);
+      const maxForType = state.requiredByType[seat.type] || 0;
+
+      if (selectedForType >= maxForType) {
+        document.getElementById('seatMsg').textContent =
+          `Bạn chỉ được chọn ${maxForType} ghế ${seat.type === 'vip' ? 'VIP' : 'Thường'}.`;
+        return;
+      }
+
       if (state.selected.size >= state.required) {
         document.getElementById('seatMsg').textContent =
           `Bạn chỉ cần chọn ${state.required} ghế.`;
         return;
       }
+
       state.selected.add(seatId);
     }
+
     document.getElementById('seatMsg').textContent = '';
     renderSeatGrid();
   }
@@ -466,12 +528,13 @@
   function updateSeatSummary() {
     const state = window._seatState;
     const sel = state.selected.size;
-    const req = state.required;
+
     document.getElementById('seatSelectedCount').textContent = sel;
-    document.getElementById('seatRequiredCount').textContent = req;
+    document.getElementById('seatRequiredCount').textContent = state.required;
 
     const btn = document.getElementById('seatConfirmBtn');
-    if (sel === req) {
+
+    if (sel === state.required) {
       btn.disabled = false;
       btn.style.opacity = '1';
       btn.style.cursor = 'pointer';
@@ -482,37 +545,44 @@
     }
   }
 
-  function openSeatModal(eventName, eventDate, requiredSeats) {
+  function openSeatModal(eventName, eventDate, requiredSeats, bookedSet) {
     const state = window._seatState;
+
     state.selected = new Set();
     state.required = requiredSeats || 1;
+    state.requiredByType = _resolveSeatRequirements();
 
     document.getElementById('seatModalSubtitle').textContent =
       `${eventName || ''} · ${eventDate || ''} · Vui lòng chọn ${state.required} ghế`;
 
-    buildSeatMap();
+    buildSeatMap(bookedSet || new Set());
     renderSeatGrid();
 
     document.getElementById('seatMsg').textContent = '';
     document.getElementById('seatOverlay').style.display = 'block';
-    const _sm = document.getElementById('seatModal');
-    _sm.style.display = 'block';
-    requestAnimationFrame(() => _sm.classList.add('open'));
+
+    const sm = document.getElementById('seatModal');
+    sm.style.display = 'block';
+
+    requestAnimationFrame(() => sm.classList.add('open'));
   }
 
   function closeSeatModal() {
-    const _sm = document.getElementById('seatModal');
-    _sm.classList.remove('open');
-    setTimeout(() => { _sm.style.display = 'none'; }, 220);
+    const sm = document.getElementById('seatModal');
+    sm.classList.remove('open');
+    setTimeout(() => { sm.style.display = 'none'; }, 220);
     document.getElementById('seatOverlay').style.display = 'none';
   }
 
   function confirmSeatSelection() {
     const state = window._seatState;
+
     if (state.selected.size !== state.required) return;
+
     window._selectedSeats = Array.from(state.selected);
+
     closeSeatModal();
-    // Gọi hàm mở voucher modal thực sự (đã được lưu trước khi bị override)
+
     if (typeof window._seatDoneCallback === 'function') {
       window._seatDoneCallback();
     }
@@ -691,6 +761,16 @@
   // => intercept ở đây thay vì trong controller
   window.addEventListener('DOMContentLoaded', function() {
 
+    // ── Ghi nhớ maSuKien đang mở để seat map fetch ghế đã đặt ──
+    // Patch openBuyModal của EventView để capture maSuKien
+    if (typeof EventView !== 'undefined' && EventView.openBuyModal) {
+      var _origOpenBuyModal = EventView.openBuyModal.bind(EventView);
+      EventView.openBuyModal = function(sk) {
+        window._currentMaSuKien = sk ? (sk.maSuKien || sk) : null;
+        _origOpenBuyModal(sk);
+      };
+    }
+
     // Lưu lại hàm gốc từ controller
     var _origOpenVoucherModal = window.openVoucherModal;
 
@@ -723,12 +803,40 @@
         if (typeof _proceedToVoucherModal === 'function') {
           _proceedToVoucherModal();
         } else if (_origOpenVoucherModal) {
-          // fallback: gọi hàm gốc (không lý tưởng nhưng an toàn)
           _origOpenVoucherModal.call(window);
         }
       };
-      // Mở seat map
-      openSeatModal(eventName, eventDate, totalQty);
+
+      // Lấy mã sự kiện đang mở từ controller (gán bởi customerController)
+      var maSuKien = window._currentMaSuKien || null;
+
+      function _openSeatWithBooked(bookedSet) {
+        openSeatModal(eventName, eventDate, totalQty, bookedSet);
+      }
+
+      if (maSuKien && typeof EventService !== 'undefined' && EventService.getBookedSeats) {
+        // Fetch ghế đã đặt từ backend, lọc ra những ghế không còn hiển thị
+        EventService.getBookedSeats(maSuKien)
+          .then(function(data) {
+            // Backend có thể trả về mảng string ["A1","B2"] hoặc mảng object [{maGhe:"A1",...}]
+            var booked;
+            if (Array.isArray(data)) {
+              booked = new Set(data.map(function(item) {
+                return (typeof item === 'string') ? item : (item.maGhe || item.seatId || item.id || '');
+              }).filter(Boolean));
+            } else {
+              booked = new Set();
+            }
+            _openSeatWithBooked(booked);
+          })
+          .catch(function(err) {
+            console.warn('[SeatMap] Không thể tải ghế đã đặt, mở sơ đồ trống:', err);
+            _openSeatWithBooked(new Set());
+          });
+      } else {
+        // Không có API → mở bình thường không có dữ liệu booked
+        _openSeatWithBooked(new Set());
+      }
     };
 
   });

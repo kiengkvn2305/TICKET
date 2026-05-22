@@ -1,3 +1,8 @@
+
+function validateLoaiVe(value){
+    return value === "VIP" || value === "Thường";
+}
+
 const params = new URLSearchParams(window.location.search);
 const maVe   = params.get("id");
 
@@ -9,7 +14,8 @@ window.addEventListener("DOMContentLoaded", function () {
         .then(r => { if (!r.ok) throw new Error("Không lấy được vé"); return r.json(); })
         .then(data => {
             document.getElementById("tenVe").value     = data.tenVe     || "";
-            document.getElementById("loaiVe").value    = data.loaiVe    || "";
+            document.getElementById("loaiVe").value = data.loaiVe    || "";
+document.getElementById("loaiVe").disabled = true;
             document.getElementById("gia").value       = data.gia       || 0;
             document.getElementById("soLuong").value   = data.soLuong   || 0;
             document.getElementById("trangThai").value = data.trangThai || "available";

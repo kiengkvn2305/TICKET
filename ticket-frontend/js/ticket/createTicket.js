@@ -1,3 +1,7 @@
+function validateLoaiVe(value){
+    return value === "VIP" || value === "Thường";
+}
+
 window.addEventListener("DOMContentLoaded", function () {
 
     const currentUser = JSON.parse(localStorage.getItem("user"));
@@ -82,3 +86,15 @@ function showMsg(text, type) {
 }
 
 function goBack() { window.location.href = "loginCreator.html"; }
+async function checkLoaiVeExists(eventId, loaiVe){
+    try{
+        const response = await fetch(`/api/tickets/check-type?eventId=${eventId}&loaiVe=${encodeURIComponent(loaiVe)}`);
+        if(!response.ok) return false;
+
+        const data = await response.json();
+        return data.exists === true;
+    }catch(err){
+        console.error("checkLoaiVeExists error:", err);
+        return false;
+    }
+}

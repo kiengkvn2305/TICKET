@@ -122,7 +122,13 @@ function openVoucherModal() {
         return;
     }
 
-    const totalQty  = items.reduce((s, it) => s + (it.soLuong || 0), 0) || 1;
+    const sanitizedItems = items.filter(it => ['VIP','THƯỜNG','THUONG'].includes((it.loaiVe || '').toUpperCase()));
+    if (sanitizedItems.length !== items.length) {
+        EventView.showBuyMsg('Chỉ hỗ trợ vé VIP hoặc Thường.', 'err');
+        return;
+    }
+
+    const totalQty  = sanitizedItems.reduce((s, it) => s + (it.soLuong || 0), 0) || 1;
     const eventName = document.getElementById("modalEventName")?.textContent || "";
     const eventDate = document.getElementById("modalEventDate")?.textContent || "";
 

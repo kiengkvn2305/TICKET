@@ -1,3 +1,8 @@
+
+function validateLoaiVe(value){
+    return value === "VIP" || value === "Thường";
+}
+
 let allTickets = [];
 
 function loadTickets() {

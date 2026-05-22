@@ -5,34 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Tạo vé — TICKET</title>
   <link rel="stylesheet" href="css/createEvent.css" />
-  <style>
-    .required-mark { color: #e55; margin-left: 2px; }
-    .price-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-    .stock-preview {
-      background: #f0faf9;
-      border-radius: 10px;
-      padding: 10px 14px;
-      font-size: 0.85rem;
-      color: #0d9488;
-      font-weight: 600;
-      margin-top: 6px;
-      display: none;
-    }
-    .form-hint { font-size: 0.78rem; color: #aaa; margin-top: 4px; }
-    select {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      font-size: 15px;
-      box-sizing: border-box;
-      background: white;
-    }
-  </style>
 </head>
 <body>
   <div class="container">
@@ -52,7 +24,12 @@
 
     <div class="form-group">
       <label>Loại vé <span class="required-mark">*</span></label>
-      <input type="text" id="loaiVe" placeholder="VD: VIP, Standard, Early Bird" />
+      
+<select id="loaiVe">
+    <option value="VIP">VIP</option>
+    <option value="Thường">Thường</option>
+</select>
+
     </div>
 
     <div class="price-row">

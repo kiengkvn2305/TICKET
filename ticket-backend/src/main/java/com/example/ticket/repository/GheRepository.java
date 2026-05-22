@@ -24,4 +24,12 @@ public interface GheRepository extends JpaRepository<Ghe, Long> {
     @Query("SELECT g FROM Ghe g WHERE g.khuVuc IN :khuVucList AND g.maVe IN :maVeList")
     List<Ghe> findConflict(@Param("khuVucList") List<String> khuVucList,
                            @Param("maVeList")   List<Long>   maVeList);
+                               @Query("""
+        SELECT g.khuVuc
+        FROM Ghe g
+        JOIN Ve v ON g.maVe = v.maVe
+        WHERE v.maSuKien = :maSuKien
+          AND g.trangThai = 'da_dat'
+        """)
+    List<String> findBookedSeatsByMaSuKien(@Param("maSuKien") Long maSuKien);
 }

@@ -36,9 +36,11 @@ const CartModel = (() => {
             return _tickets
                 .filter(ve => (_map[ve.maVe] || 0) > 0)
                 .map(ve => ({
-                    maVe:     ve.maVe,
-                    soLuong:  _map[ve.maVe],
-                    donGia:   ve.gia,
+                    maVe:    ve.maVe,
+                    loaiVe:  ve.loaiVe,   
+                    tenVe:   ve.tenVe,
+                    soLuong: _map[ve.maVe],
+                    donGia:  ve.gia,
                 }));
         },
 

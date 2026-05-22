@@ -18,6 +18,8 @@ window.addEventListener("DOMContentLoaded", () => {
     const el = document.getElementById("welcomeName");
     if (el) el.textContent = currentUser.tenDangNhap || "bạn";
     loadAllEvents();
+    // Load sẵn vé đã mua để lọc khi mở modal (không cần chờ vào tab Vé của tôi)
+    loadMyTicketsSilent();
 });
 
 // ── TAB ──────────────────────────────────────────────────
@@ -26,6 +28,22 @@ function onTabSwitch(tabName) {
 }
 const _showTab = showTab;
 window.showTab = (name) => _showTab(name, onTabSwitch);
+
+// Load ngầm vé đã mua để lọc trong modal mua vé
+function loadMyTicketsSilent() {
+    if (!currentUser?.maTaiKhoan) return;
+    OrderService.getByCustomer(currentUser.maTaiKhoan)
+        .then(orders => {
+            // Mỗi order có thể có mảng tickets bên trong
+            allMyTickets = orders.flatMap(o =>
+                (o.tickets || []).map(t => ({
+                    maSuKien: o.maSuKien,
+                    loaiVe:   t.loaiVe || "",
+                }))
+            );
+        })
+        .catch(() => { /* Lỗi load ngầm — bỏ qua, không ảnh hưởng UI */ });
+}
 
 // ── SỰ KIỆN ─────────────────────────────────────────────
 function loadAllEvents() {
@@ -86,9 +104,24 @@ function openBuyModal(maSuKien) {
         EventService.getTicketsByEvent(maSuKien),
         EventService.getVouchersByEvent(maSuKien),
     ]).then(([tickets, vouchers]) => {
-        CartModel.setTickets(tickets);
-        window._currentTickets = tickets;   // lưu để dùng khi map ghế → maVe
-        EventView.renderModalTickets(tickets, CartModel, "changeQty", "inputQty");
+        // ── Lọc bỏ loại vé user đã mua cho sự kiện này ──────────────
+        // allMyTickets được load từ OrderService.getByCustomer() ở tab "Vé của tôi"
+        // Mỗi phần tử có dạng { maSuKien, loaiVe, ... }
+        const purchasedLoaiVe = new Set(
+            allMyTickets
+                .filter(t => String(t.maSuKien) === String(maSuKien))
+                .map(t => (t.loaiVe || "").trim().toLowerCase())
+                .filter(Boolean)
+        );
+
+        const availableTickets = purchasedLoaiVe.size > 0
+            ? tickets.filter(ve => !purchasedLoaiVe.has((ve.loaiVe || "").trim().toLowerCase()))
+            : tickets;
+        // ─────────────────────────────────────────────────────────────
+
+        CartModel.setTickets(availableTickets);
+        window._currentTickets = availableTickets;   // lưu để dùng khi map ghế → maVe
+        EventView.renderModalTickets(availableTickets, CartModel, "changeQty", "inputQty");
         EventView.renderTotal(CartModel.getSubtotal(), 0);
         allVouchersForEvent = vouchers;
         EventView.renderVoucherList(vouchers, "selectVoucher");
@@ -121,7 +154,22 @@ function openVoucherModal() {
         return;
     }
 
-    const totalQty  = items.reduce((s, it) => s + (it.soLuong || 0), 0) || 1;
+    // Chuẩn hoá: 'VIP' → 'vip', 'Thường'/'THUONG'/... → 'normal'
+    const _normaliseType = (loaiVe) => {
+        const u = (loaiVe || '').toUpperCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // bỏ dấu
+        if (u.includes('VIP')) return 'vip';
+        if (u.includes('THUONG') || u.includes('THUỜNG') || u.includes('THUONG')) return 'normal';
+        return null; // loại không hợp lệ
+    };
+
+    const sanitizedItems = items.filter(it => _normaliseType(it.loaiVe) !== null);
+    if (sanitizedItems.length !== items.length) {
+        EventView.showBuyMsg('Chỉ hỗ trợ vé VIP hoặc Thường.', 'err');
+        return;
+    }
+
+    const totalQty  = sanitizedItems.reduce((s, it) => s + (it.soLuong || 0), 0) || 1;
     const eventName = document.getElementById("modalEventName")?.textContent || "";
     const eventDate = document.getElementById("modalEventDate")?.textContent || "";
 
@@ -225,26 +273,21 @@ function confirmBuy() {
     // Ghế đã chọn: mỗi seatId là "A1", "B3"...
     // Hàng A-C → VIP, D-J → Thường
     // Tìm maVe phù hợp từ items đã chọn theo loaiVe
-    const vipItem    = items.find(it => it.maVe && String(it.maVe));
-    const normalItem = items.find(it => it.maVe && String(it.maVe));
-
-    // Lấy tickets từ DOM để biết loaiVe
-    const allTicketEls = document.querySelectorAll('.modal-ticket-row');
-    // Dùng _seatState để map ghế → maVe theo loại
-    const seatSeq = Array.from(window._seatState?.seats || []);
-
+    const _normaliseType2 = (loaiVe) => {
+        const u = (loaiVe || '').toUpperCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return u.includes('VIP') ? 'vip' : 'normal';
+    };
     const selectedSeats = (window._selectedSeats || []).map(seatId => {
         const rowChar = seatId.charAt(0);
         const isVip   = rowChar <= 'C';
-        // Tìm item có loaiVe VIP hoặc thường trong cart
-        // Tìm ticket VIP hoặc thường từ danh sách đã load
         const allT = window._currentTickets || [];
-        const vipT    = allT.find(t => (t.loaiVe||'').toUpperCase().includes('VIP'));
-        const normalT = allT.find(t => !(t.loaiVe||'').toUpperCase().includes('VIP'));
+        const vipT    = allT.find(t => _normaliseType2(t.loaiVe) === 'vip');
+        const normalT = allT.find(t => _normaliseType2(t.loaiVe) === 'normal');
         const matchT  = isVip ? (vipT || allT[0]) : (normalT || allT[0]);
         return {
-            khuVuc: seatId,          // "A1", "B3"...
-            maVe:   matchT?.maVe,    // maVe của loại vé tương ứng
+            khuVuc: seatId,
+            maVe:   matchT?.maVe,
         };
     });
 

@@ -141,7 +141,9 @@ CREATE TABLE VE (
     MoTa            VARCHAR2(3000),
     MaSuKien        NUMBER,
     CONSTRAINT fk_ve_sk FOREIGN KEY (MaSuKien)
-        REFERENCES SUKIEN(MaSuKien)
+        REFERENCES SUKIEN(MaSuKien),
+
+    CONSTRAINT CK_VE_LV CHECK(LoaiVe IN ('Thường', 'VIP'))
 );
 
 -- =========================
@@ -159,8 +161,14 @@ CREATE TABLE GHE (
     CONSTRAINT fk_ghe_hd FOREIGN KEY (MaHoaDon)
         REFERENCES HOADON(MaHoaDon)
 );
+
+DELETE FROM CHITIETHOADON;
+DELETE FROM THANHTOAN;
+DELETE FROM GHE;
+DELETE FROM HOADON;
+DELETE FROM VE;
 COMMIT;
-DELETE FROM HOADON
+
 -- =========================
 -- 9. VOUCHER
 -- =========================

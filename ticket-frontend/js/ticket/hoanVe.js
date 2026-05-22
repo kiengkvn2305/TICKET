@@ -1,3 +1,8 @@
+
+function validateLoaiVe(value){
+    return value === "VIP" || value === "Thường";
+}
+
 function loadHoanVe() {
     clearContent();
     const container = document.getElementById("hoanVeList");

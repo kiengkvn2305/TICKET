@@ -28,6 +28,14 @@ const EventService = {
     getOrganizer(maCongTy) {
         return apiFetch(`/nhatochuc/${maCongTy}`);
     },
+
+    /**
+     * Lấy danh sách ghế đã được đặt của một sự kiện.
+     * Trả về mảng các mã ghế (vd: ["A1", "B3", "C5"]).
+     */
+    getBookedSeats(maSuKien) {
+        return apiFetch(`/sukien/${maSuKien}/ghe-da-dat`);
+    },
 };
 
 const OrderService = {
