@@ -143,8 +143,6 @@ CREATE TABLE VE (
     CONSTRAINT fk_ve_sk FOREIGN KEY (MaSuKien)
         REFERENCES SUKIEN(MaSuKien)
 );
-ALTER TABLE VE ADD DaBan NUMBER(10) DEFAULT 0 NOT NULL;
-SELECT MaVe, TenVe, SoLuong, DaBan FROM VE;
 
 -- =========================
 -- 8. GHẾ
@@ -152,11 +150,8 @@ SELECT MaVe, TenVe, SoLuong, DaBan FROM VE;
 CREATE TABLE GHE (
     MaGhe           NUMBER PRIMARY KEY,
     KhuVuc          VARCHAR2(50),
-    MaDiaDiem       NUMBER,
     TrangThai       VARCHAR(50),
     MaVe            NUMBER,
-    CONSTRAINT fk_ghe_dd FOREIGN KEY (MaDiaDiem)
-        REFERENCES DIADIEM(MaDiaDiem),
         
     CONSTRAINT fk_ghe_mv FOREIGN KEY (MaVe)
         REFERENCES VE(MaVe)
@@ -286,3 +281,7 @@ BEGIN
 END;
 /
 
+ALTER TABLE GHE DROP COLUMN MAHOADON;
+-- FK liên kết với HoaDon
+ALTER TABLE GHE ADD CONSTRAINT fk_ghe_hd
+    FOREIGN KEY (MaHoaDon) REFERENCES HOADON(MaHoaDon);

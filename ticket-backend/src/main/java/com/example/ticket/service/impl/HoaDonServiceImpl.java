@@ -27,7 +27,8 @@ public class HoaDonServiceImpl implements HoaDonService {
     private final SuKienRepository         suKienRepository;
     private final VoucherRepository        voucherRepository;
     private final HoanVeRepository         hoanVeRepository;
-    private final NhanVienRepository       nhanVienRepository; // FIX #1: validate FK_HD_NV
+    private final NhanVienRepository       nhanVienRepository;
+    private final GheRepository            gheRepository;
 
     public HoaDonServiceImpl(HoaDonRepository hoaDonRepository,
                              ChiTietHoaDonRepository chiTietHoaDonRepository,
@@ -36,7 +37,8 @@ public class HoaDonServiceImpl implements HoaDonService {
                              SuKienRepository suKienRepository,
                              VoucherRepository voucherRepository,
                              HoanVeRepository hoanVeRepository,
-                             NhanVienRepository nhanVienRepository) {
+                             NhanVienRepository nhanVienRepository,
+                             GheRepository gheRepository) {
         this.hoaDonRepository        = hoaDonRepository;
         this.chiTietHoaDonRepository = chiTietHoaDonRepository;
         this.khachHangRepository     = khachHangRepository;
@@ -45,17 +47,86 @@ public class HoaDonServiceImpl implements HoaDonService {
         this.voucherRepository       = voucherRepository;
         this.hoanVeRepository        = hoanVeRepository;
         this.nhanVienRepository      = nhanVienRepository;
+        this.gheRepository           = gheRepository;
     }
+
+    // =========================================================================
+    // muaVe — dùng chung cho cả khách hàng online lẫn nhân viên tại quầy
+    // =========================================================================
 
     @Override
     @Transactional
     public MuaVeResponse muaVe(MuaVeRequest request) {
-        // 1. Validate đầu vào
+        return thucHienMuaVe(request);
+    }
+
+    /**
+     * Nhân viên bán vé tại quầy.
+     * Validate thêm: maNhanVien bắt buộc phải có.
+     * Sau đó gọi chung thucHienMuaVe().
+     */
+    @Override
+    @Transactional
+    public MuaVeResponse muaVeNhanVien(MuaVeRequest request) {
+        if (request.getMaNhanVien() == null) {
+            throw new BadRequestException("maNhanVien là bắt buộc khi nhân viên bán vé tại quầy");
+        }
+        return thucHienMuaVe(request);
+    }
+
+    // =========================================================================
+    // CORE — thucHienMuaVe (logic chính, dùng chung)
+    // =========================================================================
+
+    private MuaVeResponse thucHienMuaVe(MuaVeRequest request) {
+
+        // ── BƯỚC 1: Validate đã chọn loại vé ────────────────────────────────
+        // Frontend gọi GET /api/ve/sukien/{maSuKien} trước, rồi mới truyền items vào đây
         if (request.getItems() == null || request.getItems().isEmpty()) {
-            throw new BadRequestException("Vui lòng chọn ít nhất 1 vé");
+            throw new BadRequestException("Vui lòng chọn ít nhất 1 loại vé");
+        }
+        for (MuaVeRequest.ItemRequest item : request.getItems()) {
+            if (item.getSoLuong() <= 0) {
+                throw new BadRequestException("Số lượng vé phải lớn hơn 0");
+            }
         }
 
-        // 2. Tìm hoặc tạo KhachHang
+        // ── BƯỚC 2: Validate đã chọn ghế ────────────────────────────────────
+        // Frontend gọi GET /api/ghe/sukien/{maSuKien} lấy ghế đã đặt, hiển thị sơ đồ,
+        // user chọn ghế trống rồi truyền ghes vào đây
+        int tongSoLuong = request.getItems().stream()
+                .mapToInt(MuaVeRequest.ItemRequest::getSoLuong).sum();
+
+        if (request.getGhes() == null || request.getGhes().isEmpty()) {
+            throw new BadRequestException("Vui lòng chọn ghế ngồi");
+        }
+        if (request.getGhes().size() != tongSoLuong) {
+            throw new BadRequestException(
+                "Số ghế đã chọn (" + request.getGhes().size()
+                + ") phải bằng tổng số vé (" + tongSoLuong + ")"
+            );
+        }
+
+        // Không được chọn 2 ghế giống nhau trong cùng request
+        long distinctGhe = request.getGhes().stream()
+                .map(MuaVeRequest.GheRequest::getKhuVuc).distinct().count();
+        if (distinctGhe != request.getGhes().size()) {
+            throw new BadRequestException("Danh sách ghế có khu vực bị trùng");
+        }
+
+        // Không được chọn ghế đã có người đặt
+        List<Long> maVeListGhe = request.getItems().stream()
+                .map(MuaVeRequest.ItemRequest::getMaVe).toList();
+        List<String> khuVucList = request.getGhes().stream()
+                .map(MuaVeRequest.GheRequest::getKhuVuc).toList();
+        List<Ghe> gheConflict = gheRepository.findConflict(khuVucList, maVeListGhe);
+        if (!gheConflict.isEmpty()) {
+            String conflictStr = gheConflict.stream()
+                    .map(Ghe::getKhuVuc).collect(Collectors.joining(", "));
+            throw new BadRequestException("Ghế đã được đặt: " + conflictStr);
+        }
+
+        // ── Tìm/tạo KhachHang ────────────────────────────────────────────────
         KhachHang kh;
         if (request.getMaTaiKhoan() != null) {
             kh = khachHangRepository.findFirstByMaTaiKhoan(request.getMaTaiKhoan())
@@ -64,46 +135,37 @@ public class HoaDonServiceImpl implements HoaDonService {
             kh = khachHangRepository.save(new KhachHang());
         }
 
-        // FIX #1: Validate maNhanVien trước khi insert → tránh ORA-02291 FK_HD_NV
+        // ── Validate nhân viên ────────────────────────────────────────────────
         if (request.getMaNhanVien() != null
                 && !nhanVienRepository.existsById(request.getMaNhanVien())) {
             throw new NotFoundException("Không tìm thấy nhân viên ID: " + request.getMaNhanVien());
         }
 
-        // 3. Kiểm tra vé tồn tại + validate số lượng + tính tổng tiền gốc
+        // ── Kiểm tra tồn kho vé ──────────────────────────────────────────────
         List<Long> maVeList = request.getItems().stream()
                 .map(MuaVeRequest.ItemRequest::getMaVe).toList();
-
-        // FIX #3: dùng findAllByIdWithLock (PESSIMISTIC_WRITE) để tránh race condition oversell
         Map<Long, Ve> veMap = veRepository.findAllByIdWithLock(maVeList)
                 .stream().collect(Collectors.toMap(Ve::getMaVe, v -> v));
 
         long thanhTienGoc = 0;
         for (MuaVeRequest.ItemRequest item : request.getItems()) {
-            if (!veMap.containsKey(item.getMaVe())) {
+            Ve ve = veMap.get(item.getMaVe());
+            if (ve == null) {
                 throw new NotFoundException("Không tìm thấy vé ID: " + item.getMaVe());
             }
-            if (item.getSoLuong() <= 0) {
-                throw new BadRequestException("Số lượng vé phải lớn hơn 0");
-            }
-            thanhTienGoc += (long)(veMap.get(item.getMaVe()).getGia() * item.getSoLuong());
-        }
-
-        // FIX #2: Kiểm tra tồn kho TRƯỚC khi tạo HoaDon → tránh hóa đơn rác trong DB
-        for (MuaVeRequest.ItemRequest item : request.getItems()) {
-            Ve ve = veMap.get(item.getMaVe());
             int conLai = ve.getSoLuong() - ve.getDaBan();
             if (item.getSoLuong() > conLai) {
-                throw new BadRequestException(
-                    "Vé '" + ve.getTenVe() + "' chỉ còn " + conLai + " vé, không đủ số lượng yêu cầu"
-                );
+                throw new BadRequestException("Vé '" + ve.getTenVe() + "' chỉ còn " + conLai + " vé");
             }
+            thanhTienGoc += (long)(ve.getGia() * item.getSoLuong());
         }
 
-        // 4. Áp dụng voucher nếu có
+        // ── BƯỚC 3: Áp dụng voucher (tùy chọn) ─────────────────────────────
+        // Frontend gọi GET /api/voucher/sukien/{maSuKien} lấy danh sách,
+        // user chọn rồi truyền maVoucher vào đây (hoặc để null nếu bỏ qua)
         Double phanTramGiam = null;
-        Long   maVoucher    = null;
-        long   thanhTienSau = thanhTienGoc;
+        Long   maVoucherSave = null;
+        long   thanhTienSau  = thanhTienGoc;
 
         if (request.getMaVoucher() != null && !request.getMaVoucher().isBlank()) {
             Voucher voucher = voucherRepository.findByCodeWithLock(request.getMaVoucher().trim())
@@ -112,11 +174,24 @@ public class HoaDonServiceImpl implements HoaDonService {
             if (!"active".equalsIgnoreCase(voucher.getTrangThai())) {
                 throw new BadRequestException("Voucher đã hết hạn hoặc không còn hiệu lực");
             }
-            if (voucher.getMucKhuyenMai() != null && voucher.getMucKhuyenMai() > 0) {
-                phanTramGiam = voucher.getMucKhuyenMai();
-                thanhTienSau = Math.round(thanhTienGoc * (1 - phanTramGiam / 100.0));
-                maVoucher    = voucher.getMaVoucher();
 
+            // Kiểm tra voucher có áp dụng cho sự kiện này không (nếu có maSuKien)
+            if (request.getMaSuKien() != null
+                    && voucher.getDanhSachSuKien() != null
+                    && !voucher.getDanhSachSuKien().isBlank()) {
+                boolean thuocSuKien = Arrays.stream(voucher.getDanhSachSuKien().split(","))
+                        .map(String::trim)
+                        .map(Long::parseLong)
+                        .anyMatch(id -> id.equals(request.getMaSuKien()));
+                if (!thuocSuKien) {
+                    throw new BadRequestException("Voucher này không áp dụng cho sự kiện đang chọn");
+                }
+            }
+
+            if (voucher.getMucKhuyenMai() != null && voucher.getMucKhuyenMai() > 0) {
+                phanTramGiam  = voucher.getMucKhuyenMai();
+                thanhTienSau  = Math.round(thanhTienGoc * (1 - phanTramGiam / 100.0));
+                maVoucherSave = voucher.getMaVoucher();
                 voucher.setLuotSuDung(
                     (voucher.getLuotSuDung() == null ? 0 : voucher.getLuotSuDung()) + 1
                 );
@@ -124,27 +199,26 @@ public class HoaDonServiceImpl implements HoaDonService {
             }
         }
 
-        // 5. Tạo HoaDon — chỉ tạo SAU KHI đã pass toàn bộ validation
+        // ── Tạo HoaDon ───────────────────────────────────────────────────────
         HoaDon hoaDon = new HoaDon();
         hoaDon.setMaKhachHang(kh.getMaKhachHang());
         hoaDon.setNgayLap(LocalDate.now());
         hoaDon.setTrangThai("pending");
         hoaDon.setThanhTien(thanhTienSau);
-        hoaDon.setMaVoucher(maVoucher);
+        hoaDon.setMaVoucher(maVoucherSave);
         hoaDon.setMaNhanVien(request.getMaNhanVien());
         HoaDon saved = hoaDonRepository.save(hoaDon);
 
-        // 6. Tạo ChiTietHoaDon + tăng daBan (tồn kho đã được kiểm tra ở bước trên)
+        // ── Tạo ChiTietHoaDon + tăng daBan ───────────────────────────────────
         List<ChiTietHoaDonResponse> chiTietList = new ArrayList<>();
         for (MuaVeRequest.ItemRequest item : request.getItems()) {
             Ve ve = veMap.get(item.getMaVe());
-
             ve.setDaBan(ve.getDaBan() + item.getSoLuong());
             veRepository.save(ve);
 
-            ChiTietHoaDonID id = new ChiTietHoaDonID(item.getMaVe(), saved.getMaHoaDon());
+            ChiTietHoaDonID ctId = new ChiTietHoaDonID(item.getMaVe(), saved.getMaHoaDon());
             ChiTietHoaDon ct = new ChiTietHoaDon();
-            ct.setId(id);
+            ct.setId(ctId);
             long donGia = (long) ve.getGia();
             ct.setDonGia(donGia);
             ct.setSoLuong(item.getSoLuong());
@@ -158,7 +232,16 @@ public class HoaDonServiceImpl implements HoaDonService {
             chiTietList.add(r);
         }
 
-        // 7. Build response
+        // ── Lưu ghế đã chọn ──────────────────────────────────────────────────
+        for (MuaVeRequest.GheRequest gr : request.getGhes()) {
+            Ghe ghe = new Ghe();
+            ghe.setKhuVuc(gr.getKhuVuc());
+            ghe.setMaVe(gr.getMaVe());
+            ghe.setTrangThai("da_dat");
+            gheRepository.save(ghe);
+        }
+
+        // ── Response ──────────────────────────────────────────────────────────
         MuaVeResponse response = new MuaVeResponse();
         response.setMaHoaDon(saved.getMaHoaDon());
         response.setNgayLap(saved.getNgayLap());
@@ -170,147 +253,38 @@ public class HoaDonServiceImpl implements HoaDonService {
         return response;
     }
 
+    // =========================================================================
+    // QUERIES
+    // =========================================================================
+
     @Override
     public List<VeKhachHangResponse> getVeByKhachHang(Long maTaiKhoan) {
         KhachHang kh = khachHangRepository.findFirstByMaTaiKhoan(maTaiKhoan)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy khách hàng"));
-
         List<HoaDon> hoaDons = hoaDonRepository.findByMaKhachHang(kh.getMaKhachHang());
         if (hoaDons.isEmpty()) return List.of();
-
-        List<Long> maHoaDonList = hoaDons.stream().map(HoaDon::getMaHoaDon).toList();
-        Map<Long, HoaDon> hoaDonMap = hoaDons.stream()
-                .collect(Collectors.toMap(HoaDon::getMaHoaDon, h -> h));
-
-        List<ChiTietHoaDon> chiTiets = chiTietHoaDonRepository.findByIdMaHoaDonIn(maHoaDonList);
-        if (chiTiets.isEmpty()) return List.of();
-
-        List<Long> maVeList = chiTiets.stream()
-                .map(ct -> ct.getId().getMaVe()).distinct().toList();
-        Map<Long, Ve> veMap = veRepository.findAllByIdWithLock(maVeList)
-                .stream().collect(Collectors.toMap(Ve::getMaVe, v -> v));
-
-        List<Long> maSuKienList = veMap.values().stream()
-                .map(Ve::getMaSuKien).filter(Objects::nonNull).distinct().toList();
-        Map<Long, SuKien> skMap = suKienRepository.findAllById(maSuKienList)
-                .stream().collect(Collectors.toMap(SuKien::getMaSuKien, s -> s));
-
-        Map<Long, Long> thanhTienGocMap = chiTiets.stream()
-                .collect(Collectors.groupingBy(
-                        ct -> ct.getId().getMaHoaDon(),
-                        Collectors.summingLong(ct -> ct.getDonGia() * ct.getSoLuong())
-                ));
-
-        Map<String, String> hoanVeMap = new HashMap<>();
-        hoanVeRepository.findByMaHoaDonIn(maHoaDonList).forEach(hv ->
-            hoanVeMap.put(hv.getMaHoaDon() + "_" + hv.getMaVe(), hv.getTrangThaiHoan())
-        );
-
-        return chiTiets.stream().map(ct -> {
-            Ve     ve = veMap.get(ct.getId().getMaVe());
-            HoaDon hd = hoaDonMap.get(ct.getId().getMaHoaDon());
-            SuKien sk = ve != null && ve.getMaSuKien() != null
-                        ? skMap.get(ve.getMaSuKien()) : null;
-
-            VeKhachHangResponse r = new VeKhachHangResponse();
-            if (ve != null) {
-                r.setMaVe(ve.getMaVe());
-                r.setTenVe(ve.getTenVe());
-                r.setLoaiVe(ve.getLoaiVe());
-                r.setGia(ct.getDonGia());
-                r.setTrangThai(ve.getTrangThai());
-            }
-            if (sk != null) {
-                r.setTenSuKien(sk.getTenSuKien());
-                r.setThoiGianBatDau(sk.getThoiGianBatDau());
-                r.setThoiGianKetThuc(sk.getThoiGianKetThuc());
-            }
-            if (hd != null) {
-                r.setMaHoaDon(hd.getMaHoaDon());
-                r.setNgayMua(hd.getNgayLap());
-                r.setThanhTien(hd.getThanhTien());
-                r.setThanhTienGoc(thanhTienGocMap.getOrDefault(hd.getMaHoaDon(), hd.getThanhTien()));
-            }
-            r.setSoLuong(ct.getSoLuong());
-            String keyHoan = (hd != null ? hd.getMaHoaDon() : 0) + "_" + (ve != null ? ve.getMaVe() : 0);
-            r.setTrangThaiHoan(hoanVeMap.get(keyHoan));
-            return r;
-        }).toList();
+        return buildResponseList(hoaDons);
     }
 
-    /**
-     * Lấy toàn bộ vé đã bán — dùng cho tab "Vé đã bán" của nhân viên.
-     */
     @Override
     public List<VeKhachHangResponse> getAllVe() {
         List<HoaDon> hoaDons = hoaDonRepository.findAll();
         if (hoaDons.isEmpty()) return List.of();
-
-        List<Long> maHoaDonList = hoaDons.stream().map(HoaDon::getMaHoaDon).toList();
-        Map<Long, HoaDon> hoaDonMap = hoaDons.stream()
-                .collect(Collectors.toMap(HoaDon::getMaHoaDon, h -> h));
-
-        List<ChiTietHoaDon> chiTiets = chiTietHoaDonRepository.findByIdMaHoaDonIn(maHoaDonList);
-        if (chiTiets.isEmpty()) return List.of();
-
-        List<Long> maVeList = chiTiets.stream()
-                .map(ct -> ct.getId().getMaVe()).distinct().toList();
-        Map<Long, Ve> veMap = veRepository.findAllByIdWithLock(maVeList)
-                .stream().collect(Collectors.toMap(Ve::getMaVe, v -> v));
-
-        List<Long> maSuKienList = veMap.values().stream()
-                .map(Ve::getMaSuKien).filter(Objects::nonNull).distinct().toList();
-        Map<Long, SuKien> skMap = suKienRepository.findAllById(maSuKienList)
-                .stream().collect(Collectors.toMap(SuKien::getMaSuKien, s -> s));
-
-        Map<Long, Long> thanhTienGocMap = chiTiets.stream()
-                .collect(Collectors.groupingBy(
-                        ct -> ct.getId().getMaHoaDon(),
-                        Collectors.summingLong(ct -> ct.getDonGia() * ct.getSoLuong())
-                ));
-
-        Map<String, String> hoanVeMap = new HashMap<>();
-        hoanVeRepository.findByMaHoaDonIn(maHoaDonList).forEach(hv ->
-            hoanVeMap.put(hv.getMaHoaDon() + "_" + hv.getMaVe(), hv.getTrangThaiHoan())
-        );
-
-        return chiTiets.stream().map(ct -> {
-            Ve     ve = veMap.get(ct.getId().getMaVe());
-            HoaDon hd = hoaDonMap.get(ct.getId().getMaHoaDon());
-            SuKien sk = ve != null && ve.getMaSuKien() != null
-                        ? skMap.get(ve.getMaSuKien()) : null;
-
-            VeKhachHangResponse r = new VeKhachHangResponse();
-            if (ve != null) {
-                r.setMaVe(ve.getMaVe());
-                r.setTenVe(ve.getTenVe());
-                r.setLoaiVe(ve.getLoaiVe());
-                r.setGia(ct.getDonGia());
-                r.setTrangThai(ve.getTrangThai());
-            }
-            if (sk != null) {
-                r.setTenSuKien(sk.getTenSuKien());
-                r.setThoiGianBatDau(sk.getThoiGianBatDau());
-                r.setThoiGianKetThuc(sk.getThoiGianKetThuc());
-            }
-            if (hd != null) {
-                r.setMaHoaDon(hd.getMaHoaDon());
-                r.setNgayMua(hd.getNgayLap());
-                r.setThanhTien(hd.getThanhTien());
-                r.setThanhTienGoc(thanhTienGocMap.getOrDefault(hd.getMaHoaDon(), hd.getThanhTien()));
-            }
-            r.setSoLuong(ct.getSoLuong());
-            String keyHoan = (hd != null ? hd.getMaHoaDon() : 0) + "_" + (ve != null ? ve.getMaVe() : 0);
-            r.setTrangThaiHoan(hoanVeMap.get(keyHoan));
-            return r;
-        }).toList();
+        return buildResponseList(hoaDons);
     }
 
     @Override
     public List<VeKhachHangResponse> getVeByNhanVien(Long maNhanVien) {
         List<HoaDon> hoaDons = hoaDonRepository.findByMaNhanVien(maNhanVien);
         if (hoaDons.isEmpty()) return List.of();
+        return buildResponseList(hoaDons);
+    }
 
+    // =========================================================================
+    // PRIVATE HELPERS
+    // =========================================================================
+
+    private List<VeKhachHangResponse> buildResponseList(List<HoaDon> hoaDons) {
         List<Long> maHoaDonList = hoaDons.stream().map(HoaDon::getMaHoaDon).toList();
         Map<Long, HoaDon> hoaDonMap = hoaDons.stream()
                 .collect(Collectors.toMap(HoaDon::getMaHoaDon, h -> h));
@@ -336,14 +310,12 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         Map<String, String> hoanVeMap = new HashMap<>();
         hoanVeRepository.findByMaHoaDonIn(maHoaDonList).forEach(hv ->
-            hoanVeMap.put(hv.getMaHoaDon() + "_" + hv.getMaVe(), hv.getTrangThaiHoan())
-        );
+                hoanVeMap.put(hv.getMaHoaDon() + "_" + hv.getMaVe(), hv.getTrangThaiHoan()));
 
         return chiTiets.stream().map(ct -> {
             Ve     ve = veMap.get(ct.getId().getMaVe());
             HoaDon hd = hoaDonMap.get(ct.getId().getMaHoaDon());
-            SuKien sk = ve != null && ve.getMaSuKien() != null
-                        ? skMap.get(ve.getMaSuKien()) : null;
+            SuKien sk = ve != null && ve.getMaSuKien() != null ? skMap.get(ve.getMaSuKien()) : null;
 
             VeKhachHangResponse r = new VeKhachHangResponse();
             if (ve != null) {
@@ -362,11 +334,13 @@ public class HoaDonServiceImpl implements HoaDonService {
                 r.setMaHoaDon(hd.getMaHoaDon());
                 r.setNgayMua(hd.getNgayLap());
                 r.setThanhTien(hd.getThanhTien());
-                r.setThanhTienGoc(thanhTienGocMap.getOrDefault(hd.getMaHoaDon(), hd.getThanhTien()));
+                r.setThanhTienGoc(thanhTienGocMap.getOrDefault(
+                        hd.getMaHoaDon(), hd.getThanhTien()));
             }
             r.setSoLuong(ct.getSoLuong());
-            String keyHoan = (hd != null ? hd.getMaHoaDon() : 0) + "_" + (ve != null ? ve.getMaVe() : 0);
-            r.setTrangThaiHoan(hoanVeMap.get(keyHoan));
+            r.setTrangThaiHoan(hoanVeMap.get(
+                    (hd != null ? hd.getMaHoaDon() : 0)
+                    + "_" + (ve != null ? ve.getMaVe() : 0)));
             return r;
         }).toList();
     }

@@ -51,8 +51,12 @@
         const showDiscount = group.thanhTienGoc && group.thanhTien &&
                              group.thanhTien < group.thanhTienGoc;
 
-        const rows = group.tickets.map(ve => `
-            <div style="display:flex;justify-content:space-between;align-items:center;
+        const rows = group.tickets.map(ve => {
+            // Ghế ngồi: có thể là mảng (nhiều ghế) hoặc string
+            const seatLabel = _formatSeatLabel(ve);
+
+            return `
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;
                         padding:12px 0;border-bottom:1px solid #f0f0f0;gap:12px;flex-wrap:wrap">
                 <div>
                     <div style="font-weight:700;color:#1a1a2e;font-size:.95rem">${_esc(ve.tenVe || "—")}</div>
@@ -60,6 +64,12 @@
                         ${_esc(ve.loaiVe || "—")} · SL: <strong>${ve.soLuong}</strong>
                         · ${fmt(ve.gia)}/vé
                     </div>
+                    ${seatLabel ? `
+                    <div style="margin-top:5px;display:inline-flex;align-items:center;gap:5px;
+                                 background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;
+                                 padding:3px 9px;font-size:.78rem;font-weight:700;color:#15803d">
+                        💺 Ghế: ${_esc(seatLabel)}
+                    </div>` : ""}
                 </div>
                 <div style="text-align:right">
                     <div style="font-weight:700;font-size:1rem">${fmt(ve.gia * ve.soLuong)}</div>
@@ -76,7 +86,8 @@
                         🎫 Xuất vé
                     </button>`}
                 </div>
-            </div>`).join("");
+            </div>`;
+        }).join("");
 
         document.getElementById("hdDetailContent").innerHTML = `
             <div style="text-align:center;margin-bottom:20px">
@@ -146,9 +157,13 @@
         const fmt = n => Number(n || 0).toLocaleString("vi-VN") + " ₫";
 
         // Tạo N tấm vé (1 tấm / 1 vé, nhân soLuong)
-        const cards = tickets.flatMap(ve =>
-            Array.from({ length: ve.soLuong }, (_, i) => _buildTicketCard(ve, group, i + 1, fmtDate, fmt))
-        ).join("");
+        // Nếu có danh sách ghế thì mỗi vé 1 ghế riêng, không thì theo idx
+        const cards = tickets.flatMap(ve => {
+            const seats = _parseSeatList(ve);
+            return Array.from({ length: ve.soLuong }, (_, i) =>
+                _buildTicketCard(ve, group, i + 1, fmtDate, fmt, seats[i] || null)
+            );
+        }).join("");
 
         const win = window.open("", "_blank", "width=700,height=600");
         win.document.write(`<!DOCTYPE html>
@@ -190,6 +205,12 @@
   .info-label { font-size:.72rem; color:#888; font-weight:700;
                 text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px; }
   .info-value { font-size:.95rem; color:#1a1a2e; font-weight:600; }
+  .info-value.seat-value {
+      display:inline-flex; align-items:center; gap:6px;
+      background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:10px;
+      padding:4px 12px; color:#15803d; font-size:1rem; font-weight:800;
+      letter-spacing:.5px;
+  }
   .ticket-qr {
       display:flex; flex-direction:column; align-items:center; gap:8px;
       min-width:100px;
@@ -233,21 +254,17 @@
 ${cards}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
 <script>
-  // Tạo QR cho tất cả vé
   document.querySelectorAll('.qr-box[id^="qr-"]').forEach(function(el) {
     var code = el.id.replace('qr-', '');
     el.style.padding = '0';
     el.style.background = '#fff';
     new QRCode(el, {
       text: code,
-      width: 86,
-      height: 86,
-      colorDark: '#0f766e',
-      colorLight: '#ffffff',
+      width: 86, height: 86,
+      colorDark: '#0f766e', colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.M
     });
   });
-  // Mở in sau khi QR render xong
   setTimeout(() => window.print(), 800);
 <\/script>
 </body>
@@ -256,8 +273,14 @@ ${cards}
     };
 
     /* ── BUILD 1 TẤM VÉ ─────────────────────────────────── */
-    function _buildTicketCard(ve, group, idx, fmtDate, fmt) {
+    function _buildTicketCard(ve, group, idx, fmtDate, fmt, seatLabel) {
         const ticketCode = `TK-${group.maHoaDon}-${ve.maVe}-${idx}`;
+        const seatRow = seatLabel ? `
+                    <div class="info-row">
+                        <div class="info-label">💺 Ghế ngồi</div>
+                        <div class="info-value seat-value">${_escRaw(seatLabel)}</div>
+                    </div>` : "";
+
         return `
         <div class="ticket-wrap">
           <div class="ticket">
@@ -278,6 +301,7 @@ ${cards}
                         <div class="info-label">Phân loại</div>
                         <div class="info-value">${_escRaw(ve.loaiVe || "—")}</div>
                     </div>
+                    ${seatRow}
                     <div class="info-row">
                         <div class="info-label">Mã hóa đơn</div>
                         <div class="info-value">#${group.maHoaDon}</div>
@@ -308,7 +332,26 @@ ${cards}
         </div>`;
     }
 
-    /* ── HELPERS ─────────────────────────────────────────── */
+    /* ── HELPERS GHẾ ─────────────────────────────────────── */
+
+    // Lấy danh sách ghế từ ve object (nhiều dạng backend có thể trả về)
+    function _parseSeatList(ve) {
+        // Ưu tiên: gheDat (mảng string), khuVuc (string/mảng), soGhe, gheSo
+        const raw = ve.gheDat ?? ve.khuVuc ?? ve.soGhe ?? ve.gheSo ?? null;
+        if (!raw) return [];
+        if (Array.isArray(raw)) return raw.map(String);
+        if (typeof raw === "string") return raw.split(",").map(s => s.trim()).filter(Boolean);
+        return [String(raw)];
+    }
+
+    // Format nhãn ghế để hiển thị trong modal
+    function _formatSeatLabel(ve) {
+        const list = _parseSeatList(ve);
+        if (!list.length) return "";
+        return list.join(", ");
+    }
+
+    /* ── ESCAPE HELPERS ──────────────────────────────────── */
     function _esc(s) {
         return String(s || "")
             .replace(/&/g,"&amp;").replace(/</g,"&lt;")

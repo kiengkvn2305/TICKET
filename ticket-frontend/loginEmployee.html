@@ -81,56 +81,305 @@
 
   </main>
 
-  <!-- ===== MODAL BÁN VÉ ===== -->
+  <!-- ===================================================================
+       BƯỚC 1 — MODAL CHỌN VÉ
+       =================================================================== -->
   <div id="buyOverlay" class="modal-overlay" onclick="closeBuyModal()"></div>
   <div id="buyModal" class="modal-box">
     <button class="modal-close" onclick="closeBuyModal()">✕</button>
     <h2 id="modalEventName" class="modal-event-name"></h2>
-    <p id="modalEventDate" class="modal-event-date"></p>
+    <p  id="modalEventDate" class="modal-event-date"></p>
     <hr class="modal-divider">
     <div id="modalTicketList" class="modal-ticket-list"></div>
-    <div id="voucherListDrop" style="display:none;margin-top:8px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto;"></div>
     <div id="voucherMsg" class="buy-msg" style="margin-top:6px"></div>
     <div class="modal-summary" id="modalSummary" style="display:none">
       <div class="modal-total">Tổng cộng: <strong id="totalPrice">0 ₫</strong></div>
-      <button class="confirm-buy-btn" onclick="confirmBuy()">Xác nhận bán</button>
+      <button class="confirm-buy-btn" id="confirmBuyBtn" onclick="openVoucherModal()">
+        Xác nhận mua →
+      </button>
     </div>
     <div id="buyMsg" class="buy-msg"></div>
   </div>
 
-  <!-- ===== MODAL THANH TOÁN ===== -->
+  <!-- ===================================================================
+       BƯỚC 2 — MODAL SƠ ĐỒ GHẾ
+       =================================================================== -->
+  <div id="seatOverlay" class="modal-overlay" style="display:none" onclick="closeSeatModal()"></div>
+  <div id="seatModal"   class="modal-box"     style="display:none; max-width:680px; width:95vw">
+    <button class="modal-close" onclick="closeSeatModal()">✕</button>
+    <h2 class="modal-event-name" style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      💺 Chọn ghế ngồi
+    </h2>
+    <p id="seatModalSubtitle" class="modal-event-date" style="margin-bottom:16px"></p>
+
+    <!-- Chú thích -->
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;font-size:.82rem;color:#555">
+      <span style="display:flex;align-items:center;gap:6px">
+        <span style="width:18px;height:18px;border-radius:5px;background:#f0c040;display:inline-block;border:1.5px solid #d4a800"></span> VIP
+      </span>
+      <span style="display:flex;align-items:center;gap:6px">
+        <span style="width:18px;height:18px;border-radius:5px;background:#6ab0f5;display:inline-block;border:1.5px solid #2176c7"></span> Thường
+      </span>
+      <span style="display:flex;align-items:center;gap:6px">
+        <span style="width:18px;height:18px;border-radius:5px;background:#e0e0e0;display:inline-block;border:1.5px solid #aaa"></span> Đã đặt
+      </span>
+      <span style="display:flex;align-items:center;gap:6px">
+        <span style="width:18px;height:18px;border-radius:5px;background:#4caf50;display:inline-block;border:1.5px solid #388e3c"></span> Đang chọn
+      </span>
+    </div>
+
+    <!-- Sân khấu -->
+    <div style="
+      text-align:center;
+      background:linear-gradient(180deg,#555 0%,#888 100%);
+      color:#fff; font-size:.78rem; letter-spacing:3px;
+      border-radius:8px 8px 0 0; padding:7px 0; margin-bottom:20px;
+      box-shadow:0 4px 16px rgba(0,0,0,.18);
+    ">🎭 SÂN KHẤU</div>
+
+    <!-- Lưới ghế -->
+    <div id="seatGrid" style="
+      display:grid; grid-template-columns:repeat(10,1fr);
+      gap:6px; margin-bottom:20px;
+    "></div>
+
+    <hr class="modal-divider">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:12px">
+      <div style="font-size:.9rem;color:#555">
+        Đã chọn: <strong id="seatSelectedCount">0</strong> ghế
+        &nbsp;|&nbsp;
+        Cần chọn: <strong id="seatRequiredCount">0</strong> ghế
+      </div>
+      <button class="confirm-buy-btn" id="seatConfirmBtn" onclick="confirmSeatSelection()"
+              disabled style="opacity:.5;cursor:not-allowed">
+        Tiếp tục →
+      </button>
+    </div>
+    <div id="seatMsg" class="buy-msg" style="margin-top:8px"></div>
+  </div>
+
+  <style>
+    .seat-cell {
+      aspect-ratio:1; border-radius:6px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      font-size:.6rem; font-weight:700; color:#fff;
+      transition:transform .12s, box-shadow .12s, opacity .12s;
+      user-select:none; position:relative;
+    }
+    .seat-cell:hover:not(.seat-booked) { transform:scale(1.18); box-shadow:0 4px 12px rgba(0,0,0,.25); z-index:2; }
+    .seat-cell.seat-vip    { background:linear-gradient(135deg,#f7d060,#e6a800); border:1.5px solid #c98f00; color:#6b4800; }
+    .seat-cell.seat-normal { background:linear-gradient(135deg,#7ec8f7,#2176c7); border:1.5px solid #1558a0; }
+    .seat-cell.seat-booked { background:#e0e0e0 !important; border:1.5px solid #bbb !important; color:#aaa !important; cursor:not-allowed; opacity:.7; }
+    .seat-cell.seat-selected {
+      background:linear-gradient(135deg,#81c784,#388e3c) !important;
+      border:1.5px solid #1b5e20 !important; color:#fff !important;
+      transform:scale(1.12); box-shadow:0 0 0 3px rgba(56,142,60,.35);
+    }
+    .seat-tooltip {
+      display:none; position:absolute; bottom:calc(100% + 6px); left:50%;
+      transform:translateX(-50%); background:#333; color:#fff;
+      padding:4px 8px; border-radius:6px; font-size:.7rem;
+      white-space:nowrap; z-index:10; pointer-events:none;
+    }
+    .seat-cell:hover .seat-tooltip { display:block; }
+  </style>
+
+  <script>
+  // ─── Seat Map ──────────────────────────────────────────
+  window._seatState = { seats: [], selected: new Set(), required: 0 };
+
+  function buildSeatMap(bookedSet) {
+    const state = window._seatState;
+    state.seats = [];
+    for (let r = 0; r < 10; r++) {
+      for (let c = 0; c < 10; c++) {
+        const rowLabel = String.fromCharCode(65 + r);
+        const id = `${rowLabel}${c + 1}`;
+        state.seats.push({
+          id, row: r, col: c,
+          type:   r < 3 ? 'vip' : 'normal',
+          booked: bookedSet ? bookedSet.has(id) : (Math.random() < 0.18),
+        });
+      }
+    }
+  }
+
+  function renderSeatGrid() {
+    const state = window._seatState;
+    const grid  = document.getElementById('seatGrid');
+    grid.innerHTML = '';
+    state.seats.forEach(seat => {
+      const cell = document.createElement('div');
+      cell.className = 'seat-cell ' + (
+        seat.booked           ? 'seat-booked'   :
+        state.selected.has(seat.id) ? 'seat-selected' :
+        seat.type === 'vip'   ? 'seat-vip'    : 'seat-normal'
+      );
+      const tip = document.createElement('span');
+      tip.className = 'seat-tooltip';
+      tip.textContent = `${seat.id} · ${seat.type === 'vip' ? 'VIP' : 'Thường'}`;
+      cell.appendChild(tip);
+      const lbl = document.createElement('span');
+      lbl.style.pointerEvents = 'none';
+      lbl.textContent = seat.id;
+      cell.appendChild(lbl);
+      if (!seat.booked) cell.onclick = () => toggleSeat(seat.id);
+      grid.appendChild(cell);
+    });
+    updateSeatSummary();
+  }
+
+  function toggleSeat(seatId) {
+    const state = window._seatState;
+    if (state.selected.has(seatId)) {
+      state.selected.delete(seatId);
+    } else {
+      if (state.selected.size >= state.required) {
+        document.getElementById('seatMsg').textContent =
+          `Chỉ chọn tối đa ${state.required} ghế.`;
+        return;
+      }
+      state.selected.add(seatId);
+    }
+    document.getElementById('seatMsg').textContent = '';
+    renderSeatGrid();
+  }
+
+  function updateSeatSummary() {
+    const state = window._seatState;
+    document.getElementById('seatSelectedCount').textContent = state.selected.size;
+    document.getElementById('seatRequiredCount').textContent = state.required;
+    const btn = document.getElementById('seatConfirmBtn');
+    if (state.selected.size === state.required) {
+      btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+    } else {
+      btn.disabled = true; btn.style.opacity = '.5'; btn.style.cursor = 'not-allowed';
+    }
+  }
+
+  function openSeatModal(eventName, eventDate, requiredSeats, bookedSet) {
+    const state = window._seatState;
+    state.selected = new Set();
+    state.required = requiredSeats || 1;
+    document.getElementById('seatModalSubtitle').textContent =
+      `${eventName}  ·  ${eventDate}  ·  Chọn ${state.required} ghế`;
+    buildSeatMap(bookedSet);
+    renderSeatGrid();
+    document.getElementById('seatMsg').textContent = '';
+    document.getElementById('seatOverlay').style.display = 'block';
+    const sm = document.getElementById('seatModal');
+    sm.style.display = 'block';
+    requestAnimationFrame(() => sm.classList.add('open'));
+  }
+
+  function closeSeatModal() {
+    const sm = document.getElementById('seatModal');
+    sm.classList.remove('open');
+    setTimeout(() => { sm.style.display = 'none'; }, 220);
+    document.getElementById('seatOverlay').style.display = 'none';
+  }
+
+  function confirmSeatSelection() {
+    const state = window._seatState;
+    if (state.selected.size !== state.required) return;
+    window._selectedSeats = Array.from(state.selected);
+    closeSeatModal();
+    // Gọi callback mở voucher modal
+    if (typeof window._seatDoneCallback === 'function') {
+      window._seatDoneCallback();
+    }
+  }
+  </script>
+
+  <!-- ===================================================================
+       BƯỚC 3 — MODAL CHỌN VOUCHER
+       =================================================================== -->
+  <div id="voucherOverlay" class="modal-overlay" style="display:none" onclick="closeVoucherModal()"></div>
+  <div id="voucherModal"   class="modal-box"     style="display:none">
+    <button class="modal-close" onclick="closeVoucherModal()">✕</button>
+    <h2 class="modal-event-name" style="display:flex;align-items:center;gap:8px">
+      🎫 Chọn voucher
+    </h2>
+
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input type="text" id="voucherInput" placeholder="Nhập mã voucher..."
+             oninput="filterVoucherList()" style="flex:1;margin:0" />
+      <button class="filter-btn" onclick="applyVoucher()">Áp dụng</button>
+    </div>
+
+    <div id="voucherListDrop" style="
+      border:1px solid #e0e0e0; border-radius:12px; overflow:hidden;
+      max-height:220px; overflow-y:auto; display:none;
+    "></div>
+
+    <div id="voucherMsg" class="buy-msg" style="margin-top:8px"></div>
+
+    <hr class="modal-divider" style="margin:16px 0">
+    <div class="modal-summary" style="margin-top:0">
+      <div class="modal-total">
+        Tổng cộng: <strong id="voucherFinalPrice">0 ₫</strong>
+      </div>
+      <button class="confirm-buy-btn" onclick="finalConfirmBuy()">
+        Thanh toán →
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       BƯỚC 4 — MODAL THANH TOÁN
+       =================================================================== -->
   <div id="paymentOverlay" class="modal-overlay" style="display:none"></div>
-  <div id="paymentModal" class="modal-box" style="display:none">
+  <div id="paymentModal"   class="modal-box"     style="display:none">
     <button class="modal-close" onclick="closePaymentModal()">✕</button>
     <h2 class="modal-event-name">💳 Thanh toán</h2>
-    <div style="display:flex;gap:12px;margin:20px 0">
-      <button class="confirm-buy-btn" onclick="selectPaymentMethod('CHUYEN_KHOAN')">📱 Chuyển khoản</button>
-      <button class="confirm-buy-btn" onclick="selectPaymentMethod('TIEN_MAT')">💵 Tiền mặt</button>
+
+    <div style="background:#f0fdf4;border-radius:10px;padding:10px 14px;margin:14px 0;font-size:.9rem">
+      Tổng tiền: <strong id="paymentTotal" style="color:#dc2626;font-size:1.05rem">0 ₫</strong>
     </div>
+
+    <p style="font-size:.88rem;color:#555;margin-bottom:14px">Chọn phương thức thanh toán:</p>
+    <div style="display:flex;gap:12px;margin-bottom:18px">
+      <button class="confirm-buy-btn" onclick="selectPaymentMethod('CHUYEN_KHOAN')" style="flex:1">
+        📱 Chuyển khoản
+      </button>
+      <button class="confirm-buy-btn" onclick="selectPaymentMethod('TIEN_MAT')" style="flex:1">
+        💵 Tiền mặt
+      </button>
+    </div>
+
     <!-- QR chuyển khoản -->
     <div id="bankSection" style="display:none;text-align:center">
-      <img src="assets/qrcodes/MaQR_ThanhToan.jpg" style="width:220px;border-radius:14px;border:1px solid #ddd;">
-      <p style="margin-top:10px">Quét mã QR để thanh toán</p>
-      <button class="confirm-buy-btn" onclick="confirmTransferPaid()">Đã thanh toán</button>
+      <img src="assets/qrcodes/MaQR_ThanhToan.jpg"
+           style="width:220px;border-radius:14px;border:1px solid #ddd;">
+      <p style="margin-top:10px;font-size:.88rem;color:#555">Quét mã QR để thanh toán</p>
+      <button class="confirm-buy-btn" onclick="confirmTransferPaid()" style="margin-top:8px">
+        ✅ Đã chuyển khoản
+      </button>
     </div>
+
     <!-- Tiền mặt -->
     <div id="cashSection" style="display:none">
       <div class="form-group">
-        <label>Tiền khách đưa</label>
-        <input type="number" id="cashReceive" oninput="calcCashBack()">
+        <label>Tiền khách đưa (₫)</label>
+        <input type="number" id="cashReceive" placeholder="0" oninput="calcCashBack()">
       </div>
       <div class="form-group">
         <label>Tiền trả lại</label>
-        <input type="text" id="cashBack" readonly>
+        <input type="text" id="cashBack" readonly placeholder="0 ₫">
       </div>
-      <button class="confirm-buy-btn" onclick="confirmCashPayment()">Xác nhận thanh toán</button>
+      <button class="confirm-buy-btn" onclick="confirmCashPayment()" style="width:100%;margin-top:4px">
+        ✅ Xác nhận thanh toán
+      </button>
     </div>
+
     <div id="paymentMsg" class="buy-msg" style="margin-top:14px"></div>
   </div>
 
-  <!-- ===== MODAL HOÀN VÉ ===== -->
+  <!-- ===================================================================
+       MODAL HOÀN VÉ
+       =================================================================== -->
   <div id="hoanVeOverlay" class="modal-overlay" onclick="closeHoanVeModal()"></div>
-  <div id="hoanVeModal" class="modal-box">
+  <div id="hoanVeModal"   class="modal-box">
     <button class="modal-close" onclick="closeHoanVeModal()">✕</button>
     <h2 class="modal-event-name">🔄 Yêu cầu hoàn vé</h2>
     <p id="hoanVeInfo" class="modal-event-date"></p>
@@ -149,7 +398,9 @@
     </div>
     <div id="hoanVeMsg" class="buy-msg" style="margin-top:10px"></div>
     <div style="text-align:right;margin-top:16px">
-      <button class="confirm-buy-btn" id="confirmHoanBtn" onclick="confirmHoanVe()">Xác nhận hoàn vé</button>
+      <button class="confirm-buy-btn" id="confirmHoanBtn" onclick="confirmHoanVe()">
+        Xác nhận hoàn vé
+      </button>
     </div>
   </div>
 
@@ -160,16 +411,29 @@
   <script src="js/common/ui.js"></script>
   <script src="js/common/ticketExport.js"></script>
 
-  <!-- ===== LAYER 2: Model & Service (dùng chung với customer) ===== -->
+  <!-- ===== LAYER 2: Model & Service ===== -->
   <script src="js/common/eventService.js"></script>
   <script src="js/common/cartModel.js"></script>
 
-  <!-- ===== LAYER 3: View (dùng chung với customer) ===== -->
+  <!-- ===== LAYER 3: View ===== -->
   <script src="js/common/eventView.js"></script>
   <script src="js/common/myTicketsView.js"></script>
 
-  <!-- ===== LAYER 4: Controller dành riêng nhân viên ===== -->
+  <!-- ===== LAYER 4: Controller ===== -->
   <script src="js/employee/employeeMyTicketsController.js"></script>
   <script src="js/employee/employeeController.js"></script>
+
+  <!-- ===== SEAT MAP → VOUCHER MODAL BRIDGE ===== -->
+  <script>
+  window.addEventListener('DOMContentLoaded', function () {
+    // Sau khi chọn ghế xong, mở modal voucher
+    window._seatDoneCallback = function () {
+      if (typeof _proceedToVoucherModal === 'function') {
+        _proceedToVoucherModal();
+      }
+    };
+  });
+  </script>
+
 </body>
 </html>

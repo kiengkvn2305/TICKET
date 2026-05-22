@@ -9,26 +9,24 @@ public class Ghe {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ghe_seq")
     @SequenceGenerator(name = "ghe_seq", sequenceName = "GHE_SEQ", allocationSize = 1)
+    @Column(name = "MAGHE")
     private Long maGhe;
 
-    private String khuVuc;
-    private Long maDiaDiem;
-    private String trangThai;
+    @Column(name = "KHUVUC")
+    private String khuVuc;      // "A1", "B3", "C10"...
+
+    @Column(name = "TRANGTHAI")
+    private String trangThai;   // "da_dat"
+
+    @Column(name = "MAVE")
     private Long maVe;
-    
-    public Long getMaGhe() {
-        return maGhe;
-    }
 
-    public void setMaGhe(Long maGhe) {
-        this.maGhe = maGhe;
-    }
-
-    public String getKhuVuc() {
-        return khuVuc;
-    }
-
-    public void setKhuVuc(String khuVuc) {
-        this.khuVuc = khuVuc;
-    }
+    public Long   getMaGhe()              { return maGhe; }
+    public void   setMaGhe(Long v)        { this.maGhe = v; }
+    public String getKhuVuc()             { return khuVuc; }
+    public void   setKhuVuc(String v)     { this.khuVuc = v; }
+    public String getTrangThai()          { return trangThai; }
+    public void   setTrangThai(String v)  { this.trangThai = v; }
+    public Long   getMaVe()               { return maVe; }
+    public void   setMaVe(Long v)         { this.maVe = v; }
 }

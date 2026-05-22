@@ -757,3 +757,39 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* ── Voucher list items ── */
+#voucherListDrop .voucher-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  cursor: pointer;
+  transition: background .12s;
+  border-bottom: 1px solid #f0f0f0;
+}
+#voucherListDrop .voucher-item:last-child { border-bottom: none; }
+#voucherListDrop .voucher-item:hover     { background: #f8fffe; }
+#voucherListDrop .voucher-item.selected  { background: #E1F5EE; }
+
+.voucher-code {
+  font-size: .85rem;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: .04em;
+  color: #1a1a2e;
+}
+.voucher-desc {
+  font-size: .78rem;
+  color: #888;
+  margin-top: 2px;
+}
+.voucher-badge {
+  font-size: .75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #d1fae5;
+  color: #065f46;
+  white-space: nowrap;
+}

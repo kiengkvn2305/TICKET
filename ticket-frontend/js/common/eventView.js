@@ -97,9 +97,8 @@ const EventView = {
         }
 
         const hasAvailable = tickets.some(v => v.conLai == null || v.conLai > 0);
-        const displayNone  = hasAvailable ? "" : "none";
-        if (voucherRow)   voucherRow.style.display   = displayNone;
-        if (modalSummary) modalSummary.style.display = displayNone;
+        if (voucherRow)   voucherRow.style.display   = hasAvailable ? "block" : "none";
+        if (modalSummary) modalSummary.style.display = hasAvailable ? "flex"  : "none";
 
         list.innerHTML = tickets.map(ve => {
             const conLai  = ve.conLai  ?? null;
@@ -180,17 +179,23 @@ const EventView = {
 
     /* ── VOUCHER DROPDOWN ───────────────────────────────── */
 
-    renderVoucherList(vouchers, onSelect) {
-        const drop = document.getElementById("voucherListDrop");
-        if (!drop) return;
-        if (!vouchers.length) { drop.style.display = "none"; return; }
-        drop.style.display = "block";
-        drop.innerHTML = vouchers.map(v => `
-            <div class="voucher-drop-item" onclick="${onSelect}('${escHtml(v.maCode)}')">
-                <span class="voucher-drop-code">${escHtml(v.maCode)}</span>
-                <span class="voucher-drop-pct">-${v.mucKhuyenMai}%</span>
-                <span class="voucher-drop-desc">${escHtml(v.dieuKien || "")}</span>
-            </div>`).join("");
+    renderVoucherList(vouchers, onSelectFn) {
+        const el = document.getElementById("voucherListDrop");
+        if (!vouchers.length) {
+            el.innerHTML = `<div style="padding:20px;text-align:center;color:#aaa;font-size:.85rem">Không có voucher khả dụng</div>`;
+            return;
+        }
+        const selected = document.getElementById("voucherInput")?.value.trim() || "";
+        el.innerHTML = vouchers.map(v => `
+            <div class="voucher-item${v.maCode === selected ? ' selected' : ''}"
+                 onclick="${onSelectFn}('${v.maCode}')">
+                <div>
+                    <div class="voucher-code">${v.maCode}</div>
+                    <div class="voucher-desc">${v.tenVoucher || ''}</div>
+                </div>
+                <div class="voucher-badge">-${v.mucKhuyenMai}%</div>
+            </div>
+        `).join("");
     },
 
     /* ── MODAL THANH TOÁN ───────────────────────────────── */

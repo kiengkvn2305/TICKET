@@ -9,6 +9,25 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Flow mua vé 3 bước — frontend gọi các API sẵn có theo thứ tự:
+ *
+ *  Bước 1 — Chọn loại vé:
+ *    GET /api/ve/sukien/{maSuKien}
+ *    → danh sách loại vé còn bán (active + conLai > 0)
+ *
+ *  Bước 2 — Chọn ghế:
+ *    GET /api/ghe/sukien/{maSuKien}
+ *    → danh sách ghế đã đặt (frontend tô đỏ lên sơ đồ)
+ *
+ *  Bước 3 — Chọn voucher (tùy chọn):
+ *    GET /api/voucher/sukien/{maSuKien}
+ *    → danh sách voucher active của sự kiện
+ *
+ *  Xác nhận — Mua vé:
+ *    POST /api/hoadon/mua          ← khách hàng online
+ *    POST /api/hoadon/nhanvien/mua ← nhân viên bán tại quầy (bắt buộc maNhanVien)
+ */
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/hoadon")
@@ -20,38 +39,65 @@ public class HoaDonController {
         this.service = service;
     }
 
+    // ── Khách hàng tự mua online ──────────────────────────────────────────────
+
     /**
-     * Mua vé — tạo HoaDon + ChiTietHoaDon trong 1 request.
-     * Body: { maTaiKhoan, maSuKien, maVoucher?, items:[{maVe, soLuong, donGia}] }
+     * POST /api/hoadon/mua
+     *
+     * Body sau khi hoàn thành 3 bước:
+     * {
+     *   "maTaiKhoan": 1,          // null = khách vãng lai
+     *   "maNhanVien": null,
+     *   "maSuKien": 5,
+     *   "maVoucher": "SUMMER20",  // null = không dùng voucher
+     *   "items": [
+     *     { "maVe": 10, "soLuong": 2, "donGia": 500000 }
+     *   ],
+     *   "ghes": [
+     *     { "khuVuc": "A1", "maVe": 10 },
+     *     { "khuVuc": "A2", "maVe": 10 }
+     *   ]
+     * }
      */
     @PostMapping("/mua")
     public ResponseEntity<MuaVeResponse> muaVe(@RequestBody MuaVeRequest request) {
         return ResponseEntity.ok(service.muaVe(request));
     }
 
+    // ── Nhân viên bán vé tại quầy ────────────────────────────────────────────
+
     /**
-     * Lấy tất cả vé đã mua của một khách hàng (theo maTaiKhoan).
-     * Dùng cho tab "Vé của tôi" phía khách.
+     * POST /api/hoadon/nhanvien/mua
+     *
+     * Giống /mua nhưng bắt buộc có maNhanVien.
+     * Body ví dụ:
+     * {
+     *   "maTaiKhoan": 3,     // khách hàng nhân viên chọn
+     *   "maNhanVien": 7,     // BẮT BUỘC
+     *   "maSuKien": 5,
+     *   "maVoucher": null,
+     *   "items": [ { "maVe": 10, "soLuong": 1, "donGia": 500000 } ],
+     *   "ghes": [ { "khuVuc": "B3", "maVe": 10 } ]
+     * }
      */
+    @PostMapping("/nhanvien/mua")
+    public ResponseEntity<MuaVeResponse> muaVeNhanVien(@RequestBody MuaVeRequest request) {
+        return ResponseEntity.ok(service.muaVeNhanVien(request));
+    }
+
+    // ── Tra cứu (giữ nguyên) ─────────────────────────────────────────────────
+
     @GetMapping("/khachhang/{maTaiKhoan}")
     public ResponseEntity<List<VeKhachHangResponse>> getVeByKhachHang(
             @PathVariable Long maTaiKhoan) {
         return ResponseEntity.ok(service.getVeByKhachHang(maTaiKhoan));
     }
 
-    /**
-     * Lấy toàn bộ vé đã bán — dùng cho tab "Vé đã bán" của nhân viên.
-     * GET /api/hoadon/tatca
-     */
     @GetMapping("/tatca")
     public ResponseEntity<List<VeKhachHangResponse>> getAllVe() {
         return ResponseEntity.ok(service.getAllVe());
     }
 
-    /**
-     * Lấy vé đã bán theo nhân viên — dùng cho tab "Vé đã bán" phía nhân viên.
-     * GET /api/hoadon/nhanvien/{maNhanVien}
-     */
     @GetMapping("/nhanvien/{maNhanVien}")
     public ResponseEntity<List<VeKhachHangResponse>> getVeByNhanVien(
             @PathVariable Long maNhanVien) {

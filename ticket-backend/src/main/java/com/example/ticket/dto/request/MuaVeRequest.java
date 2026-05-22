@@ -2,40 +2,48 @@ package com.example.ticket.dto.request;
 
 import java.util.List;
 
-/**
- * Frontend gửi lên khi khách hàng bấm "Xác nhận mua".
- * Thay thế ChiTietHoaDonRequest cũ — tạo HoaDon + nhiều ChiTietHoaDon trong 1 request.
- */
 public class MuaVeRequest {
 
-    private Long   maTaiKhoan;  // dùng để tìm KhachHang
-    private Long   maNhanVien;  // nhân viên bán trực tiếp (null nếu khách tự mua online)
-    private Long   maSuKien;    // chỉ để log, không bắt buộc
-    private String maVoucher;   // nullable — mã giảm giá
-
+    private Long   maTaiKhoan;
+    private Long   maNhanVien;
+    private Long   maSuKien;
+    private String maVoucher;
     private List<ItemRequest> items;
+    private List<GheRequest>  ghes;   // danh sách ghế khách chọn
 
     public static class ItemRequest {
-        private Long maVe;
-        private int  soLuong;
+        private Long   maVe;
+        private int    soLuong;
         private double donGia;
 
-        public Long   getMaVe()             { return maVe; }
-        public void   setMaVe(Long v)       { this.maVe = v; }
-        public int    getSoLuong()          { return soLuong; }
-        public void   setSoLuong(int v)     { this.soLuong = v; }
-        public double getDonGia()           { return donGia; }
-        public void   setDonGia(double v)   { this.donGia = v; }
+        public Long   getMaVe()           { return maVe; }
+        public void   setMaVe(Long v)     { this.maVe = v; }
+        public int    getSoLuong()        { return soLuong; }
+        public void   setSoLuong(int v)   { this.soLuong = v; }
+        public double getDonGia()         { return donGia; }
+        public void   setDonGia(double v) { this.donGia = v; }
     }
 
-    public Long   getMaTaiKhoan()           { return maTaiKhoan; }
-    public void   setMaTaiKhoan(Long v)     { this.maTaiKhoan = v; }
-    public Long   getMaNhanVien()           { return maNhanVien; }
-    public void   setMaNhanVien(Long v)     { this.maNhanVien = v; }
-    public Long   getMaSuKien()             { return maSuKien; }
-    public void   setMaSuKien(Long v)       { this.maSuKien = v; }
-    public String getMaVoucher()            { return maVoucher; }
-    public void   setMaVoucher(String v)    { this.maVoucher = v; }
-    public List<ItemRequest> getItems()     { return items; }
+    public static class GheRequest {
+        private String khuVuc;  // "A1", "B3"...
+        private Long   maVe;    // loại vé của ghế này
+
+        public String getKhuVuc()          { return khuVuc; }
+        public void   setKhuVuc(String v)  { this.khuVuc = v; }
+        public Long   getMaVe()            { return maVe; }
+        public void   setMaVe(Long v)      { this.maVe = v; }
+    }
+
+    public Long   getMaTaiKhoan()               { return maTaiKhoan; }
+    public void   setMaTaiKhoan(Long v)         { this.maTaiKhoan = v; }
+    public Long   getMaNhanVien()               { return maNhanVien; }
+    public void   setMaNhanVien(Long v)         { this.maNhanVien = v; }
+    public Long   getMaSuKien()                 { return maSuKien; }
+    public void   setMaSuKien(Long v)           { this.maSuKien = v; }
+    public String getMaVoucher()                { return maVoucher; }
+    public void   setMaVoucher(String v)        { this.maVoucher = v; }
+    public List<ItemRequest> getItems()         { return items; }
     public void   setItems(List<ItemRequest> v) { this.items = v; }
+    public List<GheRequest>  getGhes()          { return ghes; }
+    public void   setGhes(List<GheRequest> v)   { this.ghes = v; }
 }
