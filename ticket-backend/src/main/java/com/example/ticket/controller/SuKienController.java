@@ -65,4 +65,54 @@ public class SuKienController {
         List<String> booked = gheRepository.findBookedSeatsByMaSuKien(id);
         return ResponseEntity.ok(booked);
     }
+
+    // ── Admin endpoints ───────────────────────────────────────────────────────
+
+    /** GET /api/sukien/admin — tất cả sự kiện kể cả vi phạm/ẩn (dành cho admin) */
+    @GetMapping("/admin")
+    public ResponseEntity<List<SuKienResponse>> getAllForAdmin() {
+        return ResponseEntity.ok(suKienService.getAllForAdmin());
+    }
+
+    /** PUT /api/sukien/{id}/hide — ẩn sự kiện */
+    @PutMapping("/{id}/hide")
+    public ResponseEntity<Void> hide(@PathVariable Long id) {
+        suKienService.hide(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /** PUT /api/sukien/{id}/unhide — hiện lại sự kiện */
+    @PutMapping("/{id}/unhide")
+    public ResponseEntity<Void> unhide(@PathVariable Long id) {
+        suKienService.unhide(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /** PUT /api/sukien/{id}/violation — đánh vi phạm + ẩn khỏi khách hàng */
+    @PutMapping("/{id}/violation")
+    public ResponseEntity<Void> markViolation(@PathVariable Long id) {
+        suKienService.markViolation(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /** PUT /api/sukien/{id}/clearviolation — xoá vi phạm, cho hoạt động lại */
+    @PutMapping("/{id}/clearviolation")
+    public ResponseEntity<Void> clearViolation(@PathVariable Long id) {
+        suKienService.clearViolation(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /** PUT /api/sukien/{id}/approve — duyệt sự kiện */
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<Void> approve(@PathVariable Long id) {
+        suKienService.approve(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /** PUT /api/sukien/{id}/reject — từ chối sự kiện */
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<Void> reject(@PathVariable Long id) {
+        suKienService.reject(id);
+        return ResponseEntity.ok().build();
+    }
 }

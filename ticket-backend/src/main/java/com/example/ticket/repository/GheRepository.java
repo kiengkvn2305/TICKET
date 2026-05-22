@@ -12,7 +12,7 @@ public interface GheRepository extends JpaRepository<Ghe, Long> {
     /** Lấy tất cả ghế đã đặt theo danh sách maVe */
     @Query("SELECT g FROM Ghe g WHERE g.maVe IN :maVeList")
     List<Ghe> findByMaVeIn(@Param("maVeList") List<Long> maVeList);
-
+    List<Ghe> findByMaVe(Long maVe);
     /** Lấy ghế theo danh sách maHoaDon — dùng trong buildResponseList */
     @Query("SELECT g FROM Ghe g WHERE g.maHoaDon IN :maHoaDonList")
     List<Ghe> findByMaHoaDonIn(@Param("maHoaDonList") List<Long> maHoaDonList);

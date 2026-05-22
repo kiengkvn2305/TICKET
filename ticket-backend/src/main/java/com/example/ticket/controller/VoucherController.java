@@ -70,4 +70,10 @@ public class VoucherController {
             @PathVariable String maCode, @PathVariable Long maSuKien) {
         return ResponseEntity.ok(voucherService.getByCodeAndSuKien(maCode, maSuKien));
     }
+
+    // Gọi khi khách hàng / nhân viên xác nhận dùng voucher
+    @PatchMapping("/{id}/use")
+    public ResponseEntity<VoucherResponse> useVoucher(@PathVariable Long id) {
+        return ResponseEntity.ok(voucherService.useVoucher(id));
+    }
 }

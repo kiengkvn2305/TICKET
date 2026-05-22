@@ -73,7 +73,14 @@ public class SuKienServiceImpl implements SuKienService {
         r.setThoiGianBatDau(s.getThoiGianBatDau());
         r.setThoiGianKetThuc(s.getThoiGianKetThuc());
         r.setMaCongTy(s.getMaCongTy());
-        r.setTrangThai(computeTrangThai(s));
+        // Nếu admin đã set Vi phạm/Ẩn thì ưu tiên, không ghi đè bằng thời gian
+        String trangThaiAdmin = s.getTrangThai();
+        if ("Vi pham".equals(trangThaiAdmin) || "An".equals(trangThaiAdmin)
+                || "Vi phạm".equals(trangThaiAdmin) || "Ẩn".equals(trangThaiAdmin)) {
+            r.setTrangThai(trangThaiAdmin);
+        } else {
+            r.setTrangThai(computeTrangThai(s));
+        }
         return r;
     }
 
@@ -88,7 +95,20 @@ public class SuKienServiceImpl implements SuKienService {
     public List<SuKienResponse> getAll() {
         LocalDate today = LocalDate.now();
         return suKienRepository.findAll().stream()
-                .filter(s -> s.getThoiGianKetThuc() == null || !s.getThoiGianKetThuc().isBefore(today))
+                .filter(s -> {
+                    // Chỉ hiển thị sự kiện "Hoạt động" cho khách hàng/nhân viên
+                    String tt = s.getTrangThai();
+                    if (!"Hoạt động".equals(tt)) return false;
+                    return s.getThoiGianKetThuc() == null || !s.getThoiGianKetThuc().isBefore(today);
+                })
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    /** Dùng cho admin: trả về TẤT CẢ sự kiện kể cả vi phạm/ẩn */
+    @Override
+    public List<SuKienResponse> getAllForAdmin() {
+        return suKienRepository.findAll().stream()
                 .map(this::mapToResponse)
                 .toList();
     }
@@ -136,6 +156,7 @@ public class SuKienServiceImpl implements SuKienService {
         suKien.setThoiGianBatDau(request.getThoiGianBatDau());
         suKien.setThoiGianKetThuc(request.getThoiGianKetThuc());
         suKien.setMaCongTy(ntc.getMaCongTy());
+        suKien.setTrangThai("Chờ duyệt"); // chờ admin duyệt trước khi hiển thị
 
         try {
             return mapToResponse(suKienRepository.save(suKien));
@@ -169,5 +190,59 @@ public class SuKienServiceImpl implements SuKienService {
         if (!veRepository.findByMaSuKien(id).isEmpty())
             throw new BadRequestException("Không thể xóa sự kiện đang có vé. Hãy xóa vé trước.");
         suKienRepository.delete(sk);
+    }
+
+    // ── admin actions ────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void hide(Long id) {
+        SuKien sk = findSuKien(id);
+        sk.setTrangThai("Ẩn");
+        suKienRepository.save(sk);
+    }
+
+    @Override
+    @Transactional
+    public void unhide(Long id) {
+        SuKien sk = findSuKien(id);
+        sk.setTrangThai("Hoạt động");
+        suKienRepository.save(sk);
+    }
+
+    @Override
+    @Transactional
+    public void markViolation(Long id) {
+        SuKien sk = findSuKien(id);
+        sk.setTrangThai("Vi phạm");
+        
+        suKienRepository.save(sk);
+        // TODO: gửi thông báo cho nhà tổ chức (email hoặc notification)
+    }
+
+    @Override
+    @Transactional
+    public void clearViolation(Long id) {
+        SuKien sk = findSuKien(id);
+        sk.setTrangThai("Hoạt động");
+        suKienRepository.save(sk);
+    }
+
+    @Override
+    @Transactional
+    public void approve(Long id) {
+        SuKien sk = findSuKien(id);
+        sk.setTrangThai("Hoạt động");
+        suKienRepository.save(sk);
+    }
+
+    @Override
+    @Transactional
+    public void reject(Long id) {
+        SuKien sk = findSuKien(id);
+        sk.setTrangThai("Từ chối");
+        
+        suKienRepository.save(sk);
+        // TODO: gửi thông báo cho nhà tổ chức
     }
 }

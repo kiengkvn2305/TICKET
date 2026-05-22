@@ -127,6 +127,11 @@ public class VeServiceImpl implements VeService {
                 "Vé '" + request.getTenVe() + "' đã tồn tại trong sự kiện này"
             );
         }
+        if (veRepository.existsByLoaiVeAndMaSuKien(request.getLoaiVe(), request.getMaSuKien())) {
+            throw new DuplicateResourceException(
+                "Sự kiện này đã có vé loại '" + request.getLoaiVe() + "'. Mỗi sự kiện chỉ được tạo một vé VIP và một vé Thường."
+            );
+        }
         // Số lượng mặc định theo loại vé: VIP = 30, còn lại = 70
         int soLuongMacDinh = (request.getLoaiVe() != null
                 && request.getLoaiVe().toUpperCase().contains("VIP")) ? 30 : 70;
@@ -172,5 +177,10 @@ public class VeServiceImpl implements VeService {
     @Transactional
     public void delete(Long id) {
         veRepository.delete(findVe(id));
+    }
+
+    @Override
+    public boolean checkLoaiVeExists(Long maSuKien, String loaiVe) {
+        return veRepository.existsByLoaiVeAndMaSuKien(loaiVe, maSuKien);
     }
 }

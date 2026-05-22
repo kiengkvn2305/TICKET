@@ -1,6 +1,9 @@
 const params    = new URLSearchParams(window.location.search);
 const maVoucher = params.get("id");
 
+// Lưu lượt đã dùng thực tế khi load — dùng để validate khi update
+let luotDaDungHienTai = 0;
+
 /* =========================
    LOAD DỮ LIỆU
 ========================= */
@@ -39,10 +42,14 @@ window.addEventListener("DOMContentLoaded", function () {
     .then(data => {
         document.getElementById("maCode").value       = data.maCode;
         document.getElementById("mucKhuyenMai").value = data.mucKhuyenMai;
-        document.getElementById("luotSuDung").value   = data.luotSuDung;
+        document.getElementById("luotSuDung").value   = data.soLuong;   // giới hạn tối đa
         document.getElementById("trangThai").value    = data.trangThai;
         document.getElementById("ngayBatDau").value   = toDateOnly(data.ngayBatDau);
         document.getElementById("ngayKetThuc").value  = toDateOnly(data.ngayKetThuc);
+
+        // Lưu lại lượt đã dùng thực tế để validate khi update
+        luotDaDungHienTai = data.luotSuDung || 0;
+        document.getElementById("luotDaDung").value = luotDaDungHienTai;
 
         // FIX: restore các sự kiện đã chọn trong multi-select
         // danhSachSuKien trả về dạng "1,2,3"
@@ -71,18 +78,16 @@ function updateVoucher() {
     const currentUser = JSON.parse(localStorage.getItem("user"));
 
     const maCode       = document.getElementById("maCode").value.trim();
-    // FIX: parse sang số
     const mucKhuyenMai = parseFloat(document.getElementById("mucKhuyenMai").value);
-    const luotSuDung   = parseInt(document.getElementById("luotSuDung").value);
+    const soLuong      = parseInt(document.getElementById("luotSuDung").value);
     const trangThai    = document.getElementById("trangThai").value;
     const ngayBatDau   = document.getElementById("ngayBatDau").value;
     const ngayKetThuc  = document.getElementById("ngayKetThuc").value;
 
-    // FIX: lấy từ multi-select thay vì single-select
     const selectedOptions = Array.from(document.getElementById("danhSachSuKien").selectedOptions);
     const danhSachSuKien  = selectedOptions.map(o => o.value).join(",");
 
-    if (!maCode || isNaN(mucKhuyenMai) || isNaN(luotSuDung) || !ngayBatDau || !ngayKetThuc) {
+    if (!maCode || isNaN(mucKhuyenMai) || isNaN(soLuong) || !ngayBatDau || !ngayKetThuc) {
         alert("Vui lòng nhập đầy đủ thông tin");
         return;
     }
@@ -97,15 +102,21 @@ function updateVoucher() {
         return;
     }
 
+    // Lượt tối đa mới phải lớn hơn số lượt đã dùng thực tế
+    if (soLuong <= luotDaDungHienTai) {
+        alert(`Lượt sử dụng tối đa phải lớn hơn số lượt đã dùng hiện tại (${luotDaDungHienTai} lượt)`);
+        return;
+    }
+
     fetch(`${BASE_URL}/voucher/${maVoucher}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             maCode,
-            mucKhuyenMai,   // number
-            luotSuDung,     // number
+            mucKhuyenMai,
+            soLuong,        // giới hạn tối đa mới
             trangThai,
-            danhSachSuKien, // "1,2,3"
+            danhSachSuKien,
             ngayBatDau,
             ngayKetThuc,
             maTaiKhoan: currentUser ? currentUser.maTaiKhoan : null

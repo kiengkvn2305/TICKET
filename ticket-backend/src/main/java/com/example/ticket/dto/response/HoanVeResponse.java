@@ -8,6 +8,7 @@ public class HoanVeResponse {
     private Long      maVe;
     private LocalDate thoiGianHoan;
     private int       soLuongHoan;
+    private int       soLuongConLai;   // = soLuong mua - soLuongHoan (tính ở service)
     private String    lyDoHoan;
     private String    trangThaiHoan;
 
@@ -21,6 +22,8 @@ public class HoanVeResponse {
     public void      setThoiGianHoan(LocalDate v)    { this.thoiGianHoan = v; }
     public int       getSoLuongHoan()                { return soLuongHoan; }
     public void      setSoLuongHoan(int v)           { this.soLuongHoan = v; }
+    public int       getSoLuongConLai()              { return soLuongConLai; }
+    public void      setSoLuongConLai(int v)         { this.soLuongConLai = v; }
     public String    getLyDoHoan()                   { return lyDoHoan; }
     public void      setLyDoHoan(String v)           { this.lyDoHoan = v; }
     public String    getTrangThaiHoan()              { return trangThaiHoan; }

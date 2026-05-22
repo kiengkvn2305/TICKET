@@ -35,8 +35,6 @@
 
     /* ── BUILD SEAT MAP HTML (dùng trong modal & xuất vé) ── */
     function _buildSeatMapHtml(allSeats, takenSeats) {
-        // allSeats: Set of all seat IDs in the ticket(s) being viewed
-        // takenSeats: Set of all booked seat IDs (from API or from tickets)
         const ROWS = 10, COLS = 10;
         let cells = "";
         for (let r = 0; r < ROWS; r++) {
@@ -126,6 +124,65 @@
         return seats;
     }
 
+    /* ── RENDER NÚT XUẤT VÉ ─────────────────────────────── */
+    function _renderExportBtn(ve, group) {
+        const soLuong = ve.soLuong || 0;
+        const daHoan  = ve.soLuongHoan || 0;
+        const conLai  = Math.max(0, soLuong - daHoan);
+        const groupJson = JSON.stringify(group).replace(/"/g, '&quot;');
+
+        if (ve.trangThaiHoan === "approved" && conLai === 0) {
+            const hoanLabel = daHoan > 0 ? daHoan + " vé" : "";
+            return `<span style="margin-top:6px;display:inline-block;padding:5px 14px;
+                         background:#d1fae5;color:#065f46;border-radius:20px;
+                         font-size:.78rem;font-weight:700;font-family:'Inter',sans-serif">
+                        💚 Đã hoàn ${hoanLabel}
+                    </span>`;
+        }
+
+        const label = (ve.trangThaiHoan === "approved" && daHoan > 0)
+            ? `🎫 Xuất vé còn lại (${conLai})`
+            : "🎫 Xuất vé";
+
+        const badge = (ve.trangThaiHoan === "approved" && daHoan > 0)
+            ? `<span style="margin-top:6px;display:inline-block;padding:3px 10px;
+                    background:#d1fae5;color:#065f46;border-radius:20px;
+                    font-size:.72rem;font-weight:700;font-family:'Inter',sans-serif">
+                    💚 Hoàn ${daHoan}/${soLuong} vé
+                </span>`
+            : "";
+
+        return badge + `<button onclick="window.exportTickets(${groupJson}, ${ve.maVe})"
+            style="margin-top:6px;padding:5px 14px;background:#0d9488;color:#fff;
+                   border:none;border-radius:20px;font-size:.78rem;font-weight:700;
+                   cursor:pointer;font-family:'Inter',sans-serif">
+            ${label}
+        </button>`;
+    }
+
+    /* ── RENDER NÚT XUẤT TẤT CẢ VÉ ─────────────────────── */
+    function _renderExportAllBtn(group) {
+        const totalConLai = group.tickets.reduce((sum, v) => {
+            const sl = v.soLuong || 0;
+            if (v.trangThaiHoan === "approved") {
+                return sum + Math.max(0, sl - (v.soLuongHoan || sl));
+            }
+            return sum + sl;
+        }, 0);
+
+        if (totalConLai === 0) return "";
+
+        const groupJson = JSON.stringify(group).replace(/"/g, '&quot;');
+        return `<div style="text-align:center">
+                    <button onclick="window.exportTickets(${groupJson}, null)"
+                        style="padding:11px 28px;background:#0d9488;color:#fff;border:none;
+                               border-radius:12px;font-size:.95rem;font-weight:700;cursor:pointer;
+                               font-family:'Inter',sans-serif;width:100%">
+                        🎫 Xuất tất cả vé còn hiệu lực (${totalConLai})
+                    </button>
+                </div>`;
+    }
+
     /* ── MỞ MODAL CHI TIẾT HÓA ĐƠN ─────────────────────── */
     window.openHoaDonDetail = async function (group) {
         _injectModal();
@@ -165,26 +222,13 @@
                 </div>
                 <div style="text-align:right">
                     <div style="font-weight:700;font-size:1rem">${fmt(ve.gia * ve.soLuong)}</div>
-                    ${ve.trangThaiHoan === "approved" ? `
-                    <span style="margin-top:6px;display:inline-block;padding:5px 14px;
-                                 background:#d1fae5;color:#065f46;border-radius:20px;
-                                 font-size:.78rem;font-weight:700;font-family:'Inter',sans-serif">
-                        💚 Đã hoàn
-                    </span>` : `
-                    <button onclick="window.exportTickets(${JSON.stringify(group).replace(/"/g,'&quot;')}, ${ve.maVe})"
-                        style="margin-top:6px;padding:5px 14px;background:#0d9488;color:#fff;
-                               border:none;border-radius:20px;font-size:.78rem;font-weight:700;
-                               cursor:pointer;font-family:'Inter',sans-serif">
-                        🎫 Xuất vé
-                    </button>`}
+                    ${_renderExportBtn(ve, group)}
                 </div>
             </div>`;
         }).join("");
 
-        // Lấy ghế đã đặt từ API, sau đó render sơ đồ
         const mySeats    = _getAllMySeats(group);
         const bookedSeats = await _fetchBookedSeats(group.maSuKien);
-        // Các ghế của mình cũng được xem là "đã đặt" với người khác
         mySeats.forEach(s => bookedSeats.add(s));
         const seatMapHtml = mySeats.size > 0
             ? `<div style="margin-bottom:18px">
@@ -226,15 +270,7 @@
 
             ${seatMapHtml}
 
-            ${group.tickets.every(v => v.trangThaiHoan === "approved") ? "" : `
-            <div style="text-align:center">
-                <button onclick="window.exportTickets(${JSON.stringify(group).replace(/"/g,'&quot;')}, null)"
-                    style="padding:11px 28px;background:#0d9488;color:#fff;border:none;
-                           border-radius:12px;font-size:.95rem;font-weight:700;cursor:pointer;
-                           font-family:'Inter',sans-serif;width:100%">
-                    🎫 Xuất tất cả vé trong hóa đơn
-                </button>
-            </div>`}
+            ${_renderExportAllBtn(group)}
         `;
 
         document.getElementById("hdDetailOverlay").style.display = "block";
@@ -263,24 +299,28 @@
         };
         const fmt = n => Number(n || 0).toLocaleString("vi-VN") + " ₫";
 
-        // Lấy ghế đã đặt từ API
         const bookedSeats = await _fetchBookedSeats(group.maSuKien);
-        // Tất cả ghế của mình (trong group, không chỉ vé đang xuất)
         const allGroupSeats = _getAllMySeats(group);
         allGroupSeats.forEach(s => bookedSeats.add(s));
 
-        // Tạo N tấm vé
         const cards = tickets.flatMap(ve => {
+            const soLuong = ve.soLuong || 0;
+            const daHoan  = ve.soLuongHoan || 0;
+            const soLuongXuat = (ve.trangThaiHoan === "approved")
+                ? Math.max(0, soLuong - daHoan)
+                : soLuong;
+            if (soLuongXuat === 0) return [];
+
             const seats = _parseSeatList(ve);
-            return Array.from({ length: ve.soLuong }, (_, i) => {
-                const mySeat = seats[i] || null;
-                // Ghế của vé này
+            const remainingSeats = seats.slice(daHoan);
+
+            return Array.from({ length: soLuongXuat }, (_, i) => {
+                const mySeat = remainingSeats[i] || null;
                 const mySeatSet = mySeat ? new Set([mySeat]) : new Set();
-                return _buildTicketCard(ve, group, i + 1, fmtDate, fmt, mySeat, mySeatSet, bookedSeats);
+                return _buildTicketCard(ve, group, daHoan + i + 1, fmtDate, fmt, mySeat, mySeatSet, bookedSeats, soLuong, soLuongXuat);
             });
         }).join("");
 
-        // Xây dựng sơ đồ ghế tổng hợp (tất cả ghế của hóa đơn này)
         const groupSeatSet = new Set();
         tickets.forEach(ve => _parseSeatList(ve).forEach(s => groupSeatSet.add(s)));
         const overviewMapHtml = groupSeatSet.size > 0
@@ -301,98 +341,38 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: 'Segoe UI', Arial, sans-serif; background:#f0f4f8; padding:24px; }
-  .page-title {
-      text-align:center; font-size:1.1rem; color:#555; margin-bottom:24px;
-      font-weight:600; letter-spacing:.5px;
-  }
+  .page-title { text-align:center; font-size:1.1rem; color:#555; margin-bottom:24px; font-weight:600; letter-spacing:.5px; }
   .ticket-wrap { break-inside:avoid; margin-bottom:24px; }
-  .ticket {
-      width:100%; max-width:620px; margin:0 auto;
-      background:#fff; border-radius:18px;
-      box-shadow:0 4px 20px rgba(0,0,0,.12);
-      overflow:hidden; display:flex; flex-direction:column;
-  }
-  .ticket-header {
-      background: linear-gradient(135deg,#0d9488,#0f766e);
-      color:#fff; padding:22px 28px 18px;
-  }
-  .ticket-header .event-name {
-      font-size:1.3rem; font-weight:800; line-height:1.3; margin-bottom:6px;
-  }
-  .ticket-header .event-dates {
-      font-size:.82rem; opacity:.85; display:flex; gap:16px; flex-wrap:wrap;
-  }
-  .ticket-body {
-      padding:20px 28px; display:flex;
-      justify-content:space-between; gap:16px; align-items:flex-start;
-      flex-wrap:wrap;
-  }
+  .ticket { width:100%; max-width:620px; margin:0 auto; background:#fff; border-radius:18px; box-shadow:0 4px 20px rgba(0,0,0,.12); overflow:hidden; display:flex; flex-direction:column; }
+  .ticket-header { background: linear-gradient(135deg,#0d9488,#0f766e); color:#fff; padding:22px 28px 18px; }
+  .ticket-header .event-name { font-size:1.3rem; font-weight:800; line-height:1.3; margin-bottom:6px; }
+  .ticket-header .event-dates { font-size:.82rem; opacity:.85; display:flex; gap:16px; flex-wrap:wrap; }
+  .ticket-body { padding:20px 28px; display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap; }
   .ticket-info { flex:1; min-width:200px; }
   .info-row { margin-bottom:10px; }
-  .info-label { font-size:.72rem; color:#888; font-weight:700;
-                text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px; }
+  .info-label { font-size:.72rem; color:#888; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px; }
   .info-value { font-size:.95rem; color:#1a1a2e; font-weight:600; }
-  .info-value.seat-value {
-      display:inline-flex; align-items:center; gap:6px;
-      background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:10px;
-      padding:4px 12px; color:#15803d; font-size:1rem; font-weight:800;
-      letter-spacing:.5px;
-  }
-  .ticket-qr {
-      display:flex; flex-direction:column; align-items:center; gap:8px;
-      min-width:100px;
-  }
-  .qr-box {
-      width:90px; height:90px; border:2px solid #e5e7eb; border-radius:10px;
-      overflow:hidden; background:#fff;
-      display:flex; align-items:center; justify-content:center;
-  }
-  .qr-box img, .qr-box canvas {
-      width:86px !important; height:86px !important;
-      display:block;
-  }
-  .ticket-id {
-      font-size:.7rem; color:#888; font-family:monospace; text-align:center;
-  }
-  .ticket-footer {
-      border-top: 2px dashed #e5e7eb;
-      padding:12px 28px; background:#fafafa;
-      display:flex; justify-content:space-between; align-items:center;
-      flex-wrap:wrap; gap:8px;
-  }
-  .ticket-footer .price {
-      font-size:1.2rem; font-weight:800; color:#0d9488;
-  }
-  .ticket-footer .badge {
-      background:#dcfce7; color:#15803d; font-size:.75rem;
-      font-weight:700; padding:4px 12px; border-radius:20px;
-  }
+  .info-value.seat-value { display:inline-flex; align-items:center; gap:6px; background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:10px; padding:4px 12px; color:#15803d; font-size:1rem; font-weight:800; letter-spacing:.5px; }
+  .ticket-qr { display:flex; flex-direction:column; align-items:center; gap:8px; min-width:100px; }
+  .qr-box { width:90px; height:90px; border:2px solid #e5e7eb; border-radius:10px; overflow:hidden; background:#fff; display:flex; align-items:center; justify-content:center; }
+  .qr-box img, .qr-box canvas { width:86px !important; height:86px !important; display:block; }
+  .ticket-id { font-size:.7rem; color:#888; font-family:monospace; text-align:center; }
+  .ticket-footer { border-top: 2px dashed #e5e7eb; padding:12px 28px; background:#fafafa; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  .ticket-footer .price { font-size:1.2rem; font-weight:800; color:#0d9488; }
+  .ticket-footer .badge { background:#dcfce7; color:#15803d; font-size:.75rem; font-weight:700; padding:4px 12px; border-radius:20px; }
   .serial { font-size:.72rem; color:#aaa; }
-
-  /* ── Seat map in print ── */
   .seat-map-section { padding:14px 28px 18px; border-top:1px dashed #e5e7eb; }
   .seat-map-title { font-size:.78rem; font-weight:700; color:#555; margin-bottom:8px; text-align:center; }
-  .sm-wrap-print { }
-  .sm-screen-print { text-align:center; background:linear-gradient(90deg,#0d9488,#0f766e);
-      color:#fff; border-radius:6px; padding:5px; font-size:.65rem;
-      font-weight:700; letter-spacing:1px; margin-bottom:8px; max-width:300px; margin-left:auto; margin-right:auto; }
+  .sm-screen-print { text-align:center; background:linear-gradient(90deg,#0d9488,#0f766e); color:#fff; border-radius:6px; padding:5px; font-size:.65rem; font-weight:700; letter-spacing:1px; margin-bottom:8px; max-width:300px; margin-left:auto; margin-right:auto; }
   .sm-grid-print { display:grid; grid-template-columns:repeat(10,1fr); gap:2px; max-width:300px; margin:0 auto; }
-  .sm-cell-print { aspect-ratio:1; border-radius:3px; display:flex; align-items:center;
-      justify-content:center; font-size:.42rem; font-weight:700; border:1px solid transparent; }
-  .sm-mine-print  { background:#22c55e; color:#fff; border-color:#14532d; }
+  .sm-cell-print { aspect-ratio:1; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:.42rem; font-weight:700; border:1px solid transparent; }
+  .sm-mine-print   { background:#22c55e; color:#fff; border-color:#14532d; }
   .sm-booked-print { background:#e5e7eb; color:#d1d5db; border-color:#d1d5db; }
-  .sm-vip-print   { background:#fde68a; color:#78350f; border-color:#b45309; }
+  .sm-vip-print    { background:#fde68a; color:#78350f; border-color:#b45309; }
   .sm-normal-print { background:#bae6fd; color:#0c4a6e; border-color:#0369a1; }
-  .sm-legend-print { display:flex; align-items:center; flex-wrap:wrap; gap:8px;
-      margin-top:6px; font-size:.65rem; color:#666; justify-content:center; }
+  .sm-legend-print { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px; font-size:.65rem; color:#666; justify-content:center; }
   .sm-dot-print { display:inline-block; width:10px; height:10px; border-radius:2px; vertical-align:middle; }
-
-  /* Overview seat map */
-  .overview-map {
-      max-width:620px; margin:0 auto 28px; background:#fff; border-radius:14px;
-      padding:20px 24px; box-shadow:0 4px 16px rgba(0,0,0,.1);
-  }
-
+  .overview-map { max-width:620px; margin:0 auto 28px; background:#fff; border-radius:14px; padding:20px 24px; box-shadow:0 4px 16px rgba(0,0,0,.1); }
   @media print {
       body { background:#fff; padding:0; }
       .page-title { display:none; }
@@ -410,14 +390,7 @@ ${cards}
 <script>
   document.querySelectorAll('.qr-box[id^="qr-"]').forEach(function(el) {
     var code = el.id.replace('qr-', '');
-    el.style.padding = '0';
-    el.style.background = '#fff';
-    new QRCode(el, {
-      text: code,
-      width: 86, height: 86,
-      colorDark: '#0f766e', colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
-    });
+    new QRCode(el, { text: code, width: 86, height: 86, colorDark: '#0f766e', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
   });
   setTimeout(() => window.print(), 800);
 <\/script>
@@ -426,7 +399,7 @@ ${cards}
         win.document.close();
     };
 
-    /* ── BUILD SƠ ĐỒ CHO CỬA SỔ IN (class riêng) ─────── */
+    /* ── BUILD SƠ ĐỒ CHO CỬA SỔ IN ─────────────────────── */
     function _buildSeatMapHtmlRaw(mySeats, takenSeats) {
         let cells = "";
         for (let r = 0; r < 10; r++) {
@@ -456,20 +429,31 @@ ${cards}
     }
 
     /* ── BUILD 1 TẤM VÉ ─────────────────────────────────── */
-    function _buildTicketCard(ve, group, idx, fmtDate, fmt, seatLabel, mySeatSet, bookedSeats) {
+    function _buildTicketCard(ve, group, idx, fmtDate, fmt, seatLabel, mySeatSet, bookedSeats, soLuongGoc, soLuongXuat) {
+        const soLuong = soLuongGoc || ve.soLuong || 0;
+        const xuat    = soLuongXuat || soLuong;
         const ticketCode = `TK-${group.maHoaDon}-${ve.maVe}-${idx}`;
+
         const seatRow = seatLabel ? `
                     <div class="info-row">
                         <div class="info-label">💺 Ghế ngồi</div>
                         <div class="info-value seat-value">${_escRaw(seatLabel)}</div>
                     </div>` : "";
 
-        // Sơ đồ ghế nhỏ trong từng tấm vé (nếu có ghế)
         const seatMapSection = mySeatSet.size > 0 ? `
             <div class="seat-map-section">
                 <div class="seat-map-title">🗺️ Vị trí ghế của bạn</div>
                 ${_buildSeatMapHtmlRaw(mySeatSet, bookedSeats)}
             </div>` : "";
+
+        let vesoRow = "";
+        if (soLuong > 1) {
+            const veIdx = idx - (soLuong - xuat);
+            const suffix = xuat < soLuong
+                ? ` <span style="font-size:.72rem;color:#888">(còn lại / ${soLuong} ban đầu)</span>`
+                : "";
+            vesoRow = `<div class="info-row"><div class="info-label">Vé số</div><div class="info-value">${veIdx} / ${xuat}${suffix}</div></div>`;
+        }
 
         return `
         <div class="ticket-wrap">
@@ -500,11 +484,7 @@ ${cards}
                         <div class="info-label">Ngày mua</div>
                         <div class="info-value">${fmtDate(group.ngayMua)}</div>
                     </div>
-                    ${ve.soLuong > 1 ? `
-                    <div class="info-row">
-                        <div class="info-label">Vé số</div>
-                        <div class="info-value">${idx} / ${ve.soLuong}</div>
-                    </div>` : ""}
+                    ${vesoRow}
                 </div>
                 <div class="ticket-qr">
                     <div class="qr-box" id="qr-${ticketCode}"></div>
@@ -524,7 +504,6 @@ ${cards}
     }
 
     /* ── HELPERS GHẾ ─────────────────────────────────────── */
-
     function _parseSeatList(ve) {
         const raw = ve.gheDat ?? ve.khuVuc ?? ve.soGhe ?? ve.gheSo ?? null;
         if (!raw) return [];

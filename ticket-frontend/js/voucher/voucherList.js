@@ -77,7 +77,7 @@ function renderVouchers(data) {
                 <p><strong>Mã voucher: ${v.maCode}</strong></p>
                 <p>Sự kiện áp dụng: ${suKienHtml}</p>
                 <p>Mức giảm: ${v.mucKhuyenMai}%</p>
-                <p>Lượt sử dụng: ${v.luotSuDung}</p>
+                <p>Lượt sử dụng: <strong>${v.luotSuDung}</strong> / ${v.soLuong} lượt</p>
                 <p>Trạng thái: <span class="${v.trangThai === 'active' ? 'status-active' : 'status-inactive'}">${v.trangThai === 'active' ? 'Đang hoạt động' : 'Ngừng hoạt động'}</span></p>
                 <p>Từ: ${v.ngayBatDau} → ${v.ngayKetThuc}</p>
                 <div class="event-actions">

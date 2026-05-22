@@ -13,5 +13,6 @@ public interface VeService {
     List<VeResponse> getByCreator(Long maTaiKhoan);
     VeResponse create(VeRequest request);
     VeResponse update(Long id, VeRequest request);
+    boolean checkLoaiVeExists(Long maSuKien, String loaiVe);
     void delete(Long id);
 }

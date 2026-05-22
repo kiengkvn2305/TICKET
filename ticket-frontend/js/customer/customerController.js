@@ -8,7 +8,8 @@ const currentUser = JSON.parse(localStorage.getItem("user"));
 let allEvents           = [];
 let allVouchersForEvent = [];
 let currentEvent        = null;
-let allMyTickets        = [];
+let allMyTickets = [];
+let _purchasedTicketTypes = [];
 let activeMyFilter      = "all";
 let finalTotal          = 0;
 
@@ -34,8 +35,8 @@ function loadMyTicketsSilent() {
     if (!currentUser?.maTaiKhoan) return;
     OrderService.getByCustomer(currentUser.maTaiKhoan)
         .then(orders => {
-            // Mỗi order có thể có mảng tickets bên trong
-            allMyTickets = orders.flatMap(o =>
+            // Dùng biến riêng để không ghi đè allMyTickets của tab "Vé của tôi"
+            _purchasedTicketTypes = orders.flatMap(o =>
                 (o.tickets || []).map(t => ({
                     maSuKien: o.maSuKien,
                     loaiVe:   t.loaiVe || "",
@@ -105,10 +106,10 @@ function openBuyModal(maSuKien) {
         EventService.getVouchersByEvent(maSuKien),
     ]).then(([tickets, vouchers]) => {
         // ── Lọc bỏ loại vé user đã mua cho sự kiện này ──────────────
-        // allMyTickets được load từ OrderService.getByCustomer() ở tab "Vé của tôi"
+        // _purchasedTicketTypes được load ngầm khi khởi động
         // Mỗi phần tử có dạng { maSuKien, loaiVe, ... }
         const purchasedLoaiVe = new Set(
-            allMyTickets
+            _purchasedTicketTypes
                 .filter(t => String(t.maSuKien) === String(maSuKien))
                 .map(t => (t.loaiVe || "").trim().toLowerCase())
                 .filter(Boolean)
@@ -311,94 +312,4 @@ function confirmBuy() {
     .finally(() => {
         if (btn) { btn.disabled = false; btn.textContent = "Thanh toán"; }
     });
-}
-
-// ── XEM HÓA ĐƠN CHI TIẾT ─────────────────────────────────
-window.openHoaDonDetail = function (g) {
-    const fmt = (n) => Number(n || 0).toLocaleString("vi-VN") + " ₫";
-    const showDiscount = g.thanhTienGoc && g.thanhTien && g.thanhTien < g.thanhTienGoc;
-
-    const rows = (g.tickets || []).map(ve => `
-        <tr>
-            <td style="padding:7px 8px">
-                <div style="font-weight:600;color:#1a1a2e">${escHtml(ve.tenVe || "—")}</div>
-                <div style="font-size:.78rem;color:#888">${escHtml(ve.loaiVe || "")}</div>
-            </td>
-            <td style="padding:7px 8px;text-align:center">${ve.soLuong}</td>
-            <td style="padding:7px 8px;text-align:right">${fmt(ve.gia)}</td>
-            <td style="padding:7px 8px;text-align:right;font-weight:700">${fmt(ve.gia * ve.soLuong)}</td>
-        </tr>
-    `).join("");
-
-    const discountRow = showDiscount
-        ? `<tr style="color:#16a34a">
-               <td colspan="3" style="padding:6px 8px;text-align:right;font-size:.88rem">Giảm giá (voucher)</td>
-               <td style="padding:6px 8px;text-align:right">-${fmt(g.thanhTienGoc - g.thanhTien)}</td>
-           </tr>` : "";
-
-    const hasPending  = (g.tickets || []).some(v => v.trangThaiHoan === "pending");
-    const hasApproved = (g.tickets || []).some(v => v.trangThaiHoan === "approved");
-    const hasRejected = (g.tickets || []).some(v => v.trangThaiHoan === "rejected");
-    const statusBadge = hasPending
-        ? `<span style="background:#fef3c7;color:#92400e;font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px">⏳ Có yêu cầu đang chờ hoàn</span>`
-        : hasApproved
-        ? `<span style="background:#d1fae5;color:#065f46;font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px">💚 Đã hoàn (một phần hoặc toàn bộ)</span>`
-        : hasRejected
-        ? `<span style="background:#fee2e2;color:#991b1b;font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px">❌ Có hoàn bị từ chối</span>`
-        : `<span style="background:#dcfce7;color:#15803d;font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px">✅ Đã thanh toán</span>`;
-
-    if (!document.getElementById("invoiceModal")) {
-        document.body.insertAdjacentHTML("beforeend", `
-            <div id="invoiceOverlay" class="modal-overlay" onclick="closeInvoiceModal()" style="display:none"></div>
-            <div id="invoiceModal" class="modal-box" style="display:none;max-width:520px">
-                <button class="modal-close" onclick="closeInvoiceModal()">✕</button>
-                <div id="invoiceContent"></div>
-                <div style="text-align:right;margin-top:20px">
-                    <button class="confirm-buy-btn" onclick="closeInvoiceModal()">Đóng</button>
-                </div>
-            </div>
-        `);
-    }
-
-    document.getElementById("invoiceContent").innerHTML = `
-        <div style="text-align:center;margin-bottom:18px">
-            <div style="font-size:2.2rem">🎫</div>
-            <h2 style="margin:6px 0 4px;font-size:1.2rem;font-family:'Inter',sans-serif">Chi tiết hóa đơn #${g.maHoaDon}</h2>
-            <p style="color:#888;font-size:.83rem;margin:0">${formatDate(g.ngayMua)}</p>
-        </div>
-        <div style="background:#f9fafb;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:.85rem;color:#555;line-height:1.7">
-            <div>🎪 Sự kiện: <strong style="color:#1a1a2e">${escHtml(g.tenSuKien || "—")}</strong></div>
-            ${g.thoiGianBatDau ? `<div>📅 Thời gian: <strong style="color:#1a1a2e">${formatDate(g.thoiGianBatDau)} → ${formatDate(g.thoiGianKetThuc)}</strong></div>` : ""}
-            <div style="margin-top:6px">${statusBadge}</div>
-        </div>
-        <table style="width:100%;border-collapse:collapse;font-size:.87rem">
-            <thead><tr style="background:#f3f4f6;color:#374151">
-                <th style="padding:8px;text-align:left">Loại vé</th>
-                <th style="padding:8px;text-align:center">SL</th>
-                <th style="padding:8px;text-align:right">Đơn giá</th>
-                <th style="padding:8px;text-align:right">Thành tiền</th>
-            </tr></thead>
-            <tbody>${rows}</tbody>
-            <tfoot>
-                ${discountRow}
-                <tr style="border-top:2px solid #e5e7eb">
-                    <td colspan="3" style="padding:10px 8px;text-align:right;font-weight:700;font-size:.95rem">Tổng cộng</td>
-                    <td style="padding:10px 8px;text-align:right;font-weight:800;color:#0d9488;font-size:1.1rem">${fmt(g.thanhTien || 0)}</td>
-                </tr>
-            </tfoot>
-        </table>
-    `;
-
-    const overlay = document.getElementById("invoiceOverlay");
-    const modal   = document.getElementById("invoiceModal");
-    overlay.style.display = "block";
-    modal.style.display   = "block";
-    requestAnimationFrame(() => modal.classList.add("open"));
-};
-
-function closeInvoiceModal() {
-    const modal   = document.getElementById("invoiceModal");
-    const overlay = document.getElementById("invoiceOverlay");
-    if (modal)   { modal.classList.remove("open"); setTimeout(() => modal.style.display = "none", 220); }
-    if (overlay) overlay.style.display = "none";
 }

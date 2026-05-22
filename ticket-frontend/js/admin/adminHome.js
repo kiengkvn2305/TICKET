@@ -46,8 +46,6 @@
       allUsersData = Array.isArray(data) ? data : [];
     } catch (e) {
       allUsersData = [];
-      /* API chưa sẵn sàng — dùng mock */
-      allUsersData = getMockUsers();
     }
     document.getElementById('cnt-users').textContent = allUsersData.length;
   }
@@ -55,44 +53,17 @@
   /* ── LOAD EVENTS ── */
   async function loadEvents() {
     try {
-      const data = await apiFetch('/sukien');
+      const data = await apiFetch('/sukien/admin');
       allEventsData = Array.isArray(data) ? data : [];
     } catch (e) {
-      allEventsData = getMockEvents();
+      allEventsData = [];
     }
-  }
-
-  /* ── MOCK DATA (fallback khi API chưa có endpoint admin) ── */
-  function getMockUsers() {
-    return [
-      { maTaiKhoan:1, hoTen:'Nguyễn Văn An',   email:'an@example.com',     loaiTaiKhoan:'Khách hàng',  trangThai:'active',  ngayTao:'2024-01-15' },
-      { maTaiKhoan:2, hoTen:'Trần Thị Bình',   email:'binh@example.com',   loaiTaiKhoan:'Nhà tổ chức', trangThai:'active',  ngayTao:'2024-02-10' },
-      { maTaiKhoan:3, hoTen:'Lê Văn Cường',    email:'cuong@example.com',  loaiTaiKhoan:'Nhân viên',   trangThai:'blocked', ngayTao:'2024-02-20', lyDoChaN:'Vi phạm quy định' },
-      { maTaiKhoan:4, hoTen:'Phạm Thị Dung',   email:'dung@example.com',   loaiTaiKhoan:'Khách hàng',  trangThai:'active',  ngayTao:'2024-03-05' },
-      { maTaiKhoan:5, hoTen:'Hoàng Văn Emi',   email:'emi@example.com',    loaiTaiKhoan:'Nhà tổ chức', trangThai:'active',  ngayTao:'2024-03-12' },
-      { maTaiKhoan:6, hoTen:'Vũ Thị Phương',   email:'phuong@example.com', loaiTaiKhoan:'Khách hàng',  trangThai:'blocked', ngayTao:'2024-04-01', lyDoChaN:'Spam, gian lận' },
-      { maTaiKhoan:7, hoTen:'Đặng Minh Quân',  email:'quan@example.com',   loaiTaiKhoan:'Nhân viên',   trangThai:'active',  ngayTao:'2024-04-15' },
-      { maTaiKhoan:8, hoTen:'Bùi Thanh Hương', email:'huong@example.com',  loaiTaiKhoan:'Khách hàng',  trangThai:'active',  ngayTao:'2024-05-01' },
-      { maTaiKhoan:9, hoTen:'Ngô Tuấn Khải',  email:'khai@example.com',   loaiTaiKhoan:'Nhà tổ chức', trangThai:'active',  ngayTao:'2024-05-10' },
-      { maTaiKhoan:10,hoTen:'Tô Văn Long',     email:'long@example.com',   loaiTaiKhoan:'Khách hàng',  trangThai:'active',  ngayTao:'2024-05-20' },
-    ];
-  }
-
-  function getMockEvents() {
-    return [
-      { maSuKien:1, tenSuKien:'Đêm nhạc Indie Sài Gòn', maTaiKhoan:2, tenNhaToChuC:'Trần Thị Bình', trangThai:'Chờ duyệt', ngayToChuc:'2025-07-10', gradient:'linear-gradient(135deg,#3cdbd8,#0d9488)', lyDo:'' },
-      { maSuKien:2, tenSuKien:'Hội chợ ẩm thực 2025',   maTaiKhoan:5, tenNhaToChuC:'Hoàng Văn Emi',  trangThai:'Đã duyệt',  ngayToChuc:'2025-06-20', gradient:'linear-gradient(135deg,#f59e0b,#d97706)', lyDo:'' },
-      { maSuKien:3, tenSuKien:'Workshop Photography',    maTaiKhoan:9, tenNhaToChuC:'Ngô Tuấn Khải', trangThai:'Chờ duyệt', ngayToChuc:'2025-08-05', gradient:'linear-gradient(135deg,#8b5cf6,#6d28d9)', lyDo:'' },
-      { maSuKien:4, tenSuKien:'Tech Summit 2025',        maTaiKhoan:2, tenNhaToChuC:'Trần Thị Bình', trangThai:'Đã duyệt',  ngayToChuc:'2025-09-01', gradient:'linear-gradient(135deg,#3b82f6,#1d4ed8)', lyDo:'' },
-      { maSuKien:5, tenSuKien:'Concert Vi Phạm',         maTaiKhoan:5, tenNhaToChuC:'Hoàng Văn Emi',  trangThai:'Vi phạm',   ngayToChuc:'2025-05-15', gradient:'linear-gradient(135deg,#ef4444,#b91c1c)', lyDo:'Nội dung không phù hợp' },
-      { maSuKien:6, tenSuKien:'Triển lãm tranh dân gian', maTaiKhoan:9, tenNhaToChuC:'Ngô Tuấn Khải', trangThai:'Ẩn',       ngayToChuc:'2025-04-10', gradient:'linear-gradient(135deg,#22c55e,#15803d)', lyDo:'Tạm ẩn theo yêu cầu' },
-    ];
   }
 
   /* ── RENDER DASHBOARD ── */
   function renderDashboard() {
     const total   = allUsersData.length;
-    const blocked = allUsersData.filter(u => u.trangThai === 'blocked').length;
+    const blocked = allUsersData.filter(u => (u.trangThai||'active') === 'blocked').length;
     const active  = total - blocked;
     const pending = allEventsData.filter(e => e.trangThai === 'Chờ duyệt').length;
     const evTotal = allEventsData.length;
@@ -111,11 +82,11 @@
         <tbody>${recentU.map(u => `
           <tr>
             <td><div class="user-cell">
-              <div class="uav" style="background:${roleColor(u.loaiTaiKhoan)}">${u.hoTen.charAt(0)}</div>
-              <div><div class="uname">${u.hoTen}</div><div class="uemail">${u.email}</div></div>
+              <div class="uav" style="background:${roleColor(u.loaiTaiKhoan)}">${(u.tenDangNhap||'?').charAt(0)}</div>
+              <div><div class="uname">${u.tenDangNhap}</div></div>
             </div></td>
             <td>${roleBadge(u.loaiTaiKhoan)}</td>
-            <td>${statusBadge(u.trangThai)}</td>
+            <td>${statusBadge((u.trangThai||'active'))}</td>
           </tr>`).join('')}
         </tbody>
       </table>`;
@@ -142,7 +113,7 @@
 
   /* ── NAV BADGES ── */
   function renderBlockedBadge() {
-    const n = allUsersData.filter(u => u.trangThai === 'blocked').length;
+    const n = allUsersData.filter(u => (u.trangThai||'active') === 'blocked').length;
     document.getElementById('cnt-blocked').textContent = n;
   }
   function renderReviewBadge() {
@@ -185,7 +156,7 @@
     const search = (document.getElementById('searchUsers')?.value || '').toLowerCase();
     const role   = document.getElementById('filterRole')?.value || '';
     const status = document.getElementById('filterStatus')?.value || '';
-    if (search) data = data.filter(u => u.hoTen.toLowerCase().includes(search) || u.email.toLowerCase().includes(search));
+    if (search) data = data.filter(u => (u.tenDangNhap||'').toLowerCase().includes(search));
     if (role)   data = data.filter(u => u.loaiTaiKhoan === role);
     if (status) data = data.filter(u => u.trangThai === status);
     renderUserRows('usersBody', data, true);
@@ -197,7 +168,7 @@
     const searchId = 'search' + tableId.charAt(0).toUpperCase() + tableId.slice(1);
     const search   = (document.getElementById(searchId)?.value || '').toLowerCase();
     let data = allUsersData.filter(u => u.loaiTaiKhoan === role);
-    if (search) data = data.filter(u => u.hoTen.toLowerCase().includes(search) || u.email.toLowerCase().includes(search));
+    if (search) data = data.filter(u => (u.tenDangNhap||'').toLowerCase().includes(search));
     renderUserRows(tableId + 'Body', data, false);
   }
 
@@ -212,24 +183,24 @@
     tbody.innerHTML = data.map(u => `
       <tr>
         <td><div class="user-cell">
-          <div class="uav" style="background:${roleColor(u.loaiTaiKhoan)}">${u.hoTen.charAt(0)}</div>
-          <div><div class="uname">${u.hoTen}</div><div class="uemail">${u.email}</div></div>
+          <div class="uav" style="background:${roleColor(u.loaiTaiKhoan)}">${(u.tenDangNhap||'?').charAt(0)}</div>
+          <div><div class="uname">${u.tenDangNhap}</div></div>
         </div></td>
         ${showRole ? `<td>${roleBadge(u.loaiTaiKhoan)}</td>` : ''}
-        <td>${statusBadge(u.trangThai)}</td>
-        <td style="color:var(--gray3);font-size:12px">${u.ngayTao || '—'}</td>
+        <td>${statusBadge((u.trangThai||'active'))}</td>
+        <td style="color:var(--gray3);font-size:12px">${u.ngayTao||'—'}</td>
         <td><div class="act-cell">
           ${u.trangThai !== 'blocked'
-            ? `<button class="btn-action btn-orange" onclick="confirmBlock(${u.maTaiKhoan}, '${escHtml(u.hoTen)}')">🚫 Chặn</button>`
-            : `<button class="btn-action btn-green"  onclick="confirmUnblock(${u.maTaiKhoan}, '${escHtml(u.hoTen)}')">✅ Bỏ chặn</button>`
+            ? `<button class="btn-action btn-orange" onclick="confirmBlock(${u.maTaiKhoan}, '${escHtml(u.tenDangNhap)}')">🚫 Chặn</button>`
+            : `<button class="btn-action btn-green"  onclick="confirmUnblock(${u.maTaiKhoan}, '${escHtml(u.tenDangNhap)}')">✅ Bỏ chặn</button>`
           }
-          <button class="btn-action btn-red" onclick="confirmDelete(${u.maTaiKhoan}, '${escHtml(u.hoTen)}', 'user')">🗑 Xoá</button>
+          <button class="btn-action btn-red" onclick="confirmDelete(${u.maTaiKhoan}, '${escHtml(u.tenDangNhap)}', 'user')">🗑 Xoá</button>
         </div></td>
       </tr>`).join('');
   }
 
   function renderBlockedTable() {
-    const data = allUsersData.filter(u => u.trangThai === 'blocked');
+    const data = allUsersData.filter(u => (u.trangThai||'active') === 'blocked');
     const tbody = document.getElementById('blockedBody');
     if (!data.length) {
       tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="es-icon">🎉</div><p>Không có tài khoản nào bị chặn</p></div></td></tr>`;
@@ -238,15 +209,15 @@
     tbody.innerHTML = data.map(u => `
       <tr>
         <td><div class="user-cell">
-          <div class="uav" style="background:${roleColor(u.loaiTaiKhoan)}">${u.hoTen.charAt(0)}</div>
-          <div><div class="uname">${u.hoTen}</div><div class="uemail">${u.email}</div></div>
+          <div class="uav" style="background:${roleColor(u.loaiTaiKhoan)}">${(u.tenDangNhap||'?').charAt(0)}</div>
+          <div><div class="uname">${u.tenDangNhap}</div></div>
         </div></td>
         <td>${roleBadge(u.loaiTaiKhoan)}</td>
-        <td style="font-size:12px;color:var(--red)">${u.lyDoChaN || '—'}</td>
-        <td style="font-size:12px;color:var(--gray3)">${u.ngayTao || '—'}</td>
+        <td style="font-size:12px;color:var(--red)">${u.lyDoChaN||'—'}</td>
+        <td style="font-size:12px;color:var(--gray3)">${u.ngayTao||'—'}</td>
         <td><div class="act-cell">
-          <button class="btn-action btn-green" onclick="confirmUnblock(${u.maTaiKhoan}, '${escHtml(u.hoTen)}')">✅ Bỏ chặn</button>
-          <button class="btn-action btn-red"   onclick="confirmDelete(${u.maTaiKhoan}, '${escHtml(u.hoTen)}', 'user')">🗑 Xoá</button>
+          <button class="btn-action btn-green" onclick="confirmUnblock(${u.maTaiKhoan}, '${escHtml(u.tenDangNhap)}')">✅ Bỏ chặn</button>
+          <button class="btn-action btn-red"   onclick="confirmDelete(${u.maTaiKhoan}, '${escHtml(u.tenDangNhap)}', 'user')">🗑 Xoá</button>
         </div></td>
       </tr>`).join('');
   }
@@ -326,7 +297,6 @@
         <td><b>${e.tenSuKien}</b></td>
         <td style="font-size:12px">${e.tenNhaToChuC || '—'}</td>
         <td>${eventStatusBadge(e.trangThai)}</td>
-        <td style="font-size:12px;color:var(--red)">${e.lyDo || '—'}</td>
         <td><div class="act-cell">
           ${e.trangThai === 'Vi phạm'
             ? `<button class="btn-action btn-green" onclick="clearViolation(${e.maSuKien})">✅ Xoá vi phạm</button>` : ''}
@@ -450,7 +420,7 @@
     try { await apiFetch(`/sukien/${id}/hide`, { method: 'PUT' }); } catch(e){}
     const ev = allEventsData.find(e => e.maSuKien === id);
     const reason = document.getElementById('confirmReasonInput').value.trim();
-    if (ev) { ev.trangThai = 'Ẩn'; ev.lyDo = reason || 'Vi phạm'; }
+    if (ev) { ev.trangThai = 'Ẩn'; }
     closeConfirm();
     addLog('Ẩn sự kiện', name, '✅ Đã ẩn');
     toast(`🙈 Đã ẩn sự kiện "${name}"`, 'warn');
@@ -459,7 +429,7 @@
   async function unhideEvent(id) {
     try { await apiFetch(`/sukien/${id}/unhide`, { method: 'PUT' }); } catch(e){}
     const ev = allEventsData.find(e => e.maSuKien === id);
-    if (ev) { ev.trangThai = 'Đã duyệt'; ev.lyDo = ''; }
+    if (ev) { ev.trangThai = 'Đã duyệt'; }
     addLog('Hiện sự kiện', ev?.tenSuKien||'#'+id, '✅ Đã hiện');
     toast(`👁 Đã hiện lại sự kiện "${ev?.tenSuKien}"`);
     renderReviewBadge(); goPage(currentPage);
@@ -476,7 +446,7 @@
         try { await apiFetch(`/sukien/${id}/violation`, { method: 'PUT' }); } catch(e){}
         const ev = allEventsData.find(e => e.maSuKien === id);
         const reason = document.getElementById('confirmReasonInput').value.trim();
-        if (ev) { ev.trangThai = 'Vi phạm'; ev.lyDo = reason || 'Vi phạm chính sách'; }
+        if (ev) { ev.trangThai = 'Vi phạm'; }
         closeConfirm();
         addLog('Đánh vi phạm', name, '⚠️ Vi phạm');
         toast(`⚠️ Đã đánh vi phạm "${name}"`, 'warn');
@@ -487,7 +457,7 @@
   async function clearViolation(id) {
     const ev = allEventsData.find(e => e.maSuKien === id);
     try { await apiFetch(`/sukien/${id}/clearviolation`, { method: 'PUT' }); } catch(e){}
-    if (ev) { ev.trangThai = 'Đã duyệt'; ev.lyDo = ''; }
+    if (ev) { ev.trangThai = 'Đã duyệt'; }
     addLog('Xoá vi phạm', ev?.tenSuKien||'#'+id, '✅ Đã xoá vi phạm');
     toast(`✅ Đã xoá vi phạm cho "${ev?.tenSuKien}"`);
     renderReviewBadge(); goPage(currentPage);
@@ -589,7 +559,7 @@
   function globalSearchHandler() {
     const q = document.getElementById('globalSearch').value.trim().toLowerCase();
     if (!q) return;
-    const matchUser  = allUsersData.find(u => u.hoTen.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+    const matchUser  = allUsersData.find(u => (u.tenDangNhap||'').toLowerCase().includes(q));
     const matchEvent = allEventsData.find(e => e.tenSuKien.toLowerCase().includes(q));
     if (matchUser) { goPage('users'); document.getElementById('searchUsers').value = q; filterUsers(); }
     else if (matchEvent) { goPage('events'); document.getElementById('searchEvents').value = q; filterEvents(); }
@@ -599,7 +569,7 @@
   /* ══════════ NOTIF ══════════ */
   function showNotif() {
     const p = allEventsData.filter(e => e.trangThai === 'Chờ duyệt').length;
-    const b = allUsersData.filter(u => u.trangThai === 'blocked').length;
+    const b = allUsersData.filter(u => (u.trangThai||'active') === 'blocked').length;
     toast(`🔔 ${p} sự kiện chờ duyệt · ${b} tài khoản bị chặn`);
   }
 

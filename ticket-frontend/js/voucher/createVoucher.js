@@ -51,7 +51,7 @@ function createVoucher() {
     const maCode       = document.getElementById("maCode").value.trim();
     // FIX: parse sang số thay vì để string → backend không bị lỗi validate
     const mucKhuyenMai = parseFloat(document.getElementById("mucKhuyenMai").value);
-    const luotSuDung   = parseInt(document.getElementById("luotSuDung").value);
+    const soLuong  = parseInt(document.getElementById("soLuong").value);
     const ngayBatDau   = document.getElementById("ngayBatDau").value;
     const ngayKetThuc  = document.getElementById("ngayKetThuc").value;
 
@@ -59,7 +59,7 @@ function createVoucher() {
     const selectedOptions = Array.from(document.getElementById("danhSachSuKien").selectedOptions);
     const danhSachSuKien  = selectedOptions.map(o => o.value).join(",");
 
-    if (!maCode || isNaN(mucKhuyenMai) || isNaN(luotSuDung) || !ngayBatDau || !ngayKetThuc) {
+    if (!maCode || isNaN(mucKhuyenMai) || isNaN(soLuong) || !ngayBatDau || !ngayKetThuc) {
         alert("Vui lòng nhập đầy đủ thông tin");
         return;
     }
@@ -80,7 +80,7 @@ function createVoucher() {
         body: JSON.stringify({
             maCode,
             mucKhuyenMai,   // number
-            luotSuDung,     // number
+            soLuong,     // number
             ngayBatDau,
             ngayKetThuc,
             danhSachSuKien, // "1,2,3"

@@ -15,6 +15,7 @@ public class Voucher {
     private String maCode;
     private String danhSachSuKien;
     private Double mucKhuyenMai;
+    private Integer soLuong;
     private String trangThai;
     private Integer luotSuDung;
     private Long maCongTy;
@@ -34,6 +35,9 @@ public class Voucher {
 
     public String getTrangThai() { return trangThai; }
     public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
+
+    public Integer getSoLuong() { return soLuong; }
+    public void setSoLuong(Integer soLuong) { this.soLuong = soLuong; }
 
     public Integer getLuotSuDung() { return luotSuDung; }
     public void setLuotSuDung(Integer luotSuDung) { this.luotSuDung = luotSuDung; }

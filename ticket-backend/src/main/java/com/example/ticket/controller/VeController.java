@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -60,5 +61,13 @@ public class VeController {
         return ResponseEntity.ok(
             veService.getByCreator(maTaiKhoan)
         );
+    }
+
+    @GetMapping("/check-type")
+    public ResponseEntity<Map<String, Boolean>> checkLoaiVeExists(
+            @RequestParam Long maSuKien,
+            @RequestParam String loaiVe) {
+        boolean exists = veService.checkLoaiVeExists(maSuKien, loaiVe);
+        return ResponseEntity.ok(Map.of("exists", exists));
     }
 }

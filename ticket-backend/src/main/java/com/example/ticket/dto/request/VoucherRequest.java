@@ -5,10 +5,9 @@ import java.time.LocalDate;
 public class VoucherRequest {
 
     private String maCode;
-    private String dieuKien;
     private Double mucKhuyenMai;
     private String trangThai;
-    private Integer luotSuDung;
+    private Integer soLuong; // giới hạn lượt sử dụng tối đa
     private Long maTaiKhoan;
     private Long maSuKien;
     private LocalDate ngayBatDau;
@@ -17,11 +16,9 @@ public class VoucherRequest {
     
     public String getDanhSachSuKien() { return danhSachSuKien; }
     public void setDanhSachSuKien(String v) { this.danhSachSuKien = v; }
+
     public String getMaCode() { return maCode; }
     public void setMaCode(String maCode) { this.maCode = maCode; }
-
-    public String getDieuKien() { return dieuKien; }
-    public void setDieuKien(String dieuKien) { this.dieuKien = dieuKien; }
 
     public Double getMucKhuyenMai() { return mucKhuyenMai; }
     public void setMucKhuyenMai(Double mucKhuyenMai) { this.mucKhuyenMai = mucKhuyenMai; }
@@ -29,8 +26,8 @@ public class VoucherRequest {
     public String getTrangThai() { return trangThai; }
     public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
 
-    public Integer getLuotSuDung() { return luotSuDung; }
-    public void setLuotSuDung(Integer luotSuDung) { this.luotSuDung = luotSuDung; }
+    public Integer getSoLuong() { return soLuong; }
+    public void setSoLuong(Integer soLuong) { this.soLuong = soLuong; }
 
     public Long getMaTaiKhoan() { return maTaiKhoan; }
     public void setMaTaiKhoan(Long maTaiKhoan) { this.maTaiKhoan = maTaiKhoan; }

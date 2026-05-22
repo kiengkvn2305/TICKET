@@ -17,6 +17,7 @@ public interface VeRepository extends JpaRepository<Ve, Long> {
     List<Ve> findByTrangThai(String trangThai);
     List<Ve> findByMaSuKienIn(List<Long> maSuKienIds);
     boolean existsByTenVeAndMaSuKien(String tenVe, Long maSuKien);
+    boolean existsByLoaiVeAndMaSuKien(String loaiVe, Long maSuKien);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select v from Ve v where v.maVe in :ids")

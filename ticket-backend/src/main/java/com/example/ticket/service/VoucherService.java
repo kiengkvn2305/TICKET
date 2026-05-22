@@ -12,6 +12,6 @@ public interface VoucherService {
     VoucherResponse create(VoucherRequest request);
     VoucherResponse update(Long id, VoucherRequest request);
     VoucherResponse getByCodeAndSuKien(String maCode, Long maSuKien);
-    
+    VoucherResponse useVoucher(Long id);
     void delete(Long id);
 }

@@ -32,7 +32,7 @@ window.addEventListener("DOMContentLoaded", function () {
 
 function onEventChange() {}
 
-function createTicket() {
+async function createTicket() {
 
     const tenVe    = document.getElementById("tenVe").value.trim();
     const loaiVe   = document.getElementById("loaiVe").value.trim();
@@ -43,8 +43,19 @@ function createTicket() {
     if (!tenVe || !loaiVe || !maSuKien) {
         showMsg("⚠️ Vui lòng nhập đầy đủ thông tin bắt buộc.", "err"); return;
     }
+    if (!validateLoaiVe(loaiVe)) {
+        showMsg("⚠️ Loại vé không hợp lệ. Chỉ chấp nhận 'VIP' hoặc 'Thường'.", "err"); return;
+    }
     if (isNaN(gia) || gia < 0) {
         showMsg("⚠️ Giá vé không hợp lệ.", "err"); return;
+    }
+
+    // Kiểm tra xem loại vé này đã tồn tại cho sự kiện chưa
+    showMsg("⏳ Đang kiểm tra...", "ok");
+    const alreadyExists = await checkLoaiVeExists(maSuKien, loaiVe);
+    if (alreadyExists) {
+        showMsg(`⚠️ Sự kiện này đã có vé loại "${loaiVe}". Mỗi sự kiện chỉ được tạo một vé VIP và một vé Thường.`, "err");
+        return;
     }
 
     const btn = document.querySelector("button.create-btn");
@@ -88,7 +99,7 @@ function showMsg(text, type) {
 function goBack() { window.location.href = "loginCreator.html"; }
 async function checkLoaiVeExists(eventId, loaiVe){
     try{
-        const response = await fetch(`/api/tickets/check-type?eventId=${eventId}&loaiVe=${encodeURIComponent(loaiVe)}`);
+        const response = await fetch(`${BASE_URL}/ve/check-type?maSuKien=${eventId}&loaiVe=${encodeURIComponent(loaiVe)}`);
         if(!response.ok) return false;
 
         const data = await response.json();

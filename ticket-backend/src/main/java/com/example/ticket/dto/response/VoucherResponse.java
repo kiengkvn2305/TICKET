@@ -6,10 +6,10 @@ public class VoucherResponse {
 
     private Long maVoucher;
     private String maCode;
-    private String dieuKien;
     private Double mucKhuyenMai;
     private String trangThai;
     private Integer luotSuDung;
+    private Integer soLuong;
     private Long maCongTy;
     private Long maSuKien;
     private String tenSuKien;
@@ -30,8 +30,8 @@ public class VoucherResponse {
     public String getMaCode() { return maCode; }
     public void setMaCode(String maCode) { this.maCode = maCode; }
 
-    public String getDieuKien() { return dieuKien; }
-    public void setDieuKien(String dieuKien) { this.dieuKien = dieuKien; }
+    public Integer getSoLuong() { return soLuong; }
+    public void setSoLuong(Integer soLuong) { this.soLuong = soLuong; }
 
     public Double getMucKhuyenMai() { return mucKhuyenMai; }
     public void setMucKhuyenMai(Double mucKhuyenMai) { this.mucKhuyenMai = mucKhuyenMai; }

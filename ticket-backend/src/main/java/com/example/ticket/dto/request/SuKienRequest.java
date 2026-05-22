@@ -5,13 +5,9 @@ import java.time.LocalDate;
 public class SuKienRequest {
 
     private String tenSuKien;
-
     private String moTa;
-
     private LocalDate thoiGianBatDau;
-
     private LocalDate thoiGianKetThuc;
-
     private Long maTaiKhoan;
 
     public SuKienRequest() {

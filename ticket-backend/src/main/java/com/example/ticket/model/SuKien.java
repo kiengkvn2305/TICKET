@@ -1,7 +1,14 @@
 package com.example.ticket.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "SUKIEN")
@@ -28,8 +35,13 @@ public class SuKien {
     @Column(name = "MACONGTY")
     private Long maCongTy;
 
-    private String trangThai;
-    private Long maDiaDiem;
+    /**
+     * Trạng thái admin quản lý: "Hoạt động" | "Vi phạm" | "Ẩn"
+     * Mặc định "Hoạt động" khi tạo mới.
+     */
+    @Column(name = "TRANGTHAI")
+    private String trangThai = "Hoạt động";
+
     
     public SuKien() {}
 
@@ -79,5 +91,13 @@ public class SuKien {
 
     public void setMaCongTy(Long maCongTy) {
         this.maCongTy = maCongTy;
+    }
+
+    public String getTrangThai() {
+        return trangThai;
+    }
+
+    public void setTrangThai(String trangThai) {
+        this.trangThai = trangThai;
     }
 }

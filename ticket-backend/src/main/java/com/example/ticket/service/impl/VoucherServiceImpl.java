@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -93,6 +92,8 @@ public class VoucherServiceImpl implements VoucherService {
         r.setDanhSachSuKien(v.getDanhSachSuKien());
         r.setNgayBatDau(v.getNgayBatDau());
         r.setNgayKetThuc(v.getNgayKetThuc());
+        r.setSoLuong(v.getSoLuong());       // giới hạn tối đa
+        r.setLuotSuDung(v.getLuotSuDung());
 
         // ✅ Load tên sự kiện từ danhSachSuKien
         if (v.getDanhSachSuKien() != null && !v.getDanhSachSuKien().isBlank()) {
@@ -135,6 +136,12 @@ public class VoucherServiceImpl implements VoucherService {
         if (!"active".equalsIgnoreCase(v.getTrangThai()))
             throw new BadRequestException("Voucher đã hết hạn hoặc không còn hiệu lực");
 
+        // Kiểm tra còn lượt sử dụng không
+        int luotDaDung = v.getLuotSuDung() != null ? v.getLuotSuDung() : 0;
+        int soLuong    = v.getSoLuong()    != null ? v.getSoLuong()    : 0;
+        if (luotDaDung >= soLuong)
+            throw new BadRequestException("Voucher đã hết lượt sử dụng");
+
         List<Long> ids = parseSuKienIds(v.getDanhSachSuKien());
         if (!ids.contains(maSuKien))
             throw new BadRequestException("Voucher này không áp dụng cho sự kiện đang chọn");
@@ -147,6 +154,11 @@ public class VoucherServiceImpl implements VoucherService {
     public List<VoucherResponse> getBySuKien(Long maSuKien) {
         return voucherRepository.findAll().stream()
                 .filter(v -> "active".equalsIgnoreCase(v.getTrangThai()))
+                .filter(v -> {
+                    int used = v.getLuotSuDung() != null ? v.getLuotSuDung() : 0;
+                    int max  = v.getSoLuong()    != null ? v.getSoLuong()    : 0;
+                    return used < max;
+                })
                 .filter(v -> parseSuKienIds(v.getDanhSachSuKien()).contains(maSuKien))
                 .map(this::mapToResponse)
                 .toList();
@@ -173,11 +185,15 @@ public class VoucherServiceImpl implements VoucherService {
         if (duplicate)
             throw new DuplicateResourceException("Mã voucher đã tồn tại trong công ty");
 
+        if (request.getSoLuong() == null || request.getSoLuong() <= 0)
+            throw new BadRequestException("Số lượng lượt sử dụng phải lớn hơn 0");
+
         Voucher v = new Voucher();
         v.setMaCode(request.getMaCode());
         v.setMucKhuyenMai(request.getMucKhuyenMai());
         v.setTrangThai("active");
-        v.setLuotSuDung(request.getLuotSuDung() != null ? request.getLuotSuDung() : 0);
+        v.setSoLuong(request.getSoLuong());   // giới hạn tối đa
+        v.setLuotSuDung(0);                   // chưa dùng lần nào
         v.setMaCongTy(ntc.getMaCongTy());
         v.setDanhSachSuKien(request.getDanhSachSuKien()); // "1,2,3"
         v.setNgayBatDau(request.getNgayBatDau());
@@ -206,8 +222,8 @@ public class VoucherServiceImpl implements VoucherService {
         existing.setNgayBatDau(request.getNgayBatDau());
         existing.setTrangThai(request.getTrangThai());
         existing.setNgayKetThuc(request.getNgayKetThuc());
-        if (request.getLuotSuDung() != null)
-            existing.setLuotSuDung(request.getLuotSuDung());
+        if (request.getSoLuong() != null)
+            existing.setSoLuong(request.getSoLuong());
 
         return mapToResponse(voucherRepository.save(existing));
     }
@@ -216,5 +232,32 @@ public class VoucherServiceImpl implements VoucherService {
     @Transactional
     public void delete(Long id) {
         voucherRepository.delete(findVoucher(id));
+    }
+
+    @Override
+    @Transactional
+    public VoucherResponse useVoucher(Long id) {
+        Voucher v = voucherRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher"));
+
+        if (!"active".equalsIgnoreCase(v.getTrangThai()))
+            throw new BadRequestException("Voucher đã ngừng hoạt động");
+
+        int luotDaDung = v.getLuotSuDung() != null ? v.getLuotSuDung() : 0;
+        int soLuong    = v.getSoLuong()    != null ? v.getSoLuong()    : 0;
+
+        if (luotDaDung >= soLuong)
+            throw new BadRequestException("Voucher đã hết lượt sử dụng");
+
+        // Tăng lượt đã dùng
+        luotDaDung++;
+        v.setLuotSuDung(luotDaDung);
+
+        // Nếu đã dùng hết → tự động ngừng hoạt động
+        if (luotDaDung >= soLuong) {
+            v.setTrangThai("inactive");
+        }
+
+        return mapToResponse(voucherRepository.save(v));
     }
 }

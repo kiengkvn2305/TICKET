@@ -79,8 +79,8 @@ async function handleCreateEvent() {
             throw new Error(msg || "Tạo sự kiện thất bại");
         }
 
-        showMsg("✅ Tạo sự kiện thành công! Đang chuyển hướng...", "ok");
-        setTimeout(() => window.location.href = "loginCreator.html", 1200);
+        showMsg("✅ Sự kiện đã được gửi! Vui lòng chờ admin phê duyệt.", "ok");
+        setTimeout(() => window.location.href = "loginCreator.html", 2000);
 
     } catch (error) {
         showMsg("❌ " + error.message, "err");
