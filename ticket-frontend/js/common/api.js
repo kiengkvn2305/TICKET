@@ -1,21 +1,11 @@
-const BASE_URL = "https://shopper-reheat-earshot.ngrok-free.dev/api";
+const BASE_URL = "/api";
 
 async function apiFetch(path, options = {}) {
-    const defaultHeaders = {
-        "ngrok-skip-browser-warning": "true"
-    };
-    
-    // Chỉ thêm Content-Type nếu có body
-    if (options.body) {
-        defaultHeaders["Content-Type"] = "application/json";
-    }
-
     const res = await fetch(`${BASE_URL}${path}`, {
-        ...options,
-        headers: {
-            ...defaultHeaders,
-            ...options.headers,
+        headers: { 
+            "Content-Type": "application/json"
         },
+        ...options,
     });
     if (!res.ok) {
         const msg = await res.text();
