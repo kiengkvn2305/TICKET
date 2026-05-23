@@ -83,11 +83,11 @@ public class TaiKhoanController {
 
     @PutMapping("/{id}/block")
     public ResponseEntity<Void> block(
-            @PathVariable Long id,
-            @RequestBody(required = false) java.util.Map<String, String> body) {
-        String lyDo = body != null ? body.getOrDefault("lyDo", "Vi phạm chính sách") : "Vi phạm chính sách";
-        service.block(id);
-        return ResponseEntity.noContent().build();
+        @PathVariable Long id,
+        @RequestBody(required = false) java.util.Map<String, String> body) {
+            String lyDo = "Vi phạm chính sách";
+            service.block(id);
+            return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}/unblock")

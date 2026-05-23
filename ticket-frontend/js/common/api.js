@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8080/api";
+const BASE_URL = "https://shopper-reheat-earshot.ngrok-free.dev";
 
 /**
  * Wrapper fetch có xử lý lỗi chuẩn.
