@@ -3,6 +3,7 @@ package com.example.ticket.repository;
 import com.example.ticket.model.Ve;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -23,7 +24,18 @@ public interface VeRepository extends JpaRepository<Ve, Long> {
     @Query("select v from Ve v where v.maVe in :ids")
     List<Ve> findAllByIdWithLock(@Param("ids") List<Long> ids);
 
+    @Modifying
+    @Query(value = "DELETE FROM VE WHERE MASUKIEN IN " +
+                "(SELECT MASUKIEN FROM SUKIEN WHERE MACONGTY = :id)", 
+        nativeQuery = true)
+    void deleteByMaCongTy(@Param("id") Long id);
+    
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select v from Ve v where v.maVe = :id")
     Optional<Ve> findByIdWithLock(@Param("id") Long id);
+
+    @Query(value = "SELECT SUM(SOLUONG - DABAN) FROM VE " +
+                "WHERE SOLUONG > DABAN",
+        nativeQuery = true)
+    Integer sumVeTon();
 }

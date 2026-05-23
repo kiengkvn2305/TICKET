@@ -25,6 +25,7 @@ window.addEventListener("DOMContentLoaded", () => {
 // ── TAB ──────────────────────────────────────────────────
 function onTabSwitch(tabName) {
     if (tabName === "myTickets" && !_ticketsLoaded) loadMyTickets();
+    if (tabName === "kpi") loadKpi();
 }
 const _showTab = showTab;
 window.showTab = (name) => _showTab(name, onTabSwitch);
@@ -287,19 +288,38 @@ async function _doCompletePayment(paymentInfo) {
     document.getElementById("paymentMsg").textContent = "⏳ Đang xử lý...";
 
     const maVoucher     = document.getElementById("voucherInput")?.value.trim() || null;
-    const selectedSeats = _buildSelectedSeats();
+    const selectedSeats = _buildSelectedSeats(); // [{ maVe, soLuong, ghes[] }]
+
+    // Đồng bộ items từ ghes đã chọn (nguồn sự thật duy nhất)
+    // để tránh lệch số lượng giữa CartModel và ghế thực chọn
+    // Backend bắt buộc có donGia trong mỗi item
+    const allT = window._currentTickets || [];
+    const syncedItems = selectedSeats.map(s => {
+        const ticket = allT.find(t => t.maVe === s.maVe);
+        return {
+            maVe:    s.maVe,
+            soLuong: s.soLuong,
+            donGia:  ticket?.giaVe ?? ticket?.donGia ?? ticket?.gia ?? 0,
+        };
+    });
+
+    if (!syncedItems.length) {
+        document.getElementById("paymentMsg").textContent = "❌ Vui lòng chọn ghế trước khi thanh toán.";
+        return;
+    }
 
     try {
-        // Bước 1: Tạo hóa đơn
-        const hoaDon = await apiFetch("/hoadon/mua", {
+        // Bước 1: Tạo hóa đơn — dùng endpoint nhân viên (bắt buộc maNhanVien)
+        const ghesFlat = selectedSeats.flatMap(s => s.ghes); // [{ khuVuc, maVe }, ...]
+        const hoaDon = await apiFetch("/hoadon/nhanvien/mua", {
             method: "POST",
             body: JSON.stringify({
                 maTaiKhoan: null,
                 maNhanVien: currentUser.maNhanVien,
                 maSuKien:   currentEvent.maSuKien,
                 maVoucher:  maVoucher || null,
-                items:      CartModel.getItems(),
-                ghes:       selectedSeats,
+                items:      syncedItems,
+                ghes:       ghesFlat,
             }),
         });
 
@@ -328,16 +348,32 @@ async function _doCompletePayment(paymentInfo) {
     }
 }
 
-// Map ghế đã chọn → maVe theo loại (VIP / Thường)
+// Map ghế đã chọn → danh sách { maVe, soLuong, ghes[] }
+// Gom các ghế cùng loại (cùng maVe) thành 1 entry với soLuong = số ghế đó.
+// Tránh duplicate composite key (maHoaDon, maVe) trong CHITIETHOADON.
 function _buildSelectedSeats() {
     const allT = window._currentTickets || [];
-    return (window._selectedSeats || []).map(seatId => {
+    const grouped = {}; // { maVe: { maVe, soLuong, ghes[] } }
+
+    (window._selectedSeats || []).forEach(seatId => {
         const isVip  = seatId.charAt(0) <= "C";
         const vipT   = allT.find(t => (t.loaiVe || "").toUpperCase().includes("VIP"));
         const normT  = allT.find(t => !(t.loaiVe || "").toUpperCase().includes("VIP"));
         const matchT = isVip ? (vipT || allT[0]) : (normT || allT[0]);
-        return { khuVuc: seatId, maVe: matchT?.maVe };
+        const maVe   = matchT?.maVe;
+        if (!maVe) return;
+
+        if (!grouped[maVe]) {
+            grouped[maVe] = { maVe, soLuong: 0, ghes: [] };
+        }
+        grouped[maVe].soLuong += 1;
+        // Backend expect object { khuVuc, maVe }, không phải string thô
+        grouped[maVe].ghes.push({ khuVuc: seatId, maVe });
     });
+
+    return Object.values(grouped);
+    // Kết quả ví dụ khi chọn A1, A2 (đều là VIP, maVe=5):
+    // [{ maVe: 5, soLuong: 2, ghes: [{ khuVuc:"A1", maVe:5 }, { khuVuc:"A2", maVe:5 }] }]
 }
 
 // ── MODAL HÓA ĐƠN SAU BÁN ────────────────────────────────
@@ -444,6 +480,8 @@ function closeInvoiceModal() {
 }
 
 // ── XEM HÓA ĐƠN CHI TIẾT (từ tab Vé đã bán) ─────────────
+// g được truyền từ MyTicketsView._cache — đã có g.tickets[] đầy đủ,
+// không cần fetch thêm API.
 window.openHoaDonDetail = function (g) {
     if (!document.getElementById("invoiceModal")) {
         document.body.insertAdjacentHTML("beforeend", `
@@ -457,31 +495,50 @@ window.openHoaDonDetail = function (g) {
             </div>
         `);
     }
+    _renderHoaDonDetail(g);
+    const overlay = document.getElementById("invoiceOverlay");
+    const modal   = document.getElementById("invoiceModal");
+    overlay.style.display = "block";
+    modal.style.display   = "block";
+    requestAnimationFrame(() => modal.classList.add("open"));
+};
 
+function _renderHoaDonDetail(g) {
     const fmt = (n) => Number(n || 0).toLocaleString("vi-VN") + " ₫";
-    const showDiscount = g.thanhTienGoc && g.thanhTien && g.thanhTien < g.thanhTienGoc;
+    const showDiscount = g.thanhTienGoc && g.thanhTien
+        && Number(g.thanhTien) < Number(g.thanhTienGoc);
 
-    const rows = (g.tickets || []).map(ve => `
-        <tr>
-            <td style="padding:7px 8px">
-                <div style="font-weight:600;color:#1a1a2e">${escHtml(ve.tenVe || "—")}</div>
-                <div style="font-size:.78rem;color:#888">${escHtml(ve.loaiVe || "")}</div>
-            </td>
-            <td style="padding:7px 8px;text-align:center">${ve.soLuong}</td>
-            <td style="padding:7px 8px;text-align:right">${fmt(ve.gia)}</td>
-            <td style="padding:7px 8px;text-align:right;font-weight:700">${fmt(ve.gia * ve.soLuong)}</td>
-        </tr>
-    `).join("");
+    // Hỗ trợ cả 2 dạng trả về: g.tickets[] và g.chiTiet[]
+    const ticketList = g.tickets || g.chiTiet || [];
+
+    const rows = ticketList.length
+        ? ticketList.map(ve => {
+            const tenVe  = ve.tenVe  || ve.loaiVe || `Vé #${ve.maVe || ""}`;
+            const loaiVe = ve.loaiVe || "";
+            const gia    = Number(ve.gia || ve.donGia || 0);
+            const sl     = Number(ve.soLuong || 1);
+            return `
+            <tr>
+                <td style="padding:7px 8px">
+                    <div style="font-weight:600;color:#1a1a2e">${escHtml(tenVe)}</div>
+                    ${loaiVe ? `<div style="font-size:.78rem;color:#888">${escHtml(loaiVe)}</div>` : ""}
+                </td>
+                <td style="padding:7px 8px;text-align:center">${sl}</td>
+                <td style="padding:7px 8px;text-align:right">${fmt(gia)}</td>
+                <td style="padding:7px 8px;text-align:right;font-weight:700">${fmt(gia * sl)}</td>
+            </tr>`;
+          }).join("")
+        : `<tr><td colspan="4" style="padding:16px;text-align:center;color:#aaa">Không có dữ liệu vé</td></tr>`;
 
     const discountRow = showDiscount
         ? `<tr style="color:#16a34a">
                <td colspan="3" style="padding:6px 8px;text-align:right;font-size:.88rem">Giảm giá (voucher)</td>
-               <td style="padding:6px 8px;text-align:right">-${fmt(g.thanhTienGoc - g.thanhTien)}</td>
+               <td style="padding:6px 8px;text-align:right">-${fmt(Number(g.thanhTienGoc) - Number(g.thanhTien))}</td>
            </tr>` : "";
 
-    const hasPending  = (g.tickets || []).some(v => v.trangThaiHoan === "pending");
-    const hasApproved = (g.tickets || []).some(v => v.trangThaiHoan === "approved");
-    const hasRejected = (g.tickets || []).some(v => v.trangThaiHoan === "rejected");
+    const hasPending  = ticketList.some(v => v.trangThaiHoan === "pending");
+    const hasApproved = ticketList.some(v => v.trangThaiHoan === "approved");
+    const hasRejected = ticketList.some(v => v.trangThaiHoan === "rejected");
     const statusBadge = hasPending
         ? `<span style="background:#fef3c7;color:#92400e;font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px">⏳ Chờ hoàn</span>`
         : hasApproved
@@ -489,6 +546,10 @@ window.openHoaDonDetail = function (g) {
         : hasRejected
         ? `<span style="background:#fee2e2;color:#991b1b;font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px">❌ Hoàn bị từ chối</span>`
         : `<span style="background:#dcfce7;color:#15803d;font-size:.75rem;font-weight:700;padding:4px 12px;border-radius:20px">✅ Đã thanh toán</span>`;
+
+    const nhanVienRow = g.tenNhanVien
+        ? `<div>👤 Nhân viên bán: <strong style="color:#1a1a2e">${escHtml(g.tenNhanVien)}</strong></div>`
+        : "";
 
     document.getElementById("invoiceContent").innerHTML = `
         <div style="text-align:center;margin-bottom:18px">
@@ -499,6 +560,7 @@ window.openHoaDonDetail = function (g) {
         <div style="background:#f9fafb;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:.85rem;color:#555;line-height:1.7">
             <div>🎪 Sự kiện: <strong style="color:#1a1a2e">${escHtml(g.tenSuKien || "—")}</strong></div>
             ${g.thoiGianBatDau ? `<div>📅 Thời gian: <strong style="color:#1a1a2e">${formatDate(g.thoiGianBatDau)} → ${formatDate(g.thoiGianKetThuc)}</strong></div>` : ""}
+            ${nhanVienRow}
             <div style="margin-top:6px">${statusBadge}</div>
         </div>
         <table style="width:100%;border-collapse:collapse;font-size:.87rem">
@@ -518,13 +580,7 @@ window.openHoaDonDetail = function (g) {
             </tfoot>
         </table>
     `;
-
-    const overlay = document.getElementById("invoiceOverlay");
-    const modal   = document.getElementById("invoiceModal");
-    overlay.style.display = "block";
-    modal.style.display   = "block";
-    requestAnimationFrame(() => modal.classList.add("open"));
-};
+}
 
 // ── TOAST THÔNG BÁO ───────────────────────────────────────
 function _injectToastContainer() {

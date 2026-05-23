@@ -176,6 +176,19 @@
 
     <!-- TAB: VÉ CỦA TÔI -->
     <div id="pane-myTickets" class="tab-pane">
+      <!-- Bộ lọc ngày -->
+      <div class="filter-panel" id="ticketFilterPanel" style="margin-bottom:16px">
+        <label style="font-size:.85rem;font-weight:600;color:#555;white-space:nowrap">📅 Từ ngày</label>
+        <input type="date" id="filterTicketFrom" onchange="applyTicketDateFilter()"
+               style="flex:1;min-width:130px" />
+        <label style="font-size:.85rem;font-weight:600;color:#555;white-space:nowrap">đến</label>
+        <input type="date" id="filterTicketTo" onchange="applyTicketDateFilter()"
+               style="flex:1;min-width:130px" />
+        <button class="filter-btn" onclick="applyTicketDateFilter()">Lọc</button>
+        <button class="filter-btn" onclick="clearTicketDateFilter()"
+                style="background:#f3f4f6;color:#555;border:1.5px solid #e5e7eb">✕ Xóa lọc</button>
+      </div>
+      <div id="ticketFilterInfo" style="font-size:.83rem;color:#888;margin-bottom:10px;padding:0 4px;display:none"></div>
 
       <div id="myTicketsList" class="my-tickets-list">
 
@@ -839,6 +852,27 @@
       }
     };
 
+  });
+  </script>
+
+  <!-- ===== PATCH: Hook lọc ngày vào customerMyTicketsController ===== -->
+  <script>
+  window.addEventListener("DOMContentLoaded", function () {
+    setTimeout(function () {
+      if (!window._renderMyTicketsList) {
+        window._renderMyTicketsList = function (list) {
+          var el = document.getElementById("myTicketsList");
+          if (!el) return;
+          if (!list || !list.length) {
+            el.innerHTML = '<div class="empty-state"><p>Không có vé nào trong khoảng thời gian này.</p></div>';
+            return;
+          }
+          if (typeof MyTicketsView !== "undefined" && MyTicketsView.renderList) {
+            MyTicketsView.renderList(list);
+          }
+        };
+      }
+    }, 100);
   });
   </script>
 </body>

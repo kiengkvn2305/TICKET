@@ -5,13 +5,11 @@
 const currentUser = JSON.parse(localStorage.getItem("user"));
 
 // ── STATE ────────────────────────────────────────────────
-let allEvents           = [];
-let allVouchersForEvent = [];
-let currentEvent        = null;
-let allMyTickets = [];
+let allEvents             = [];
+let allVouchersForEvent   = [];
+let currentEvent          = null;
 let _purchasedTicketTypes = [];
-let activeMyFilter      = "all";
-let finalTotal          = 0;
+let finalTotal            = 0;
 
 // ── KHỞI ĐỘNG ────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {

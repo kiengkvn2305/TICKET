@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -48,4 +49,17 @@ public interface GheRepository extends JpaRepository<Ghe, Long> {
     Optional<Ghe> findByKhuVucAndMaVeAndTrangThai(@Param("khuVuc") String khuVuc,
                                                @Param("maVe") Long maVe,
                                                @Param("trangThai") String trangThai);
+
+    @Modifying
+    @Query(value = "DELETE FROM GHE WHERE MAHOADON IN " +
+                "(SELECT MAHOADON FROM HOADON WHERE MAKHACHHANG = :id)", 
+        nativeQuery = true)
+    void deleteByHoaDon_MaKhachHang(@Param("id") Long id);
+
+    @Modifying
+    @Query(value = "DELETE FROM GHE WHERE MAHOADON IN " +
+                "(SELECT MAHOADON FROM HOADON WHERE MAVOUCHER IN " +
+                "(SELECT MAVOUCHER FROM VOUCHER WHERE MACONGTY = :id))", 
+        nativeQuery = true)
+    void deleteByMaCongTy(@Param("id") Long id);
 }

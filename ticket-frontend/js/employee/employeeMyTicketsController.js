@@ -1,23 +1,26 @@
 /* ==========================================================
    js/employee/myTicketsController.js
    Quản lý tab "Vé đã bán" — dành riêng cho nhân viên.
-   Phụ thuộc: common/api, common/eventService (OrderService),
-              common/myTicketsView (MyTicketsView),
-              common/ui (EventView)
    ========================================================== */
 
 // ── STATE ─────────────────────────────────────────────────
-let allMyTickets   = [];
+let allMyTickets   = [];   // toàn bộ hóa đơn gốc (không bao giờ bị ghi đè khi lọc)
 let activeMyFilter = "all";
-let _ticketsLoaded = false; // cache — tránh gọi lại mỗi lần click tab
+let _ticketsLoaded = false;
 
 // ── LOAD & RENDER ─────────────────────────────────────────
 function loadMyTickets() {
     MyTicketsView.showLoading();
-    // Dùng maNhanVien (không phải maTaiKhoan) để query đúng bảng NHANVIEN
     OrderService.getByEmployee(currentUser.maNhanVien)
-        .then(data => { allMyTickets = data; _ticketsLoaded = true; activeMyFilter = "all"; renderMyTickets(); })
-        .catch(err  => MyTicketsView.showError(err.message));
+        .then(data => {
+            allMyTickets   = data;
+            _ticketsLoaded = true;
+            activeMyFilter = "all";
+            // Reset bộ lọc ngày về trống mỗi khi load lại
+            _resetDateFilter();
+            renderMyTickets();
+        })
+        .catch(err => MyTicketsView.showError(err.message));
 }
 
 function applyMyTicketFilter(filter) {
@@ -25,17 +28,36 @@ function applyMyTicketFilter(filter) {
     renderMyTickets();
 }
 
+// Trả về danh sách đã qua lọc ngày (dùng chung cho renderMyTickets)
+function _getDateFilteredTickets() {
+    const from = document.getElementById("filterTicketFrom")?.value; // "YYYY-MM-DD"
+    const to   = document.getElementById("filterTicketTo")?.value;
+    if (!from && !to) return allMyTickets;
+
+    const dFrom = from ? new Date(from + "T00:00:00") : null;
+    const dTo   = to   ? new Date(to   + "T23:59:59") : null;
+
+    return allMyTickets.filter(hd => {
+        const ngay = new Date(hd.ngayMua || hd.createdAt || 0);
+        if (dFrom && ngay < dFrom) return false;
+        if (dTo   && ngay > dTo)   return false;
+        return true;
+    });
+}
+
 function renderMyTickets() {
+    const list = _getDateFilteredTickets();
+    _updateFilterInfo(list.length, allMyTickets.length);
     MyTicketsView.render(
-        allMyTickets,
+        list,
         activeMyFilter,
         (filter) => applyMyTicketFilter(filter),
         (maVe, maHoaDon, maGheList, lyDo, tenVe) => {
             OrderService.requestRefund({
-                maHoaDon:    maHoaDon,
-                maVe:        maVe,
-                maGheList:   maGheList,
-                lyDoHoan:    lyDo || null,
+                maHoaDon:  maHoaDon,
+                maVe:      maVe,
+                maGheList: maGheList,
+                lyDoHoan:  lyDo || null,
             })
             .then(data => {
                 alert(`✅ Yêu cầu hoàn #${data.maHoanVe} đã được ghi nhận.`);
@@ -46,6 +68,38 @@ function renderMyTickets() {
         }
     );
 }
+
+// ── LỌC NGÀY ─────────────────────────────────────────────
+function applyTicketDateFilter() {
+    activeMyFilter = "all"; // reset filter trạng thái khi lọc ngày
+    renderMyTickets();
+}
+
+function clearTicketDateFilter() {
+    _resetDateFilter();
+    renderMyTickets();
+}
+
+function _resetDateFilter() {
+    const fi = document.getElementById("filterTicketFrom");
+    const ti = document.getElementById("filterTicketTo");
+    if (fi) fi.value = "";
+    if (ti) ti.value = "";
+    const info = document.getElementById("ticketFilterInfo");
+    if (info) info.style.display = "none";
+}
+
+function _updateFilterInfo(filtered, total) {
+    const info = document.getElementById("ticketFilterInfo");
+    if (!info) return;
+    const from = document.getElementById("filterTicketFrom")?.value;
+    const to   = document.getElementById("filterTicketTo")?.value;
+    if (!from && !to) { info.style.display = "none"; return; }
+    const fmt  = (s) => s ? new Date(s + "T00:00:00").toLocaleDateString("vi-VN") : "—";
+    info.textContent  = `Hiển thị ${filtered}/${total} hóa đơn · Từ ${fmt(from)} đến ${fmt(to)}`;
+    info.style.display = "block";
+}
+
 // ── HOÀN VÉ ───────────────────────────────────────────────
 let hoanVeData = { maVe: null, maHoaDon: null, soLuongMua: 1, hoanQty: 1 };
 
@@ -75,7 +129,6 @@ function confirmHoanVe() {
     .then(data => {
         EventView.showHoanVeMsg(`✅ Yêu cầu hoàn #${data.maHoanVe} đã được ghi nhận.`, "ok");
         EventView.setHoanBtnState(false);
-        // Reset cache để load lại danh sách mới nhất
         setTimeout(() => { closeHoanVeModal(); _ticketsLoaded = false; loadMyTickets(); }, 2500);
     })
     .catch(err => {

@@ -19,24 +19,50 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
 
     private static final Set<String> LOAI_HOP_LE = Set.of("Nhân viên", "Nhà tổ chức", "Khách hàng");
 
-    private final TaiKhoanRepository  taiKhoanRepository;
-    private final KhachHangRepository khachHangRepository;
-    private final NhaToChucRepository nhaToChucRepository;
-    private final NhanVienRepository  nhanVienRepository;
-    private final PasswordEncoder     passwordEncoder;
+private final TaiKhoanRepository    taiKhoanRepository;
+private final KhachHangRepository   khachHangRepository;
+private final NhaToChucRepository   nhaToChucRepository;
+private final NhanVienRepository    nhanVienRepository;
+private final HoaDonRepository      hoaDonRepository;
+private final VoucherRepository     voucherRepository;
+private final SuKienRepository      suKienRepository;
+private final VeRepository          veRepository;
+private final GheRepository         gheRepository;
+private final ChiTietHoaDonRepository chiTietHoaDonRepository;
+private final ThanhToanRepository   thanhToanRepository;
+private final HoanVeRepository      hoanVeRepository;
+private final BaoCaoRepository      baoCaoRepository;
+private final PasswordEncoder       passwordEncoder;
 
-
-    public TaiKhoanServiceImpl(TaiKhoanRepository  taiKhoanRepository,
-                               KhachHangRepository khachHangRepository,
-                               NhaToChucRepository nhaToChucRepository,
-                               NhanVienRepository  nhanVienRepository,
-                               PasswordEncoder     passwordEncoder) {
-        this.taiKhoanRepository  = taiKhoanRepository;
-        this.khachHangRepository = khachHangRepository;
-        this.nhaToChucRepository = nhaToChucRepository;
-        this.nhanVienRepository  = nhanVienRepository;
-        this.passwordEncoder     = passwordEncoder;
-    }
+public TaiKhoanServiceImpl(TaiKhoanRepository taiKhoanRepository,
+                            KhachHangRepository khachHangRepository,
+                            NhaToChucRepository nhaToChucRepository,
+                            NhanVienRepository nhanVienRepository,
+                            HoaDonRepository hoaDonRepository,
+                            VoucherRepository voucherRepository,
+                            SuKienRepository suKienRepository,
+                            VeRepository veRepository,
+                            GheRepository gheRepository,
+                            ChiTietHoaDonRepository chiTietHoaDonRepository,
+                            ThanhToanRepository thanhToanRepository,
+                            HoanVeRepository hoanVeRepository,
+                            BaoCaoRepository baoCaoRepository,
+                            PasswordEncoder passwordEncoder) {
+    this.taiKhoanRepository      = taiKhoanRepository;
+    this.khachHangRepository     = khachHangRepository;
+    this.nhaToChucRepository     = nhaToChucRepository;
+    this.nhanVienRepository      = nhanVienRepository;
+    this.hoaDonRepository        = hoaDonRepository;
+    this.voucherRepository       = voucherRepository;
+    this.suKienRepository        = suKienRepository;
+    this.veRepository            = veRepository;
+    this.gheRepository           = gheRepository;
+    this.chiTietHoaDonRepository = chiTietHoaDonRepository;
+    this.thanhToanRepository     = thanhToanRepository;
+    this.hoanVeRepository        = hoanVeRepository;
+    this.baoCaoRepository        = baoCaoRepository;
+    this.passwordEncoder         = passwordEncoder;
+}
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
@@ -245,10 +271,51 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         TaiKhoan tk = findTaiKhoan(id);
         if ("Quản lý".equals(tk.getLoaiTaiKhoan()))
             throw new BadRequestException("Không thể xoá tài khoản quản lý");
-        khachHangRepository.findByMaTaiKhoan(id).ifPresent(khachHangRepository::delete);
-        nhaToChucRepository.findByMaTaiKhoan(id).ifPresent(nhaToChucRepository::delete);
-        nhanVienRepository.findByMaTaiKhoan(id).ifPresent(nhanVienRepository::delete);
+
+        switch (tk.getLoaiTaiKhoan() == null ? "" : tk.getLoaiTaiKhoan()) {
+            case "Khách hàng"  -> deleteKhachHang(id);
+            case "Nhà tổ chức" -> deleteNhaToChuc(id);
+            case "Nhân viên"   -> deleteNhanVien(id);
+        }
+
         taiKhoanRepository.delete(tk);
+    }
+    private void deleteKhachHang(Long maTaiKhoan) {
+        khachHangRepository.findByMaTaiKhoan(maTaiKhoan).ifPresent(kh -> {
+            Long maKH = kh.getMaKhachHang();
+            hoanVeRepository.deleteByHoaDon_MaKhachHang(maKH);
+            thanhToanRepository.deleteByHoaDon_MaKhachHang(maKH);
+            gheRepository.deleteByHoaDon_MaKhachHang(maKH);
+            chiTietHoaDonRepository.deleteByMaKhachHang(maKH);
+            hoaDonRepository.deleteByMaKhachHang(maKH);
+            khachHangRepository.delete(kh);
+        });
+    }
+
+    // ── Xóa Nhân viên ───────────────────────────────────────
+    private void deleteNhanVien(Long maTaiKhoan) {
+        nhanVienRepository.findByMaTaiKhoan(maTaiKhoan).ifPresent(nv -> {
+            Long maNV = nv.getMaNhanVien();
+            baoCaoRepository.deleteByMaNhanVien(maNV);
+            hoaDonRepository.clearNhanVien(maNV); // SET MaNhanVien = null
+            nhanVienRepository.delete(nv);
+        });
+    }
+
+    // ── Xóa Nhà tổ chức ─────────────────────────────────────
+    private void deleteNhaToChuc(Long maTaiKhoan) {
+        nhaToChucRepository.findByMaTaiKhoan(maTaiKhoan).ifPresent(ntc -> {
+            Long maCT = ntc.getMaCongTy();
+            hoanVeRepository.deleteByMaCongTy(maCT);
+            thanhToanRepository.deleteByMaCongTy(maCT);
+            gheRepository.deleteByMaCongTy(maCT);
+            chiTietHoaDonRepository.deleteByMaCongTy(maCT);
+            hoaDonRepository.deleteByMaCongTy(maCT);
+            veRepository.deleteByMaCongTy(maCT);
+            suKienRepository.deleteByMaCongTy(maCT);
+            voucherRepository.deleteByMaCongTy(maCT);
+            nhaToChucRepository.delete(ntc);
+        });
     }
 
     @Override
@@ -303,4 +370,5 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         tk.setLoaiTaiKhoan(loaiTaiKhoan);
         taiKhoanRepository.save(tk);
     }
+    
 }

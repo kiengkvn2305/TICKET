@@ -135,7 +135,7 @@
     currentPage = name;
     // Lazy render
     const renders = {
-      users:       () => { renderUsersTable(); renderUsersTableWithCreate(); },
+      users:       () => { renderUsersTable(); },
       customers:   () => renderTypeTable('customers','Khách hàng'),
       organizers:  () => renderTypeTable('organizers','Nhà tổ chức'),
       staffs:      () => renderTypeTable('staffs','Nhân viên'),
