@@ -10,51 +10,35 @@ public class HoanVe {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "hoanve_seq")
     @SequenceGenerator(name = "hoanve_seq", sequenceName = "HOANVE_SEQ", allocationSize = 1)
+    @Column(name = "MaHoanVe")
     private Long maHoanVe;
 
+    @Column(name = "MaHoaDon")
     private Long maHoaDon;
-    private Long maVe;
+
+    @Column(name = "MaGhe")
+    private Long maGhe;
+
+    @Column(name = "ThoiGianHoan")
     private LocalDate thoiGianHoan;
-    private int soLuongHoan;
+
+    @Column(name = "LyDoHoan")
     private String lyDoHoan;
+
+    @Column(name = "TrangThaiHoan")
     private String trangThaiHoan;
 
-    public Long getMaHoanVe() { return maHoanVe; }
-    public void setMaHoanVe(Long maHoanVe) { this.maHoanVe = maHoanVe; }
-    public Long getMaHoaDon() { return maHoaDon; }
-    public void setMaHoaDon(Long v) { this.maHoaDon = v; }
-    public Long getMaVe() { return maVe; }
-    public void setMaVe(Long v) { this.maVe = v; }
-
-    public LocalDate getThoiGianHoan() {
-        return thoiGianHoan;
-    }
-
-    public void setThoiGianHoan(LocalDate thoiGianHoan) {
-        this.thoiGianHoan = thoiGianHoan;
-    }
-
-    public int getSoLuongHoan() {
-        return soLuongHoan;
-    }
-
-    public void setSoLuongHoan(int soLuongHoan) {
-        this.soLuongHoan = soLuongHoan;
-    }
-
-    public String getLyDoHoan() {
-        return lyDoHoan;
-    }
-
-    public void setLyDoHoan(String lyDoHoan) {
-        this.lyDoHoan = lyDoHoan;
-    }
-
-    public String getTrangThaiHoan() {
-        return trangThaiHoan;
-    }
-
-    public void setTrangThaiHoan(String trangThaiHoan) {
-        this.trangThaiHoan = trangThaiHoan;
-    }
+    // getters / setters
+    public Long getMaHoanVe()                { return maHoanVe; }
+    public void setMaHoanVe(Long v)          { this.maHoanVe = v; }
+    public Long getMaHoaDon()                { return maHoaDon; }
+    public void setMaHoaDon(Long v)          { this.maHoaDon = v; }
+    public Long getMaGhe()                   { return maGhe; }
+    public void setMaGhe(Long v)             { this.maGhe = v; }
+    public LocalDate getThoiGianHoan()       { return thoiGianHoan; }
+    public void setThoiGianHoan(LocalDate v) { this.thoiGianHoan = v; }
+    public String getLyDoHoan()              { return lyDoHoan; }
+    public void setLyDoHoan(String v)        { this.lyDoHoan = v; }
+    public String getTrangThaiHoan()         { return trangThaiHoan; }
+    public void setTrangThaiHoan(String v)   { this.trangThaiHoan = v; }
 }

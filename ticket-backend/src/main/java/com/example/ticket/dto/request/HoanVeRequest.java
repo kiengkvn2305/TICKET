@@ -1,17 +1,16 @@
 package com.example.ticket.dto.request;
 
-public class HoanVeRequest {
-    private Long maHoaDon;
-    private Long maVe;
-    private int  soLuongHoan;
-    private String lyDoHoan;
+import java.util.List;
 
-    public Long getMaHoaDon()           { return maHoaDon; }
-    public void setMaHoaDon(Long v)     { this.maHoaDon = v; }
-    public Long getMaVe()               { return maVe; }
-    public void setMaVe(Long v)         { this.maVe = v; }
-    public int  getSoLuongHoan()        { return soLuongHoan; }
-    public void setSoLuongHoan(int v)   { this.soLuongHoan = v; }
-    public String getLyDoHoan()         { return lyDoHoan; }
-    public void setLyDoHoan(String v)   { this.lyDoHoan = v; }
+public class HoanVeRequest {
+    private Long       maHoaDon;
+    private List<Long> maGheList;   // mỗi phần tử → 1 row HOANVE
+    private String     lyDoHoan;    // dùng chung cho tất cả ghế trong batch
+
+    public Long getMaHoaDon()              { return maHoaDon; }
+    public void setMaHoaDon(Long v)        { this.maHoaDon = v; }
+    public List<Long> getMaGheList()       { return maGheList; }
+    public void setMaGheList(List<Long> v) { this.maGheList = v; }
+    public String getLyDoHoan()            { return lyDoHoan; }
+    public void setLyDoHoan(String v)      { this.lyDoHoan = v; }
 }

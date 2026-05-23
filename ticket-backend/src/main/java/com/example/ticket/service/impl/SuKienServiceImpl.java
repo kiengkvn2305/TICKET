@@ -59,8 +59,9 @@ public class SuKienServiceImpl implements SuKienService {
      */
     private String computeTrangThai(SuKien s) {
         LocalDate today = LocalDate.now();
-        if (s.getThoiGianBatDau() == null || s.getThoiGianKetThuc() == null) return "Không xác định";
-        if (today.isBefore(s.getThoiGianBatDau()))  return "Sắp diễn ra";
+        if (s.getThoiGianBatDau() == null || s.getThoiGianKetThuc() == null)
+            return "Chờ duyệt"; // không có ngày → coi như chưa duyệt
+        if (today.isBefore(s.getThoiGianBatDau())) return "Sắp diễn ra";
         if (today.isAfter(s.getThoiGianKetThuc()))  return "Đã tổ chức";
         return "Đang tổ chức";
     }
@@ -73,13 +74,14 @@ public class SuKienServiceImpl implements SuKienService {
         r.setThoiGianBatDau(s.getThoiGianBatDau());
         r.setThoiGianKetThuc(s.getThoiGianKetThuc());
         r.setMaCongTy(s.getMaCongTy());
-        // Nếu admin đã set Vi phạm/Ẩn thì ưu tiên, không ghi đè bằng thời gian
-        String trangThaiAdmin = s.getTrangThai();
-        if ("Vi pham".equals(trangThaiAdmin) || "An".equals(trangThaiAdmin)
-                || "Vi phạm".equals(trangThaiAdmin) || "Ẩn".equals(trangThaiAdmin)) {
-            r.setTrangThai(trangThaiAdmin);
-        } else {
+
+        String tt = s.getTrangThai();
+        // Chỉ khi "Hoạt động" mới tính theo ngày
+        // Tất cả trạng thái khác (Chờ duyệt, Từ chối, Vi phạm, Ẩn) giữ nguyên
+        if ("Hoạt động".equals(tt)) {
             r.setTrangThai(computeTrangThai(s));
+        } else {
+            r.setTrangThai(tt);
         }
         return r;
     }

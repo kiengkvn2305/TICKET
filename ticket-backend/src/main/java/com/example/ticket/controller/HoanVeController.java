@@ -1,7 +1,6 @@
 package com.example.ticket.controller;
 
 import com.example.ticket.dto.request.HoanVeRequest;
-import com.example.ticket.dto.response.HoanVeDetailResponse;
 import com.example.ticket.dto.response.HoanVeResponse;
 import com.example.ticket.service.HoanVeService;
 import org.springframework.http.ResponseEntity;
@@ -21,21 +20,21 @@ public class HoanVeController {
         this.service = service;
     }
 
-    /** Khách hàng gửi yêu cầu hoàn vé */
+    /** Khách hàng gửi yêu cầu hoàn — mỗi ghế = 1 row HOANVE */
     @PostMapping
-    public ResponseEntity<HoanVeResponse> hoanVe(@RequestBody HoanVeRequest request) {
+    public ResponseEntity<List<HoanVeResponse>> hoanVe(@RequestBody HoanVeRequest request) {
         return ResponseEntity.ok(service.hoanVe(request));
     }
 
-    /** Nhà tổ chức lấy danh sách yêu cầu hoàn vé của sự kiện mình */
+    /** Nhà tổ chức lấy danh sách yêu cầu hoàn của sự kiện mình */
     @GetMapping("/creator/{maTaiKhoan}")
-    public ResponseEntity<List<HoanVeDetailResponse>> getByCreator(@PathVariable Long maTaiKhoan) {
+    public ResponseEntity<List<HoanVeResponse>> getByCreator(@PathVariable Long maTaiKhoan) {
         return ResponseEntity.ok(service.getByCreator(maTaiKhoan));
     }
 
     /** Nhà tổ chức duyệt hoặc từ chối: body { "trangThai": "approved" | "rejected" } */
     @PutMapping("/{maHoanVe}/duyet")
-    public ResponseEntity<HoanVeDetailResponse> duyet(
+    public ResponseEntity<HoanVeResponse> duyet(
             @PathVariable Long maHoanVe,
             @RequestBody Map<String, String> body) {
         return ResponseEntity.ok(service.duyetHoanVe(maHoanVe, body.get("trangThai")));

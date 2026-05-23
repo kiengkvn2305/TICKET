@@ -245,13 +245,12 @@ CREATE TABLE THANHTOAN (
 CREATE TABLE HOANVE (
     MaHoanVe        NUMBER PRIMARY KEY,
     MaHoaDon        NUMBER,
-    MaVe            NUMBER,
+    MaGhe           NUMBER,
     ThoiGianHoan    DATE,
-    SoLuongHoan     NUMBER,
     LyDoHoan        VARCHAR2(255),
     TrangThaiHoan   VARCHAR2(50),
     CONSTRAINT fk_hv_hd FOREIGN KEY (MaHoaDon) REFERENCES HOADON(MaHoaDon),
-    CONSTRAINT fk_hv_ve FOREIGN KEY (MaVe)     REFERENCES VE(MaVe)
+    CONSTRAINT fk_hv_ghe FOREIGN KEY (MaGhe)     REFERENCES Ghe(MaGhe)
 );
 
 -- =========================

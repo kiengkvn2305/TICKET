@@ -1,6 +1,5 @@
 package com.example.ticket.dto.response;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
 
 

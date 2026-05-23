@@ -5,6 +5,9 @@
    ========================================================== */
 
 const MyTicketsView = {
+    // Cache group object theo maHoaDon — tránh JSON inject vào onclick
+    _cache: new Map(),
+
     showLoading() {
         document.getElementById("myTicketsList").innerHTML =
             `<div class="loading-state"><div class="spinner"></div><p>Đang tải...</p></div>`;
@@ -16,6 +19,7 @@ const MyTicketsView = {
 
     render(allMyTickets, activeFilter, onFilter, onHoanVe) {
         const container = document.getElementById("myTicketsList");
+        this._cache.clear();
 
         const counts = {
             all:      allMyTickets.length,
@@ -25,14 +29,15 @@ const MyTicketsView = {
             rejected: allMyTickets.filter(v => v.trangThaiHoan === "rejected").length,
         };
 
-        const filterBar = `<div class="my-filter-bar">${[
+        // Filter bar — dùng data-filter + bind sau khi render (tránh inject function)
+        const filterBar = `<div class="my-filter-bar" id="myFilterBar">${[
             { key: "all",      label: "🎫 Tất cả",          cnt: counts.all },
             { key: "normal",   label: "✅ Đã thanh toán",   cnt: counts.normal },
             { key: "pending",  label: "⏳ Đang chờ hoàn",   cnt: counts.pending },
             { key: "approved", label: "💚 Hoàn thành công", cnt: counts.approved },
             { key: "rejected", label: "❌ Hoàn thất bại",   cnt: counts.rejected },
         ].map(t => `<button class="my-filter-btn ${activeFilter === t.key ? "active" : ""}"
-            data-filter="${t.key}" onclick="${onFilter}('${t.key}')">
+            data-filter="${t.key}">
             ${t.label}${t.cnt > 0 ? ` <span class="filter-count">${t.cnt}</span>` : ""}
         </button>`).join("")}</div>`;
 
@@ -48,6 +53,7 @@ const MyTicketsView = {
                 "🎫",
                 activeFilter === "all" ? "Bạn chưa có vé nào." : "Không có vé trong mục này."
             );
+            this._bindFilterBar(onFilter);
             return;
         }
 
@@ -56,29 +62,30 @@ const MyTicketsView = {
         filtered.forEach(ve => {
             if (!groups.has(ve.maHoaDon)) {
                 groups.set(ve.maHoaDon, {
-                    maHoaDon: ve.maHoaDon, ngayMua: ve.ngayMua, tenSuKien: ve.tenSuKien, maSuKien: ve.maSuKien,
-                    thoiGianBatDau: ve.thoiGianBatDau, thoiGianKetThuc: ve.thoiGianKetThuc,
-                    thanhTien: ve.thanhTien, thanhTienGoc: ve.thanhTienGoc, tickets: [],
+                    maHoaDon: ve.maHoaDon, ngayMua: ve.ngayMua, tenSuKien: ve.tenSuKien,
+                    maSuKien: ve.maSuKien, thoiGianBatDau: ve.thoiGianBatDau,
+                    thoiGianKetThuc: ve.thoiGianKetThuc, thanhTien: ve.thanhTien,
+                    thanhTienGoc: ve.thanhTienGoc, tickets: [],
                 });
             }
             groups.get(ve.maHoaDon).tickets.push(ve);
         });
 
         const blocksHtml = [...groups.values()].map((g, idx) => {
+            // Lưu vào cache để onclick lấy lại bằng key thay vì JSON trong HTML
+            const cacheKey = `hd_${g.maHoaDon}`;
+            this._cache.set(cacheKey, g);
+
             const hasPending  = g.tickets.some(v => v.trangThaiHoan === "pending");
             const hasRejected = g.tickets.some(v => v.trangThaiHoan === "rejected");
             const hasApproved = g.tickets.some(v => v.trangThaiHoan === "approved");
 
-            // Tính tổng vé còn hiệu lực (chưa hoàn hoặc hoàn một phần)
-            // soLuongConLai = soLuong - soLuongDaHoan (nếu approved)
             const totalConLai = g.tickets.reduce((sum, v) => {
                 const soLuong = v.soLuong || 0;
-                // Nếu đã hoàn thành công → trừ số lượng đã hoàn
                 if (v.trangThaiHoan === "approved") {
-                    const daHoan = v.soLuongHoan || soLuong; // fallback: hoàn hết
+                    const daHoan = v.soLuongHoan || soLuong;
                     return sum + Math.max(0, soLuong - daHoan);
                 }
-                // pending / rejected / chưa hoàn → vé vẫn còn hiệu lực
                 return sum + soLuong;
             }, 0);
 
@@ -99,22 +106,27 @@ const MyTicketsView = {
                         <span class="ticket-line-icon">🎟️</span>
                         <div class="ticket-line-info">
                             <div class="ticket-line-name">${escHtml(ve.tenVe || "—")}</div>
-                            <div class="ticket-line-meta">${escHtml(ve.loaiVe || "—")} · SL: <strong>${ve.soLuong}</strong>${ve.trangThaiHoan === "approved" && ve.soLuongHoan ? ` · Hoàn: <strong style="color:#dc2626">${ve.soLuongHoan}</strong>` : ""} · ${formatPrice(ve.gia)}/vé</div>
+                            <div class="ticket-line-meta">
+                                ${escHtml(ve.loaiVe || "—")} · SL: <strong>${ve.soLuong}</strong>
+                                ${ve.trangThaiHoan === "approved" && ve.soLuongHoan
+                                    ? ` · Hoàn: <strong style="color:#dc2626">${ve.soLuongHoan}</strong>` : ""}
+                                · ${formatPrice(ve.gia)}/vé
+                            </div>
                         </div>
                     </div>
                     <div class="ticket-line-right">
                         <div class="ticket-line-subtotal">${formatPrice(ve.gia * ve.soLuong)}</div>
-                        ${this._buildHoanSection(ve, onHoanVe, g)}
+                        ${this._buildHoanSection(ve, onHoanVe, cacheKey)}
                     </div>
                 </div>`).join("");
 
-            const groupJson = encodeURIComponent(JSON.stringify(g));
-            // Nút xuất vé ở header: hiện khi còn ít nhất 1 vé hợp lệ
             const exportBtn = totalConLai > 0
-                ? `<button class="export-ticket-btn" onclick="event.stopPropagation();exportTickets(JSON.parse(decodeURIComponent('${groupJson}')))">🖨️ Xuất vé</button>`
+                ? `<button class="export-ticket-btn"
+                      data-action="export-group" data-key="${cacheKey}">🖨️ Xuất vé</button>`
                 : "";
 
-            return `<div class="hoadon-block" style="animation-delay:${idx * 0.07}s;cursor:pointer" onclick="window.openHoaDonDetail(JSON.parse(decodeURIComponent('${groupJson}')))">
+            return `<div class="hoadon-block" style="animation-delay:${idx * 0.07}s;cursor:pointer"
+                        data-action="open-detail" data-key="${cacheKey}">
                 <div class="hoadon-header">
                     <div class="hoadon-header-left">
                         <span class="hoadon-num">Hóa đơn #${g.maHoaDon}</span>
@@ -128,41 +140,92 @@ const MyTicketsView = {
         }).join("");
 
         container.innerHTML = filterBar + blocksHtml;
+        this._bindFilterBar(onFilter);
+        this._bindActions(onHoanVe);
         this._injectCSS();
+    },
+
+    // Bind filter bar buttons
+    _bindFilterBar(onFilter) {
+        document.querySelectorAll("#myFilterBar .my-filter-btn").forEach(btn => {
+            btn.addEventListener("click", () => onFilter(btn.dataset.filter));
+        });
+    },
+
+    // Bind tất cả action trong container bằng event delegation
+    _bindActions(onHoanVe) {
+        const container = document.getElementById("myTicketsList");
+        container.addEventListener("click", e => {
+            // Xuất vé cả nhóm
+            const exportGroupBtn = e.target.closest("[data-action='export-group']");
+            if (exportGroupBtn) {
+                e.stopPropagation();
+                const g = this._cache.get(exportGroupBtn.dataset.key);
+                if (g) exportTickets(g);
+                return;
+            }
+
+            // Xuất vé đơn lẻ
+            const exportSingleBtn = e.target.closest("[data-action='export-single']");
+            if (exportSingleBtn) {
+                e.stopPropagation();
+                const g = this._cache.get(exportSingleBtn.dataset.key);
+                const maVe = Number(exportSingleBtn.dataset.mave);
+                if (g) exportTickets(g, maVe);
+                return;
+            }
+
+            // Mở modal chọn ghế để hoàn
+            const hoanBtn = e.target.closest("[data-action='hoan-ve']");
+            if (hoanBtn) {
+                e.stopPropagation();
+                const { mave, mahoadon, tenveSafe } = hoanBtn.dataset;
+                MyTicketsView.openChonGheModal(
+                    Number(mave), Number(mahoadon), decodeURIComponent(tenveSafe), onHoanVe
+                );
+                return;
+            }
+
+            // Mở detail hóa đơn (click cả block)
+            const block = e.target.closest("[data-action='open-detail']");
+            if (block && !e.target.closest("button")) {
+                const g = this._cache.get(block.dataset.key);
+                if (g) window.openHoaDonDetail(g);
+            }
+        }, { capture: false });
     },
 
     /**
      * Build phần hoàn vé / badge cho từng dòng vé.
-     * Logic mới:
-     *  - approved toàn bộ  → badge "Đã hoàn", KHÔNG có nút xuất
-     *  - approved một phần → badge "Đã hoàn X vé" + nút "Xuất vé còn lại"
-     *  - pending            → badge "Chờ duyệt"
-     *  - rejected           → badge "Bị từ chối" + nút "Gửi lại"
-     *  - chưa hoàn          → nút "Hoàn vé"
-     *  Nút xuất vé đơn lẻ luôn hiện nếu còn vé hợp lệ.
+     * Dùng data-* thay vì inline JSON/function để tránh XSS.
      */
-    _buildHoanSection(ve, onHoanVe, group) {
-        const soLuong  = ve.soLuong  || 0;
-        const daHoan   = ve.soLuongHoan || 0;
-        const conLai   = Math.max(0, soLuong - daHoan);
+    _buildHoanSection(ve, onHoanVe, cacheKey) {
+        const soLuong = ve.soLuong || 0;
+        const daHoan  = ve.soLuongHoan || 0;
+        const conLai  = Math.max(0, soLuong - daHoan);
 
-        // Nút xuất vé riêng cho dòng vé này (chỉ hiện nếu còn vé hợp lệ)
-        const groupJson = group ? encodeURIComponent(JSON.stringify(group)) : null;
-        const exportSingle = (conLai > 0 && groupJson)
-            ? `<button class="hoan-ve-btn export-single-btn"
-                  onclick="event.stopPropagation();exportTickets(JSON.parse(decodeURIComponent('${groupJson}')),${ve.maVe})">
+        const exportSingle = conLai > 0
+            ? `<button class="export-single-btn"
+                  data-action="export-single"
+                  data-key="${cacheKey}"
+                  data-mave="${ve.maVe}">
                   🎫 Xuất vé${conLai < soLuong ? ` (${conLai})` : ""}
                </button>`
             : "";
 
         if (ve.trangThaiHoan === "approved") {
-            if (conLai === 0) {
-                // Hoàn toàn bộ → chỉ badge
+            if (conLai === 0)
                 return `<span class="hoan-badge hoan-approved">💚 Đã hoàn ${daHoan > 0 ? daHoan + " vé" : ""}</span>`;
-            }
-            // Hoàn một phần → badge + nút xuất vé còn lại
+            // Hoàn một phần — vẫn còn ghế chưa hoàn → cho phép hoàn tiếp
             return `
                 <span class="hoan-badge hoan-approved">💚 Hoàn ${daHoan} / ${soLuong} vé</span>
+                <button class="hoan-ve-btn"
+                    data-action="hoan-ve"
+                    data-mave="${ve.maVe}"
+                    data-mahoadon="${ve.maHoaDon}"
+                    data-tenve-safe="${encodeURIComponent(ve.tenVe || "")}">
+                    🔄 Hoàn thêm (${conLai} còn lại)
+                </button>
                 ${exportSingle}`;
         }
 
@@ -172,20 +235,161 @@ const MyTicketsView = {
         }
 
         if (ve.trangThaiHoan === "rejected") {
-            // Số lượng có thể hoàn lại = số lượng bị từ chối (người dùng có thể gửi lại)
-            const soLuongGuiLai = daHoan || soLuong;
             return `
                 <span class="hoan-badge hoan-rejected">❌ Bị từ chối</span>
-                <button class="hoan-ve-btn" style="margin-top:6px"
-                    onclick="event.stopPropagation();${onHoanVe}(${ve.maVe},${ve.maHoaDon},${soLuongGuiLai},'${escHtml(ve.tenVe || "")}')">🔄 Gửi lại</button>
+                <button class="hoan-ve-btn"
+                    data-action="hoan-ve"
+                    data-mave="${ve.maVe}"
+                    data-mahoadon="${ve.maHoaDon}"
+                    data-tenve-safe="${encodeURIComponent(ve.tenVe || "")}">
+                    🔄 Gửi lại
+                </button>
                 ${exportSingle}`;
         }
 
         // Chưa hoàn → nút hoàn vé + nút xuất vé
         return `
             <button class="hoan-ve-btn"
-                onclick="event.stopPropagation();${onHoanVe}(${ve.maVe},${ve.maHoaDon},${soLuong},'${escHtml(ve.tenVe || "")}')">🔄 Hoàn vé</button>
+                data-action="hoan-ve"
+                data-mave="${ve.maVe}"
+                data-mahoadon="${ve.maHoaDon}"
+                data-tenve-safe="${encodeURIComponent(ve.tenVe || "")}">
+                🔄 Hoàn vé
+            </button>
             ${exportSingle}`;
+    },
+
+    /**
+     * Mở modal chọn ghế cụ thể trước khi gửi yêu cầu hoàn.
+     * Gọi API GET /ghe?maVe=&maHoaDon= để lấy danh sách ghế hiện tại.
+     * Ghế trangThai = 'da_hoan' sẽ bị disable — không chọn được.
+     */
+    openChonGheModal(maVe, maHoaDon, tenVe, onHoanVe) {
+        // Xóa modal cũ nếu có
+        document.getElementById("chonGheModal")?.remove();
+
+        const modal = document.createElement("div");
+        modal.id = "chonGheModal";
+        modal.className = "cgm-overlay";
+        modal.innerHTML = `
+            <div class="cgm-box">
+                <div class="cgm-header">
+                    <div>
+                        <div class="cgm-title">🔄 Chọn ghế muốn hoàn</div>
+                        <div class="cgm-sub">${escHtml(tenVe)}</div>
+                    </div>
+                    <button class="cgm-close" id="cgmClose">✕</button>
+                </div>
+                <div class="cgm-body" id="cgmBody">
+                    <div class="cgm-loading"><div class="spinner"></div><p>Đang tải ghế...</p></div>
+                </div>
+                <div class="cgm-footer">
+                    <span class="cgm-selected-count" id="cgmCount">Chưa chọn ghế nào</span>
+                    <div style="display:flex;gap:8px">
+                        <button class="cgm-btn-cancel" id="cgmCancel">Hủy</button>
+                        <button class="cgm-btn-submit" id="cgmSubmit" disabled>Tiếp tục →</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+
+        const close = () => modal.remove();
+        document.getElementById("cgmClose").onclick  = close;
+        document.getElementById("cgmCancel").onclick = close;
+        modal.addEventListener("click", e => { if (e.target === modal) close(); });
+
+        // Load ghế từ API — chỉ lấy ghế chưa da_hoan
+        fetch(`${BASE_URL}/ghe?maVe=${maVe}&maHoaDon=${maHoaDon}`)
+            .then(r => r.json())
+            .then(gheList => {
+                const body = document.getElementById("cgmBody");
+                if (!gheList.length) {
+                    body.innerHTML = `<div class="cgm-empty">Không còn ghế nào có thể hoàn.</div>`;
+                    return;
+                }
+
+                // Nhóm theo khuVuc để hiển thị rõ hơn
+                const byKhu = new Map();
+                gheList.forEach(g => {
+                    const khu = g.khuVuc || "Khu vực khác";
+                    if (!byKhu.has(khu)) byKhu.set(khu, []);
+                    byKhu.get(khu).push(g);
+                });
+
+                body.innerHTML = [...byKhu.entries()].map(([khu, ghes]) => `
+                    <div class="cgm-khu">
+                        <div class="cgm-khu-label">${escHtml(khu)}</div>
+                        <div class="cgm-ghe-grid">
+                            ${ghes.map(g => {
+                                const daHoan = g.trangThai === "da_hoan";
+                                return `<button
+                                    class="cgm-ghe-btn${daHoan ? " cgm-ghe-hoan" : ""}"
+                                    data-maghe="${g.maGhe}"
+                                    ${daHoan ? "disabled title='Ghế đã được hoàn'" : ""}
+                                >#${g.maGhe}${daHoan ? " ✓" : ""}</button>`;
+                            }).join("")}
+                        </div>
+                    </div>`).join("");
+
+                // Toggle chọn ghế
+                const selectedIds = new Set();
+                const submitBtn   = document.getElementById("cgmSubmit");
+                const countLabel  = document.getElementById("cgmCount");
+
+                body.querySelectorAll(".cgm-ghe-btn:not([disabled])").forEach(btn => {
+                    btn.addEventListener("click", () => {
+                        const id = Number(btn.dataset.maghe);
+                        if (selectedIds.has(id)) {
+                            selectedIds.delete(id);
+                            btn.classList.remove("cgm-ghe-selected");
+                        } else {
+                            selectedIds.add(id);
+                            btn.classList.add("cgm-ghe-selected");
+                        }
+                        const n = selectedIds.size;
+                        countLabel.textContent = n > 0 ? `Đã chọn ${n} ghế` : "Chưa chọn ghế nào";
+                        submitBtn.disabled = n === 0;
+                    });
+                });
+
+                // Tiếp tục → mở form nhập lý do rồi submit
+                submitBtn.onclick = () => {
+                    if (!selectedIds.size) return;
+                    this._showLyDoForm([...selectedIds], maVe, maHoaDon, tenVe, onHoanVe, modal);
+                };
+            })
+            .catch(() => {
+                document.getElementById("cgmBody").innerHTML =
+                    `<div class="cgm-empty" style="color:#e55">Không thể tải danh sách ghế.</div>`;
+            });
+    },
+
+    /** Bước 2: nhập lý do rồi gọi onHoanVe */
+    _showLyDoForm(maGheList, maVe, maHoaDon, tenVe, onHoanVe, modal) {
+        const body = modal.querySelector(".cgm-body");
+        body.innerHTML = `
+            <div style="padding:8px 0">
+                <div class="cgm-khu-label" style="margin-bottom:8px">
+                    Ghế đã chọn: <strong>${maGheList.join(", ")}</strong>
+                </div>
+                <label class="cgm-label">Lý do hoàn vé</label>
+                <textarea id="cgmLyDo" class="cgm-textarea"
+                    placeholder="Nhập lý do (không bắt buộc)..." rows="3"></textarea>
+            </div>`;
+
+        const footer  = modal.querySelector(".cgm-footer");
+        const submit  = footer.querySelector(".cgm-btn-submit");
+        const countLb = footer.querySelector(".cgm-selected-count");
+        countLb.textContent = `${maGheList.length} ghế được chọn`;
+        submit.disabled     = false;
+        submit.textContent  = "Gửi yêu cầu hoàn";
+
+        submit.onclick = () => {
+            const lyDo = document.getElementById("cgmLyDo").value.trim();
+            modal.remove();
+            // onHoanVe nhận thêm mảng maGheList và lyDo
+            onHoanVe(maVe, maHoaDon, maGheList, lyDo, tenVe);
+        };
     },
 
     _injectCSS() {
@@ -224,11 +428,41 @@ const MyTicketsView = {
         .ticket-line-subtotal{font-size:1rem;font-weight:700;color:#1a1a2e;font-family:'Inter',sans-serif}
         .hoan-badge{font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;font-family:'Inter',sans-serif}
         .hoan-approved{background:#d1fae5;color:#065f46}.hoan-pending{background:#fef3c7;color:#92400e}.hoan-rejected{background:#fee2e2;color:#991b1b}
-        .card-organizer{margin-bottom:6px;min-height:18px}
+        .hoan-ve-btn{background:#f59e0b;color:#fff;border:none;border-radius:10px;padding:5px 12px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:.18s;white-space:nowrap}
+        .hoan-ve-btn:hover{background:#d97706}
         .export-ticket-btn{background:#0d9488;color:#fff;border:none;border-radius:12px;padding:6px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:.18s;white-space:nowrap}
         .export-ticket-btn:hover{background:#0f766e}
         .export-single-btn{background:#6366f1;font-size:.74rem;padding:5px 11px;border-radius:10px;border:none;color:#fff;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:.18s;white-space:nowrap}
-        .export-single-btn:hover{background:#4f46e5}`;
+        .export-single-btn:hover{background:#4f46e5}
+
+        /* ── Modal chọn ghế ── */
+        .cgm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}
+        .cgm-box{background:#fff;border-radius:20px;width:100%;max-width:520px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.18);overflow:hidden}
+        .cgm-header{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 22px 14px;border-bottom:1px solid #f0f0f0}
+        .cgm-title{font-size:1.05rem;font-weight:800;color:#1a1a2e;font-family:'Inter',sans-serif}
+        .cgm-sub{font-size:.82rem;color:#888;margin-top:3px;font-family:'Inter',sans-serif}
+        .cgm-close{background:none;border:none;font-size:1.1rem;cursor:pointer;color:#aaa;padding:4px 8px;border-radius:8px}
+        .cgm-close:hover{background:#f3f4f6;color:#333}
+        .cgm-body{flex:1;overflow-y:auto;padding:16px 22px}
+        .cgm-loading{text-align:center;padding:40px 0;color:#888}
+        .cgm-empty{text-align:center;padding:40px 0;color:#aaa;font-size:.9rem}
+        .cgm-khu{margin-bottom:18px}
+        .cgm-khu-label{font-size:.78rem;font-weight:700;color:#0d9488;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;font-family:'Inter',sans-serif}
+        .cgm-ghe-grid{display:flex;flex-wrap:wrap;gap:8px}
+        .cgm-ghe-btn{padding:7px 13px;border-radius:10px;border:1.5px solid #e0e0e0;background:#f8f9fb;font-size:.82rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:.15s;color:#444}
+        .cgm-ghe-btn:hover:not([disabled]){border-color:#0d9488;color:#0d9488;background:#f0fdfb}
+        .cgm-ghe-btn.cgm-ghe-selected{background:#0d9488;border-color:#0d9488;color:#fff}
+        .cgm-ghe-btn.cgm-ghe-hoan{background:#f3f4f6;color:#bbb;border-color:#e5e7eb;cursor:not-allowed;text-decoration:line-through}
+        .cgm-footer{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-top:1px solid #f0f0f0;background:#fafafa;gap:12px;flex-wrap:wrap}
+        .cgm-selected-count{font-size:.83rem;color:#666;font-family:'Inter',sans-serif;font-weight:600}
+        .cgm-btn-cancel{padding:8px 18px;border-radius:10px;border:1.5px solid #e0e0e0;background:#fff;font-size:.83rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;color:#555}
+        .cgm-btn-cancel:hover{border-color:#aaa}
+        .cgm-btn-submit{padding:8px 20px;border-radius:10px;border:none;background:#0d9488;color:#fff;font-size:.83rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:.18s}
+        .cgm-btn-submit:hover:not([disabled]){background:#0f766e}
+        .cgm-btn-submit[disabled]{background:#ccc;cursor:not-allowed}
+        .cgm-label{display:block;font-size:.82rem;font-weight:600;color:#555;margin-bottom:6px;font-family:'Inter',sans-serif}
+        .cgm-textarea{width:100%;border:1.5px solid #e0e0e0;border-radius:10px;padding:10px 12px;font-size:.85rem;font-family:'Inter',sans-serif;resize:vertical;outline:none;box-sizing:border-box}
+        .cgm-textarea:focus{border-color:#0d9488}`;
         document.head.appendChild(s);
     },
 };

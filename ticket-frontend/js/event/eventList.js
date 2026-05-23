@@ -125,12 +125,16 @@ function renderEvents(data) {
 }
 
 /* ── Badge HTML theo trangThai ── */
+// Thêm vào trangThaiBadge()
 function trangThaiBadge(trangThai) {
     const map = {
-        "Sắp diễn ra":  { cls: "badge-upcoming",  label: "🕐 Sắp diễn ra" },
-        "Đang tổ chức": { cls: "badge-ongoing",   label: "🟢 Đang tổ chức" },
-        "Đã tổ chức":   { cls: "badge-done",      label: "✅ Đã tổ chức" },
-        "Hủy bỏ":       { cls: "badge-cancelled", label: "🚫 Hủy bỏ" },
+        "Sắp diễn ra":  { cls: "badge-upcoming",   label: "🕐 Sắp diễn ra" },
+        "Đang tổ chức": { cls: "badge-ongoing",    label: "🟢 Đang tổ chức" },
+        "Đã tổ chức":   { cls: "badge-done",       label: "✅ Đã tổ chức" },
+        "Chờ duyệt":    { cls: "badge-pending",    label: "⏳ Chờ duyệt" },
+        "Từ chối":      { cls: "badge-cancelled",  label: "🚫 Từ chối" },
+        "Vi phạm":      { cls: "badge-cancelled",  label: "⚠️ Vi phạm" },
+        "Ẩn":           { cls: "badge-done",       label: "👁 Ẩn" },
     };
     const b = map[trangThai] || { cls: "badge-upcoming", label: trangThai || "—" };
     return `<span class="sk-status-badge ${b.cls}">${b.label}</span>`;
@@ -241,6 +245,7 @@ function escHtml(s) {
             border-radius: 20px;
             white-space: nowrap;
         }
+        .badge-pending { background: #fef3c7; color: #92400e; }
         .badge-upcoming  { background: #dbeafe; color: #1d4ed8; }
         .badge-ongoing   { background: #dcfce7; color: #15803d; }
         .badge-done      { background: #f3f4f6; color: #6b7280; }

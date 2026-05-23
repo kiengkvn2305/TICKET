@@ -1,7 +1,6 @@
 package com.example.ticket.service.impl;
 
 import com.example.ticket.dto.request.HoanVeRequest;
-import com.example.ticket.dto.response.HoanVeDetailResponse;
 import com.example.ticket.dto.response.HoanVeResponse;
 import com.example.ticket.exception.BadRequestException;
 import com.example.ticket.exception.NotFoundException;
@@ -12,167 +11,183 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class HoanVeServiceImpl implements HoanVeService {
 
-    private final HoanVeRepository        hoanVeRepository;
-    private final ChiTietHoaDonRepository chiTietHoaDonRepository;
-    private final HoaDonRepository        hoaDonRepository;
-    private final NhaToChucRepository     nhaToChucRepository;
-    private final VeRepository            veRepository;
-    private final SuKienRepository        suKienRepository;
-    private final KhachHangRepository     khachHangRepository;
+    private static final String GHE_DA_HOAN  = "da_hoan";
+    private static final String HOAN_PENDING  = "pending";
+    private static final String HOAN_APPROVED = "approved";
+    private static final String HOAN_REJECTED = "rejected";
+
+    private final HoanVeRepository    hoanVeRepository;
+    private final HoaDonRepository    hoaDonRepository;
+    private final NhaToChucRepository nhaToChucRepository;
+    private final VeRepository        veRepository;
+    private final SuKienRepository    suKienRepository;
+    private final KhachHangRepository khachHangRepository;
+    private final GheRepository       gheRepository;
 
     public HoanVeServiceImpl(HoanVeRepository hoanVeRepository,
-                             ChiTietHoaDonRepository chiTietHoaDonRepository,
                              HoaDonRepository hoaDonRepository,
                              NhaToChucRepository nhaToChucRepository,
                              VeRepository veRepository,
                              SuKienRepository suKienRepository,
-                             KhachHangRepository khachHangRepository) {
-        this.hoanVeRepository        = hoanVeRepository;
-        this.chiTietHoaDonRepository = chiTietHoaDonRepository;
-        this.hoaDonRepository        = hoaDonRepository;
-        this.nhaToChucRepository     = nhaToChucRepository;
-        this.veRepository            = veRepository;
-        this.suKienRepository        = suKienRepository;
-        this.khachHangRepository     = khachHangRepository;
+                             KhachHangRepository khachHangRepository,
+                             GheRepository gheRepository) {
+        this.hoanVeRepository    = hoanVeRepository;
+        this.hoaDonRepository    = hoaDonRepository;
+        this.nhaToChucRepository = nhaToChucRepository;
+        this.veRepository        = veRepository;
+        this.suKienRepository    = suKienRepository;
+        this.khachHangRepository = khachHangRepository;
+        this.gheRepository       = gheRepository;
     }
 
-    // ── Khách hàng gửi yêu cầu hoàn ─────────────────────────────────────────
+    // ── Khách gửi yêu cầu hoàn ───────────────────────────────────────────────
 
     @Override
-    public HoanVeResponse hoanVe(HoanVeRequest request) {
+    public List<HoanVeResponse> hoanVe(HoanVeRequest request) {
+
         hoaDonRepository.findById(request.getMaHoaDon())
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn #" + request.getMaHoaDon()));
+                .orElseThrow(() -> new NotFoundException(
+                        "Không tìm thấy hóa đơn #" + request.getMaHoaDon()));
 
-        ChiTietHoaDonID id = new ChiTietHoaDonID(request.getMaVe(), request.getMaHoaDon());
-        ChiTietHoaDon ct = chiTietHoaDonRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Vé này không thuộc hóa đơn đã chọn"));
+        List<Long> maGheList = request.getMaGheList();
+        if (maGheList == null || maGheList.isEmpty())
+            throw new BadRequestException("Phải chọn ít nhất 1 ghế để hoàn");
 
-        if (request.getSoLuongHoan() <= 0)
-            throw new BadRequestException("Số lượng hoàn phải lớn hơn 0");
-        if (request.getSoLuongHoan() > ct.getSoLuong())
-            throw new BadRequestException("Số lượng hoàn vượt quá số lượng đã mua (" + ct.getSoLuong() + ")");
+        List<Ghe> gheList = gheRepository.findAllById(maGheList);
 
-        boolean dangHoan = hoanVeRepository
-                .findByMaHoaDonAndMaVe(request.getMaHoaDon(), request.getMaVe())
-                .stream().anyMatch(h -> "pending".equalsIgnoreCase(h.getTrangThaiHoan()));
-        if (dangHoan)
-            throw new BadRequestException("Vé này đã có yêu cầu hoàn đang chờ xử lý");
+        // Validate tồn tại
+        Set<Long> found = gheList.stream().map(Ghe::getMaGhe).collect(Collectors.toSet());
+        List<Long> notFound = maGheList.stream().filter(id -> !found.contains(id)).toList();
+        if (!notFound.isEmpty())
+            throw new BadRequestException("Không tìm thấy ghế: " + notFound);
 
-        HoanVe hoanVe = new HoanVe();
-        hoanVe.setMaHoaDon(request.getMaHoaDon());
-        hoanVe.setMaVe(request.getMaVe());
-        hoanVe.setThoiGianHoan(LocalDate.now());
-        hoanVe.setSoLuongHoan(request.getSoLuongHoan());
-        hoanVe.setLyDoHoan(request.getLyDoHoan() != null ? request.getLyDoHoan().trim() : "Không có lý do");
-        hoanVe.setTrangThaiHoan("pending");
-        HoanVe saved = hoanVeRepository.save(hoanVe);
+        // Validate thuộc đúng hóa đơn
+        List<Long> wrongHd = gheList.stream()
+                .filter(g -> !request.getMaHoaDon().equals(g.getMaHoaDon()))
+                .map(Ghe::getMaGhe).toList();
+        if (!wrongHd.isEmpty())
+            throw new BadRequestException("Ghế không thuộc hóa đơn này: " + wrongHd);
 
-        HoanVeResponse res = new HoanVeResponse();
-        res.setMaHoanVe(saved.getMaHoanVe());
-        res.setMaHoaDon(saved.getMaHoaDon());
-        res.setMaVe(saved.getMaVe());
-        res.setThoiGianHoan(saved.getThoiGianHoan());
-        res.setSoLuongHoan(saved.getSoLuongHoan());
-        res.setLyDoHoan(saved.getLyDoHoan());
-        res.setTrangThaiHoan(saved.getTrangThaiHoan());
-        return res;
-    }
+        // Validate chưa hoàn
+        List<Long> daHoan = gheList.stream()
+                .filter(g -> GHE_DA_HOAN.equalsIgnoreCase(g.getTrangThai()))
+                .map(Ghe::getMaGhe).toList();
+        if (!daHoan.isEmpty())
+            throw new BadRequestException("Ghế đã được hoàn rồi: " + daHoan);
 
-    // ── Nhà tổ chức xem danh sách ────────────────────────────────────────────
+        // Validate chưa có pending
+        List<Long> dangPending = hoanVeRepository.findByMaGheIn(maGheList).stream()
+                .filter(hv -> HOAN_PENDING.equalsIgnoreCase(hv.getTrangThaiHoan()))
+                .map(HoanVe::getMaGhe).toList();
+        if (!dangPending.isEmpty())
+            throw new BadRequestException("Ghế đang chờ duyệt hoàn: " + dangPending);
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<HoanVeDetailResponse> getByCreator(Long maTaiKhoan) {
-        NhaToChuc ntc = nhaToChucRepository.findByMaTaiKhoan(maTaiKhoan)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy nhà tổ chức"));
+        // Insert 1 row mỗi ghế
+        String lyDo = (request.getLyDoHoan() != null && !request.getLyDoHoan().isBlank())
+                ? request.getLyDoHoan().trim() : "Không có lý do";
+        LocalDate now = LocalDate.now();
 
-        List<HoanVe> list = hoanVeRepository.findByMaCongTy(ntc.getMaCongTy());
-        if (list.isEmpty()) return List.of();
+        List<HoanVe> saved = maGheList.stream().map(maGhe -> {
+            HoanVe hv = new HoanVe();
+            hv.setMaHoaDon(request.getMaHoaDon());
+            hv.setMaGhe(maGhe);
+            hv.setThoiGianHoan(now);
+            hv.setLyDoHoan(lyDo);
+            hv.setTrangThaiHoan(HOAN_PENDING);
+            return hoanVeRepository.save(hv);
+        }).toList();
 
-        // Batch load Ve, SuKien, HoaDon, KhachHang
-        List<Long> maVeIds  = list.stream().map(HoanVe::getMaVe).distinct().toList();
-        List<Long> maHdIds  = list.stream().map(HoanVe::getMaHoaDon).distinct().toList();
-
-        Map<Long, Ve>      veMap  = veRepository.findAllById(maVeIds)
-                .stream().collect(Collectors.toMap(Ve::getMaVe, v -> v));
-        Map<Long, SuKien>  skMap  = suKienRepository
-                .findAllById(veMap.values().stream().map(Ve::getMaSuKien).distinct().toList())
-                .stream().collect(Collectors.toMap(SuKien::getMaSuKien, s -> s));
-        Map<Long, HoaDon>  hdMap  = hoaDonRepository.findAllById(maHdIds)
-                .stream().collect(Collectors.toMap(HoaDon::getMaHoaDon, h -> h));
-        Map<Long, KhachHang> khMap = khachHangRepository
-                .findAllById(hdMap.values().stream().map(HoaDon::getMaKhachHang).distinct().toList())
-                .stream().collect(Collectors.toMap(KhachHang::getMaKhachHang, k -> k));
-
-        return list.stream().map(hv -> {
-            Ve ve         = veMap.get(hv.getMaVe());
-            SuKien sk     = ve != null ? skMap.get(ve.getMaSuKien()) : null;
-            HoaDon hd     = hdMap.get(hv.getMaHoaDon());
-            KhachHang kh  = hd != null ? khMap.get(hd.getMaKhachHang()) : null;
-
-            HoanVeDetailResponse r = new HoanVeDetailResponse();
+        // Build response — chỉ cần thông tin cơ bản khi mới tạo
+        return saved.stream().map(hv -> {
+            Ghe ghe = gheList.stream()
+                    .filter(g -> g.getMaGhe().equals(hv.getMaGhe()))
+                    .findFirst().orElse(null);
+            HoanVeResponse r = new HoanVeResponse();
             r.setMaHoanVe(hv.getMaHoanVe());
             r.setMaHoaDon(hv.getMaHoaDon());
-            r.setMaVe(hv.getMaVe());
-            r.setTenVe(ve  != null ? ve.getTenVe()        : "—");
-            r.setTenSuKien(sk != null ? sk.getTenSuKien() : "—");
-            r.setTenKhachHang(kh != null ? kh.getTenKhachHang() : "—");
+            r.setMaGhe(hv.getMaGhe());
+            r.setKhuVuc(ghe != null ? ghe.getKhuVuc() : "—");
             r.setThoiGianHoan(hv.getThoiGianHoan());
-            r.setSoLuongHoan(hv.getSoLuongHoan());
             r.setLyDoHoan(hv.getLyDoHoan());
             r.setTrangThaiHoan(hv.getTrangThaiHoan());
             return r;
         }).toList();
     }
 
-    // ── Nhà tổ chức duyệt / từ chối ─────────────────────────────────────────
+    // ── NTC xem danh sách ────────────────────────────────────────────────────
 
     @Override
-    public HoanVeDetailResponse duyetHoanVe(Long maHoanVe, String trangThai) {
-        if (!"approved".equalsIgnoreCase(trangThai) && !"rejected".equalsIgnoreCase(trangThai))
+    @Transactional(readOnly = true)
+    public List<HoanVeResponse> getByCreator(Long maTaiKhoan) {
+        NhaToChuc ntc = nhaToChucRepository.findByMaTaiKhoan(maTaiKhoan)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy nhà tổ chức"));
+
+        List<HoanVe> list = hoanVeRepository.findByMaCongTy(ntc.getMaCongTy());
+        if (list.isEmpty()) return List.of();
+
+        return list.stream().map(hv -> buildFullResponse(hv)).toList();
+    }
+
+    // ── NTC duyệt / từ chối ──────────────────────────────────────────────────
+
+    @Override
+    public HoanVeResponse duyetHoanVe(Long maHoanVe, String trangThai) {
+        if (!HOAN_APPROVED.equalsIgnoreCase(trangThai)
+                && !HOAN_REJECTED.equalsIgnoreCase(trangThai))
             throw new BadRequestException("Trạng thái phải là 'approved' hoặc 'rejected'");
 
         HoanVe hv = hoanVeRepository.findById(maHoanVe)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy yêu cầu hoàn vé #" + maHoanVe));
+                .orElseThrow(() -> new NotFoundException(
+                        "Không tìm thấy yêu cầu hoàn #" + maHoanVe));
 
-        if (!"pending".equalsIgnoreCase(hv.getTrangThaiHoan()))
+        if (!HOAN_PENDING.equalsIgnoreCase(hv.getTrangThaiHoan()))
             throw new BadRequestException("Yêu cầu này đã được xử lý rồi");
 
         hv.setTrangThaiHoan(trangThai.toLowerCase());
         hoanVeRepository.save(hv);
 
-        // Nếu duyệt approved → giảm daBan của vé lại
-        if ("approved".equalsIgnoreCase(trangThai)) {
-            veRepository.findByIdWithLock(hv.getMaVe()).ifPresent(ve -> {
-                int newDaBan = Math.max(0, ve.getDaBan() - hv.getSoLuongHoan());
-                ve.setDaBan(newDaBan);
-                veRepository.save(ve);
+        if (HOAN_APPROVED.equalsIgnoreCase(trangThai)) {
+            // Đặt ghế = da_hoan
+            gheRepository.findByIdWithLock(hv.getMaGhe()).ifPresent(ghe -> {
+                ghe.setTrangThai(GHE_DA_HOAN);
+                gheRepository.save(ghe);
+
+                // Giảm daBan của Ve đúng 1
+                veRepository.findByIdWithLock(ghe.getMaVe()).ifPresent(ve -> {
+                    ve.setDaBan(Math.max(0, ve.getDaBan() - 1));
+                    veRepository.save(ve);
+                });
             });
         }
 
-        // Reuse getByCreator logic — đơn giản build response trực tiếp
-        Ve ve        = veRepository.findById(hv.getMaVe()).orElse(null);
-        SuKien sk    = ve != null && ve.getMaSuKien() != null ? suKienRepository.findById(ve.getMaSuKien()).orElse(null) : null;
-        HoaDon hd    = hoaDonRepository.findById(hv.getMaHoaDon()).orElse(null);
-        KhachHang kh = hd != null ? khachHangRepository.findById(hd.getMaKhachHang()).orElse(null) : null;
+        return buildFullResponse(hv);
+    }
 
-        HoanVeDetailResponse r = new HoanVeDetailResponse();
+    // ── Helper build response đầy đủ ─────────────────────────────────────────
+
+    private HoanVeResponse buildFullResponse(HoanVe hv) {
+        Ghe       ghe = gheRepository.findById(hv.getMaGhe()).orElse(null);
+        Ve        ve  = ghe != null ? veRepository.findById(ghe.getMaVe()).orElse(null) : null;
+        SuKien    sk  = ve  != null ? suKienRepository.findById(ve.getMaSuKien()).orElse(null) : null;
+        HoaDon    hd  = hoaDonRepository.findById(hv.getMaHoaDon()).orElse(null);
+        KhachHang kh  = hd  != null ? khachHangRepository.findById(hd.getMaKhachHang()).orElse(null) : null;
+
+        HoanVeResponse r = new HoanVeResponse();
         r.setMaHoanVe(hv.getMaHoanVe());
         r.setMaHoaDon(hv.getMaHoaDon());
-        r.setMaVe(hv.getMaVe());
-        r.setTenVe(ve  != null ? ve.getTenVe()        : "—");
-        r.setTenSuKien(sk != null ? sk.getTenSuKien() : "—");
-        r.setTenKhachHang(kh != null ? kh.getTenKhachHang() : "—");
+        r.setMaGhe(hv.getMaGhe());
+        r.setKhuVuc(ghe != null ? ghe.getKhuVuc()          : "—");
+        r.setTenVe(ve   != null ? ve.getTenVe()             : "—");
+        r.setTenSuKien(sk != null ? sk.getTenSuKien()      : "—");
+        r.setTenKhachHang(kh != null ? kh.getTenKhachHang(): "—");
         r.setThoiGianHoan(hv.getThoiGianHoan());
-        r.setSoLuongHoan(hv.getSoLuongHoan());
         r.setLyDoHoan(hv.getLyDoHoan());
         r.setTrangThaiHoan(hv.getTrangThaiHoan());
         return r;
