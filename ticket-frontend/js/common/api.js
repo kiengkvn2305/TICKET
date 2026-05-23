@@ -1,4 +1,4 @@
-const BASE_URL = "https://shopper-reheat-earshot.ngrok-free.dev";
+const BASE_URL = "https://shopper-reheat-earshot.ngrok-free.dev/api";
 
 /**
  * Wrapper fetch có xử lý lỗi chuẩn.
@@ -6,7 +6,10 @@ const BASE_URL = "https://shopper-reheat-earshot.ngrok-free.dev";
  */
 async function apiFetch(path, options = {}) {
     const res = await fetch(`${BASE_URL}${path}`, {
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+            "Content-Type": "application/json",
+            "ngrok-skip-browser-warning": "true"
+        },
         ...options,
     });
     if (!res.ok) {
