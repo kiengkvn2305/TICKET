@@ -1,16 +1,21 @@
 const BASE_URL = "https://shopper-reheat-earshot.ngrok-free.dev/api";
 
-/**
- * Wrapper fetch có xử lý lỗi chuẩn.
- * Trả về { data } hoặc throw Error với message từ server.
- */
 async function apiFetch(path, options = {}) {
+    const defaultHeaders = {
+        "ngrok-skip-browser-warning": "true"
+    };
+    
+    // Chỉ thêm Content-Type nếu có body
+    if (options.body) {
+        defaultHeaders["Content-Type"] = "application/json";
+    }
+
     const res = await fetch(`${BASE_URL}${path}`, {
-        headers: { 
-            "Content-Type": "application/json",
-            "ngrok-skip-browser-warning": "true"
-        },
         ...options,
+        headers: {
+            ...defaultHeaders,
+            ...options.headers,
+        },
     });
     if (!res.ok) {
         const msg = await res.text();
