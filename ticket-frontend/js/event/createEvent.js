@@ -44,8 +44,6 @@ async function handleCreateEvent() {
     const thoiGianBatDau  = document.getElementById("thoiGianBatDau").value;
     const thoiGianKetThuc = document.getElementById("thoiGianKetThuc").value;
 
-    const msgBox = document.getElementById("msgBox");
-
     if (!tenSuKien || !thoiGianBatDau || !thoiGianKetThuc) {
         showMsg("⚠️ Vui lòng điền đầy đủ thông tin bắt buộc.", "err");
         return;
@@ -80,7 +78,8 @@ async function handleCreateEvent() {
         }
 
         showMsg("✅ Sự kiện đã được gửi! Vui lòng chờ admin phê duyệt.", "ok");
-        setTimeout(() => window.location.href = "loginCreator.html", 2000);
+        showToast("⏳ Sự kiện đang chờ duyệt");
+        setTimeout(() => window.location.href = "loginCreator.html", 2500);
 
     } catch (error) {
         showMsg("❌ " + error.message, "err");
@@ -93,8 +92,51 @@ function showMsg(text, type) {
     const el = document.getElementById("msgBox");
     if (!el) return;
     el.textContent = text;
-    el.style.color  = type === "ok" ? "#0d9488" : "#dc2626";
+    el.style.color      = type === "ok" ? "#0d9488" : "#dc2626";
     el.style.fontWeight = "600";
+}
+
+function showToast(text) {
+    // Xóa toast cũ nếu có
+    document.getElementById("_toast")?.remove();
+
+    const toast = document.createElement("div");
+    toast.id = "_toast";
+    toast.textContent = text;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        background: #1a1a2e;
+        color: #fff;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 99999;
+        opacity: 0;
+        transform: translateY(12px);
+        transition: opacity 0.3s, transform 0.3s;
+    `;
+    document.body.appendChild(toast);
+
+    // Animate vào
+    requestAnimationFrame(() => {
+        toast.style.opacity = "1";
+        toast.style.transform = "translateY(0)";
+    });
+
+    // Tự mất sau 2.5s
+    setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(12px)";
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
 }
 
 function goBack() {

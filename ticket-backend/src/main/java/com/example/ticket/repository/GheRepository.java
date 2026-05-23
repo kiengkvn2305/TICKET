@@ -1,15 +1,16 @@
 package com.example.ticket.repository;
 
-import com.example.ticket.model.Ghe;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
+
+import com.example.ticket.model.Ghe;
 
 import jakarta.persistence.LockModeType;
-import java.util.List;
-import java.util.Optional;
 public interface GheRepository extends JpaRepository<Ghe, Long> {
 
     /** Lấy tất cả ghế đã đặt theo danh sách maVe */
@@ -26,10 +27,10 @@ public interface GheRepository extends JpaRepository<Ghe, Long> {
      * Kiểm tra ghế bị conflict: khuVuc đó đã tồn tại trong các maVe thuộc cùng sự kiện.
      * Dùng trong muaVe() trước khi lưu để tránh 2 người đặt cùng ghế.
      */
-    @Query("SELECT g FROM Ghe g WHERE g.khuVuc IN :khuVucList AND g.maVe IN :maVeList")
+    @Query("SELECT g FROM Ghe g WHERE g.khuVuc IN :khuVucList AND g.maVe IN :maVeList AND g.trangThai <> 'da_hoan'")
     List<Ghe> findConflict(@Param("khuVucList") List<String> khuVucList,
-                           @Param("maVeList")   List<Long>   maVeList);
-                               @Query("""
+                           @Param("maVeList") List<Long> maVeList);
+    @Query("""
         SELECT g.khuVuc
         FROM Ghe g
         JOIN Ve v ON g.maVe = v.maVe
@@ -42,4 +43,9 @@ public interface GheRepository extends JpaRepository<Ghe, Long> {
     @Query("SELECT g FROM Ghe g WHERE g.maVe = :maVe AND g.maHoaDon = :maHoaDon")
     List<Ghe> findByMaVeAndMaHoaDon(@Param("maVe") Long maVe,
                                      @Param("maHoaDon") Long maHoaDon);
+    
+    @Query("SELECT g FROM Ghe g WHERE g.khuVuc = :khuVuc AND g.maVe = :maVe AND g.trangThai = :trangThai AND ROWNUM = 1")
+    Optional<Ghe> findByKhuVucAndMaVeAndTrangThai(@Param("khuVuc") String khuVuc,
+                                               @Param("maVe") Long maVe,
+                                               @Param("trangThai") String trangThai);
 }

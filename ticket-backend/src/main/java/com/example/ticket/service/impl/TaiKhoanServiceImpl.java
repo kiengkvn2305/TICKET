@@ -50,6 +50,7 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         r.setMaTaiKhoan(tk.getMaTaiKhoan());
         r.setTenDangNhap(tk.getTenTaiKhoan());
         r.setLoaiTaiKhoan(tk.getLoaiTaiKhoan());
+        r.setTrangThai(tk.getTrangThai() != null ? tk.getTrangThai() : "active");
         return r;
     }
 
@@ -70,9 +71,13 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         TaiKhoan tk = taiKhoanRepository.findByTenTaiKhoan(request.getTenDangNhap())
                 .orElseThrow(() -> new NotFoundException("Tài khoản không tồn tại"));
 
-        // BCrypt: so sánh mật khẩu nhập vào với hash trong DB
         if (!passwordEncoder.matches(request.getMatKhau(), tk.getMatKhau())) {
             throw new UnauthorizedException("Sai mật khẩu");
+        }
+
+        // FIX 1: đúng tên biến (tk), đúng cách check trangThai thay vì isBiBan()
+        if ("blocked".equals(tk.getTrangThai())) {
+            throw new UnauthorizedException("Tài khoản của bạn đã bị khóa.");
         }
 
         LoginResponse r = new LoginResponse();
@@ -144,7 +149,7 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
 
         TaiKhoan tk = new TaiKhoan();
         tk.setTenTaiKhoan(request.getTenDangNhap());
-        tk.setMatKhau(passwordEncoder.encode(request.getMatKhau())); // BCrypt
+        tk.setMatKhau(passwordEncoder.encode(request.getMatKhau()));
         tk.setLoaiTaiKhoan(request.getLoaiTaiKhoan());
         TaiKhoan saved = taiKhoanRepository.save(tk);
 
@@ -171,7 +176,7 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
                 .filter(other -> !other.getMaTaiKhoan().equals(id))
                 .ifPresent(other -> { throw new DuplicateResourceException("Tên tài khoản đã được sử dụng"); });
         existing.setTenTaiKhoan(request.getTenDangNhap());
-        existing.setMatKhau(passwordEncoder.encode(request.getMatKhau())); // BCrypt
+        existing.setMatKhau(passwordEncoder.encode(request.getMatKhau()));
         return mapToResponse(taiKhoanRepository.save(existing));
     }
 
@@ -180,17 +185,14 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
     public void doiMatKhau(Long id, DoiMatKhauRequest request) {
         TaiKhoan tk = findTaiKhoan(id);
 
-        // Kiểm tra mật khẩu cũ
         if (!passwordEncoder.matches(request.getMatKhauCu(), tk.getMatKhau())) {
             throw new UnauthorizedException("Mật khẩu cũ không đúng");
         }
 
-        // Kiểm tra xác nhận mật khẩu mới
         if (!request.getMatKhauMoi().equals(request.getXacNhanMatKhau())) {
             throw new BadRequestException("Xác nhận mật khẩu không khớp");
         }
 
-        // Không cho đặt lại mật khẩu giống cũ
         if (passwordEncoder.matches(request.getMatKhauMoi(), tk.getMatKhau())) {
             throw new BadRequestException("Mật khẩu mới không được trùng mật khẩu cũ");
         }
@@ -241,6 +243,8 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
     @Transactional
     public void delete(Long id) {
         TaiKhoan tk = findTaiKhoan(id);
+        if ("Quản lý".equals(tk.getLoaiTaiKhoan()))
+            throw new BadRequestException("Không thể xoá tài khoản quản lý");
         khachHangRepository.findByMaTaiKhoan(id).ifPresent(khachHangRepository::delete);
         nhaToChucRepository.findByMaTaiKhoan(id).ifPresent(nhaToChucRepository::delete);
         nhanVienRepository.findByMaTaiKhoan(id).ifPresent(nhanVienRepository::delete);
@@ -252,7 +256,51 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
     public void forgetPassword(String tenDangNhap) {
         TaiKhoan tk = taiKhoanRepository.findByTenTaiKhoan(tenDangNhap)
                 .orElseThrow(() -> new NotFoundException("Tài khoản không tồn tại"));
-        tk.setMatKhau(passwordEncoder.encode("123456")); // BCrypt hash của "123456"
+        tk.setMatKhau(passwordEncoder.encode("123456"));
+        taiKhoanRepository.save(tk);
+    }
+
+    @Override
+    @Transactional
+    public void block(Long id) {
+        TaiKhoan tk = taiKhoanRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy tài khoản #" + id));
+        if ("Quản lý".equals(tk.getLoaiTaiKhoan()))
+            throw new BadRequestException("Không thể chặn tài khoản quản lý");
+        tk.setTrangThai("blocked");
+        taiKhoanRepository.save(tk);
+    }
+
+    @Override
+    @Transactional
+    public void unblock(Long id) {
+        TaiKhoan tk = taiKhoanRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy tài khoản #" + id));
+        tk.setTrangThai("active");
+        taiKhoanRepository.save(tk);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(Long id, String matKhauMoi) {
+        if (matKhauMoi == null || matKhauMoi.isBlank())
+            throw new BadRequestException("Mật khẩu mới không được để trống");
+        TaiKhoan tk = taiKhoanRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy tài khoản #" + id));
+        tk.setMatKhau(passwordEncoder.encode(matKhauMoi));
+        taiKhoanRepository.save(tk);
+    }
+
+    @Override
+    @Transactional
+    public void changeRole(Long id, String loaiTaiKhoan) {
+        if (loaiTaiKhoan == null || loaiTaiKhoan.isBlank())
+            throw new BadRequestException("Loại tài khoản không hợp lệ");
+        TaiKhoan tk = taiKhoanRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy tài khoản #" + id));
+        if ("Quản lý".equals(tk.getLoaiTaiKhoan()))
+            throw new BadRequestException("Không thể đổi vai trò của tài khoản quản lý");
+        tk.setLoaiTaiKhoan(loaiTaiKhoan);
         taiKhoanRepository.save(tk);
     }
 }

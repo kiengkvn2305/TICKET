@@ -304,20 +304,21 @@
         allGroupSeats.forEach(s => bookedSeats.add(s));
 
         const cards = tickets.flatMap(ve => {
-            const soLuong = ve.soLuong || 0;
-            const daHoan  = ve.soLuongHoan || 0;
-            const soLuongXuat = (ve.trangThaiHoan === "approved")
-                ? Math.max(0, soLuong - daHoan)
-                : soLuong;
+            // Lọc ghế chưa hoàn
+            const gheConLai = (ve.gheList || []).filter(g => g.trangThai !== "da_hoan");
+            const soLuongXuat = gheConLai.length || ve.soLuong || 0;
             if (soLuongXuat === 0) return [];
 
-            const seats = _parseSeatList(ve);
-            const remainingSeats = seats.slice(daHoan);
-
             return Array.from({ length: soLuongXuat }, (_, i) => {
-                const mySeat = remainingSeats[i] || null;
+                const ghe       = gheConLai[i] || null;
+                const mySeat    = ghe ? ghe.khuVuc : null;
                 const mySeatSet = mySeat ? new Set([mySeat]) : new Set();
-                return _buildTicketCard(ve, group, daHoan + i + 1, fmtDate, fmt, mySeat, mySeatSet, bookedSeats, soLuong, soLuongXuat);
+                return _buildTicketCard(
+                    ve, group, i + 1,
+                    fmtDate, fmt,
+                    mySeat, mySeatSet, bookedSeats,
+                    ve.soLuong, soLuongXuat
+                );
             });
         }).join("");
 
@@ -333,6 +334,10 @@
             : "";
 
         const win = window.open("", "_blank", "width=700,height=600");
+        if (!win) {
+            alert("Trình duyệt đang chặn popup. Vui lòng click vào biểu tượng 🚫 trên thanh địa chỉ và cho phép popup từ trang này.");
+            return;
+        }
         win.document.write(`<!DOCTYPE html>
 <html lang="vi">
 <head>

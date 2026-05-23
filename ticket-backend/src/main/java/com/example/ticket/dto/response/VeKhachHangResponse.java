@@ -19,11 +19,27 @@ public class VeKhachHangResponse {
     private int          soLuong;
     private Long         thanhTien;
     private Long         thanhTienGoc;
-    private String       trangThaiHoan;  // null = chưa gửi, "pending", "approved", "rejected"
-    private int          soLuongHoan;    // số ghế đã được approved hoàn
+    private String       trangThaiHoan;
+    private int          soLuongHoan;
     private List<String> gheDat;
     private Long         maSuKien;
+    private List<GheInfo> gheList; // ✅ thêm mới
 
+    // ── GheInfo ──────────────────────────────────────────
+    public static class GheInfo {
+        private Long   maGhe;
+        private String khuVuc;
+        private String trangThai;
+
+        public Long   getMaGhe()             { return maGhe; }
+        public void   setMaGhe(Long v)       { this.maGhe = v; }
+        public String getKhuVuc()            { return khuVuc; }
+        public void   setKhuVuc(String v)    { this.khuVuc = v; }
+        public String getTrangThai()         { return trangThai; }
+        public void   setTrangThai(String v) { this.trangThai = v; }
+    }
+
+    // ── getters / setters cũ giữ nguyên ──────────────────
     public Long      getMaVe()                      { return maVe; }
     public void      setMaVe(Long v)                { this.maVe = v; }
     public String    getTenVe()                     { return tenVe; }
@@ -58,4 +74,6 @@ public class VeKhachHangResponse {
     public void      setGheDat(List<String> v)      { this.gheDat = v; }
     public Long      getMaSuKien()                  { return maSuKien; }
     public void      setMaSuKien(Long v)            { this.maSuKien = v; }
+    public List<GheInfo> getGheList()               { return gheList; } // ✅ thêm mới
+    public void      setGheList(List<GheInfo> v)    { this.gheList = v; } // ✅ thêm mới
 }

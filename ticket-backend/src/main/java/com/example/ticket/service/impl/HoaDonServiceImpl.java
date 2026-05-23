@@ -1,20 +1,41 @@
 package com.example.ticket.service.impl;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.ticket.dto.request.MuaVeRequest;
 import com.example.ticket.dto.response.ChiTietHoaDonResponse;
 import com.example.ticket.dto.response.MuaVeResponse;
 import com.example.ticket.dto.response.VeKhachHangResponse;
 import com.example.ticket.exception.BadRequestException;
 import com.example.ticket.exception.NotFoundException;
-import com.example.ticket.model.*;
-import com.example.ticket.repository.*;
+import com.example.ticket.model.ChiTietHoaDon;
+import com.example.ticket.model.ChiTietHoaDonID;
+import com.example.ticket.model.Ghe;
+import com.example.ticket.model.HoaDon;
+import com.example.ticket.model.KhachHang;
+import com.example.ticket.model.SuKien;
+import com.example.ticket.model.Ve;
+import com.example.ticket.model.Voucher;
+import com.example.ticket.repository.ChiTietHoaDonRepository;
+import com.example.ticket.repository.GheRepository;
+import com.example.ticket.repository.HoaDonRepository;
+import com.example.ticket.repository.HoanVeRepository;
+import com.example.ticket.repository.KhachHangRepository;
+import com.example.ticket.repository.NhanVienRepository;
+import com.example.ticket.repository.SuKienRepository;
+import com.example.ticket.repository.VeRepository;
+import com.example.ticket.repository.VoucherRepository;
 import com.example.ticket.service.HoaDonService;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -196,8 +217,12 @@ public class HoaDonServiceImpl implements HoaDonService {
             chiTietList.add(r);
         }
 
+        // ✅ Mới — tái sử dụng ghế da_hoan nếu có
         for (MuaVeRequest.GheRequest gr : request.getGhes()) {
-            Ghe ghe = new Ghe();
+            Ghe ghe = gheRepository
+                .findByKhuVucAndMaVeAndTrangThai(gr.getKhuVuc(), gr.getMaVe(), "da_hoan")
+                .orElse(new Ghe());
+
             ghe.setKhuVuc(gr.getKhuVuc());
             ghe.setMaVe(gr.getMaVe());
             ghe.setMaHoaDon(saved.getMaHoaDon());
@@ -263,10 +288,10 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         // Ghế đã đặt: "maHoaDon_maVe" → list khuVuc
         List<Ghe> gheList = gheRepository.findByMaHoaDonIn(maHoaDonList);
-        Map<String, List<String>> gheMap = gheList.stream()
+        // Thay dòng 266-269 (gheMap chỉ có khuVuc) bằng:
+        Map<String, List<Ghe>> gheMapFull = gheList.stream()
                 .collect(Collectors.groupingBy(
-                        g -> g.getMaHoaDon() + "_" + g.getMaVe(),
-                        Collectors.mapping(Ghe::getKhuVuc, Collectors.toList())));
+                        g -> g.getMaHoaDon() + "_" + g.getMaVe()));
 
         // maGhe → maVe (dùng để resolve HoanVe)
         Map<Long, Long> gheToVeMap = gheList.stream()
@@ -316,7 +341,18 @@ public class HoaDonServiceImpl implements HoaDonService {
                 r.setTrangThai(ve.getTrangThai());
                 r.setMaSuKien(ve.getMaSuKien());
                 String gheKey = (hd != null ? hd.getMaHoaDon() : 0) + "_" + ve.getMaVe();
-                r.setGheDat(gheMap.getOrDefault(gheKey, List.of()));
+                List<Ghe> ghesOfVe = gheMapFull.getOrDefault(gheKey, List.of());
+                // Giữ gheDat để tương thích cũ
+                r.setGheDat(ghesOfVe.stream().map(Ghe::getKhuVuc).toList());
+
+                // Thêm gheList kèm trangThai cho frontend xuất vé
+                r.setGheList(ghesOfVe.stream().map(g -> {
+                    VeKhachHangResponse.GheInfo info = new VeKhachHangResponse.GheInfo();
+                    info.setMaGhe(g.getMaGhe());
+                    info.setKhuVuc(g.getKhuVuc());
+                    info.setTrangThai(g.getTrangThai());
+                    return info;
+                }).toList());
             }
             if (sk != null) {
                 r.setTenSuKien(sk.getTenSuKien());

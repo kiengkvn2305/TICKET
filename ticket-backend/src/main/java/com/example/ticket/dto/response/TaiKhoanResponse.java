@@ -7,6 +7,7 @@ public class TaiKhoanResponse {
     private String tenDangNhap;
 
     private String loaiTaiKhoan;
+    private String trangThai;
 
     public Long getMaTaiKhoan() {
         return maTaiKhoan;
@@ -37,5 +38,7 @@ public class TaiKhoanResponse {
     ) {
         this.loaiTaiKhoan = loaiTaiKhoan;
     }
-
+    
+    public String getTrangThai()               { return trangThai; }
+    public void   setTrangThai(String v)       { this.trangThai = v; }
 }

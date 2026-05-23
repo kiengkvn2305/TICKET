@@ -59,8 +59,6 @@ public class TaiKhoanController {
         return ResponseEntity.ok("Mật khẩu đã được đặt lại về 123456. Vui lòng đổi mật khẩu sau khi đăng nhập.");
     }
 
-    // ── Ngày 1: endpoint mới ─────────────────────────────────────────────────
-
     @PostMapping("/{id}/doi-mat-khau")
     public ResponseEntity<Void> doiMatKhau(
             @PathVariable Long id,
@@ -79,5 +77,39 @@ public class TaiKhoanController {
             @PathVariable Long id,
             @RequestBody HoSoRequest request) {
         return ResponseEntity.ok(service.updateHoSo(id, request));
+    }
+
+    // ── Admin: quản lý tài khoản ─────────────────────────────────────────────
+
+    @PutMapping("/{id}/block")
+    public ResponseEntity<Void> block(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String lyDo = body != null ? body.getOrDefault("lyDo", "Vi phạm chính sách") : "Vi phạm chính sách";
+        service.block(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/unblock")
+    public ResponseEntity<Void> unblock(@PathVariable Long id) {
+        service.unblock(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ✅ THÊM: endpoint reset mật khẩu cho admin
+    @PutMapping("/{id}/reset-password")
+    public ResponseEntity<Void> resetPassword(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> body) {
+        service.resetPassword(id, body.get("matKhauMoi"));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/role")
+    public ResponseEntity<Void> changeRole(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> body) {
+        service.changeRole(id, body.get("loaiTaiKhoan"));
+        return ResponseEntity.noContent().build();
     }
 }

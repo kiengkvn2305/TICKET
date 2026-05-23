@@ -14,46 +14,28 @@ public class TaiKhoan {
     private String tenTaiKhoan;
     private String loaiTaiKhoan;
     private String matKhau;
-    private String trangThai;
+
+    @Column(name = "TRANGTHAI")
+    private String trangThai; // "active" | "blocked"
 
     public TaiKhoan() {}
 
-    public Long getMaTaiKhoan() {
-        return maTaiKhoan;
-    }
-
-    public void setMaTaiKhoan(Long maTaiKhoan) {
-        this.maTaiKhoan = maTaiKhoan;
-    }
-
-    public String getTenTaiKhoan() {
-        return tenTaiKhoan;
-    }
-
-    public void setTenTaiKhoan(String tenTaiKhoan) {
-        this.tenTaiKhoan = tenTaiKhoan;
-    }
-
-    public String getLoaiTaiKhoan() {
-        return loaiTaiKhoan;
-    }
-
-    public void setLoaiTaiKhoan(String loaiTaiKhoan) {
-        this.loaiTaiKhoan = loaiTaiKhoan;
-    }
-
-    public String getMatKhau() {
-        return matKhau;
-    }
-
-    public void setMatKhau(String matKhau) {
-        this.matKhau = matKhau;
-    }
+    public Long   getMaTaiKhoan()              { return maTaiKhoan; }
+    public void   setMaTaiKhoan(Long v)        { this.maTaiKhoan = v; }
+    public String getTenTaiKhoan()             { return tenTaiKhoan; }
+    public void   setTenTaiKhoan(String v)     { this.tenTaiKhoan = v; }
+    public String getLoaiTaiKhoan()            { return loaiTaiKhoan; }
+    public void   setLoaiTaiKhoan(String v)    { this.loaiTaiKhoan = v; }
+    public String getMatKhau()                 { return matKhau; }
+    public void   setMatKhau(String v)         { this.matKhau = v; }
+    public String getTrangThai()               { return trangThai; }
+    public void   setTrangThai(String v)       { this.trangThai = v; }
 
     @Override
     public String toString() {
         return "TaiKhoan{maTaiKhoan=" + maTaiKhoan
                 + ", tenTaiKhoan='" + tenTaiKhoan + "'"
-                + ", loaiTaiKhoan='" + loaiTaiKhoan + "'}";
+                + ", loaiTaiKhoan='" + loaiTaiKhoan + "'"
+                + ", trangThai='" + trangThai + "'}";
     }
 }

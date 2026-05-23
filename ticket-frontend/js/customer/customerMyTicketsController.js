@@ -22,7 +22,24 @@ function applyMyTicketFilter(filter) {
 }
 
 function renderMyTickets() {
-    MyTicketsView.render(allMyTickets, activeMyFilter, "applyMyTicketFilter", "openHoanVeModal");
+    MyTicketsView.render(
+        allMyTickets,
+        activeMyFilter,
+        (filter) => applyMyTicketFilter(filter),
+        (maVe, maHoaDon, maGheList, lyDo, tenVe) => {
+            OrderService.requestRefund({
+                maHoaDon:    maHoaDon,
+                maVe:        maVe,
+                maGheList:   maGheList,
+                lyDoHoan:    lyDo || null,
+            })
+            .then(data => {
+                alert(`✅ Yêu cầu hoàn #${data.maHoanVe} đã được ghi nhận.`);
+                loadMyTickets();
+            })
+            .catch(err => alert(err.message));
+        }
+    );
 }
 
 // ── HOÀN VÉ ───────────────────────────────────────────────

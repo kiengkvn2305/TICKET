@@ -14,8 +14,12 @@ public interface TaiKhoanService {
     void delete(Long id);
     void forgetPassword(String tenDangNhap);
 
-    // Ngày 1: thêm mới
     void doiMatKhau(Long id, DoiMatKhauRequest request);
     HoSoResponse getHoSo(Long id);
     HoSoResponse updateHoSo(Long id, HoSoRequest request);
+
+    void block(Long id);
+    void unblock(Long id);
+    void resetPassword(Long id, String matKhauMoi);
+    void changeRole(Long id, String loaiTaiKhoan);
 }
