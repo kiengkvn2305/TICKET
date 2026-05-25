@@ -86,7 +86,14 @@ public class HoaDonServiceImpl implements HoaDonService {
     public MuaVeResponse muaVeNhanVien(MuaVeRequest request) {
         if (request.getMaNhanVien() == null)
             throw new BadRequestException("maNhanVien là bắt buộc khi nhân viên bán vé tại quầy");
-        return thucHienMuaVe(request);
+        MuaVeResponse res = thucHienMuaVe(request);
+        // Nhân viên bán tại quầy → xác nhận thanh toán ngay, không cần pending
+        hoaDonRepository.findById(res.getMaHoaDon()).ifPresent(hd -> {
+            hd.setTrangThai("THANH_CONG");
+            hoaDonRepository.save(hd);
+        });
+        res.setTrangThai("THANH_CONG");
+        return res;
     }
 
     // =========================================================================
@@ -274,7 +281,7 @@ public class HoaDonServiceImpl implements HoaDonService {
                 .collect(Collectors.toMap(HoaDon::getMaHoaDon, h -> h));
 
         List<ChiTietHoaDon> chiTiets = chiTietHoaDonRepository.findByIdMaHoaDonIn(maHoaDonList);
-        if (chiTiets.isEmpty()) return List.of();
+        // KHÔNG return sớm khi chiTiets rỗng — vẫn trả về hóa đơn, chỉ thiếu chi tiết vé
 
         List<Long> maVeList = chiTiets.stream()
                 .map(ct -> ct.getId().getMaVe()).distinct().toList();
@@ -362,9 +369,25 @@ public class HoaDonServiceImpl implements HoaDonService {
             if (hd != null) {
                 r.setMaHoaDon(hd.getMaHoaDon());
                 r.setNgayMua(hd.getNgayLap());
-                r.setThanhTien(hd.getThanhTien());
-                r.setThanhTienGoc(thanhTienGocMap.getOrDefault(
-                        hd.getMaHoaDon(), hd.getThanhTien()));
+
+                // Tính thanhTienGoc và thanhTien riêng cho từng loại vé theo tỉ lệ
+                // thanhTienGocVe = donGia × soLuong (đóng góp của loại vé này)
+                long thanhTienGocHoaDon = thanhTienGocMap.getOrDefault(
+                        hd.getMaHoaDon(), hd.getThanhTien());
+                long thanhTienGocVe = ct.getDonGia() * ct.getSoLuong();
+                r.setThanhTienGoc(thanhTienGocVe);
+
+                // Phân bổ voucher theo tỉ lệ: giamVe = giamHD × (gocVe / gocHD)
+                long thanhTienHoaDon = hd.getThanhTien() != null ? hd.getThanhTien() : thanhTienGocHoaDon;
+                long giamHoaDon = thanhTienGocHoaDon - thanhTienHoaDon;
+                long thanhTienVe;
+                if (giamHoaDon > 0 && thanhTienGocHoaDon > 0) {
+                    long giamVe = Math.round((double) giamHoaDon * thanhTienGocVe / thanhTienGocHoaDon);
+                    thanhTienVe = thanhTienGocVe - giamVe;
+                } else {
+                    thanhTienVe = thanhTienGocVe;
+                }
+                r.setThanhTien(thanhTienVe);
             }
             r.setSoLuong(ct.getSoLuong());
             r.setSoLuongHoan(hoanVeCountMap.getOrDefault(hoanKey, 0)); // số ghế approved

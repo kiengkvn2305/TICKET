@@ -60,6 +60,11 @@
         <label>Số điện thoại</label>
         <input type="tel" id="sdt-creator" placeholder="Nhập số điện thoại">
       </div>
+      <div class="form-group">
+          <label>Ảnh QR thanh toán</label>
+          <input type="file" id="qr-file" accept="image/*" onchange="previewQR(this)">
+          <img id="qr-preview" style="display:none; max-width:200px; margin-top:8px;">
+      </div>
     </div>
     <!-- Thông tin cá nhân — NhanVien -->
     <div id="section-employee" class="hidden">

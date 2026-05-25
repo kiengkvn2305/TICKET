@@ -149,6 +149,7 @@ public TaiKhoanServiceImpl(TaiKhoanRepository taiKhoanRepository,
                 r.setDiaChi(ntc.getDiaChi());
                 r.setEmail(ntc.getEmail());
                 r.setSoDienThoai(ntc.getSoDienThoai());
+                r.setMaQR(ntc.getMaQR()); 
             });
         } else if ("Nhân viên".equals(tk.getLoaiTaiKhoan())){
             nhanVienRepository.findByMaTaiKhoan(id).ifPresent(nv -> {
@@ -251,6 +252,7 @@ public TaiKhoanServiceImpl(TaiKhoanRepository taiKhoanRepository,
             ntc.setDiaChi(request.getDiaChi());
             ntc.setEmail(request.getEmail());
             ntc.setSoDienThoai(request.getSoDienThoai());
+            if (request.getMaQR() != null) ntc.setMaQR(request.getMaQR());
             nhaToChucRepository.save(ntc);
         } else if ("Nhân viên".equals(tk.getLoaiTaiKhoan())){
             NhanVien nv = nhanVienRepository.findByMaTaiKhoan(id)

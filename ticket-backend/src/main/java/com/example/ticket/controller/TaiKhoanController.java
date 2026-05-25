@@ -1,12 +1,27 @@
 package com.example.ticket.controller;
 
-import com.example.ticket.dto.request.*;
-import com.example.ticket.dto.response.*;
-import com.example.ticket.service.TaiKhoanService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.ticket.dto.request.DoiMatKhauRequest;
+import com.example.ticket.dto.request.HoSoRequest;
+import com.example.ticket.dto.request.LoginRequest;
+import com.example.ticket.dto.request.RegisterRequest;
+import com.example.ticket.dto.request.UpdateTaiKhoanRequest;
+import com.example.ticket.dto.response.HoSoResponse;
+import com.example.ticket.dto.response.LoginResponse;
+import com.example.ticket.dto.response.TaiKhoanResponse;
+import com.example.ticket.service.TaiKhoanService;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -85,7 +100,6 @@ public class TaiKhoanController {
     public ResponseEntity<Void> block(
         @PathVariable Long id,
         @RequestBody(required = false) java.util.Map<String, String> body) {
-            String lyDo = "Vi phạm chính sách";
             service.block(id);
             return ResponseEntity.noContent().build();
     }

@@ -1,57 +1,41 @@
 package com.example.ticket.controller;
 
-import com.example.ticket.dto.response.BaoCaoResponse;
+import com.example.ticket.dto.response.BaoCaoKpiResponse;
 import com.example.ticket.service.BaoCaoService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 
+/**
+ * API báo cáo KPI nhân viên.
+ *
+ * POST /api/baocao/kpi/{maNhanVien}?ngayBatDau=2025-05-01&ngayKetThuc=2025-05-31
+ *
+ * - Lưu bản ghi vào bảng BAOCAO
+ * - Trả về JSON đầy đủ để frontend tạo file Excel tải về
+ */
+@CrossOrigin(origins = "*")
 @RestController
-@RequestMapping("/baocao")
+@RequestMapping("/api/baocao")
 public class BaoCaoController {
 
-    private final BaoCaoService baoCaoService;
+    private final BaoCaoService service;
 
-    public BaoCaoController(BaoCaoService baoCaoService) {
-        this.baoCaoService = baoCaoService;
+    public BaoCaoController(BaoCaoService service) {
+        this.service = service;
     }
 
-    /**
-     * POST /baocao/ket-so?maNhanVien=1&ngay=2026-05-23
-     * Kết sổ cuối ngày — nhân viên bấm nút "Kết sổ"
-     */
-    @PostMapping("/ket-so")
-    public ResponseEntity<BaoCaoResponse> ketSo(
-            @RequestParam Long maNhanVien,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ngay) {
-
-        if (ngay == null) ngay = LocalDate.now();
-        return ResponseEntity.ok(baoCaoService.ketSoCuoiNgay(maNhanVien, ngay));
-    }
-
-    /**
-     * GET /baocao/nhan-vien/{maNhanVien}
-     * Lấy toàn bộ lịch sử báo cáo của nhân viên
-     */
-    @GetMapping("/nhan-vien/{maNhanVien}")
-    public ResponseEntity<List<BaoCaoResponse>> getByNhanVien(
-            @PathVariable Long maNhanVien) {
-        return ResponseEntity.ok(baoCaoService.getBaoCaoByNhanVien(maNhanVien));
-    }
-
-    /**
-     * GET /baocao/nhan-vien/{maNhanVien}/range?from=2026-05-01&to=2026-05-31
-     * Lấy báo cáo theo khoảng thời gian
-     */
-    @GetMapping("/nhan-vien/{maNhanVien}/range")
-    public ResponseEntity<List<BaoCaoResponse>> getByRange(
+    @PostMapping("/kpi/{maNhanVien}")
+    public ResponseEntity<BaoCaoKpiResponse> xuatKpi(
             @PathVariable Long maNhanVien,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        return ResponseEntity.ok(baoCaoService.getBaoCaoByRange(maNhanVien, from, to));
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ngayBatDau,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ngayKetThuc) {
+
+        BaoCaoKpiResponse result = service.taoVaLuuBaoCao(maNhanVien, ngayBatDau, ngayKetThuc);
+        return ResponseEntity.ok(result);
     }
 }

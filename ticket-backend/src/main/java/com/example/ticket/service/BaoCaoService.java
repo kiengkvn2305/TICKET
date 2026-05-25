@@ -1,26 +1,20 @@
 package com.example.ticket.service;
 
-import com.example.ticket.dto.response.BaoCaoResponse;
+import com.example.ticket.dto.response.BaoCaoKpiResponse;
 
 import java.time.LocalDate;
-import java.util.List;
 
 public interface BaoCaoService {
 
     /**
-     * Kết sổ cuối ngày cho một nhân viên.
-     * Tự tính doanhThu, soVeDaBan, soVeTon từ CHITIETHOADON + VE.
-     * Nếu đã có báo cáo ngày đó thì cập nhật, chưa có thì tạo mới.
+     * Lưu báo cáo KPI của nhân viên vào DB và trả về payload đầy đủ
+     * để frontend tạo file Excel.
+     *
+     * POST /api/baocao/kpi/{maNhanVien}
+     * Body: { "ngayBatDau": "2025-05-01", "ngayKetThuc": "2025-05-31" }  (optional)
+     * → Nếu không truyền thì tự tính từ ngày đầu tháng → hôm nay.
      */
-    BaoCaoResponse ketSoCuoiNgay(Long maNhanVien, LocalDate ngay);
-
-    /**
-     * Lấy toàn bộ lịch sử báo cáo của nhân viên.
-     */
-    List<BaoCaoResponse> getBaoCaoByNhanVien(Long maNhanVien);
-
-    /**
-     * Lấy báo cáo trong khoảng ngày.
-     */
-    List<BaoCaoResponse> getBaoCaoByRange(Long maNhanVien, LocalDate from, LocalDate to);
+    BaoCaoKpiResponse taoVaLuuBaoCao(Long maNhanVien,
+                                     LocalDate ngayBatDau,
+                                     LocalDate ngayKetThuc);
 }

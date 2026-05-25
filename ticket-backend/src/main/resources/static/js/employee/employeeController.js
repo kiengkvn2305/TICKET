@@ -257,6 +257,9 @@ function selectPaymentMethod(method) {
         method === "CHUYEN_KHOAN" ? "block" : "none";
     document.getElementById("cashSection").style.display =
         method === "TIEN_MAT" ? "block" : "none";
+
+    if (method !== "CHUYEN_KHOAN") return;
+    _loadOrganizerQR();
 }
 
 function calcCashBack() {

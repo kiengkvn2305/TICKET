@@ -15,7 +15,8 @@ public class HoSoRequest {
     private String tenCongTy;
     private String tenNguoiDaiDien;
     private String diaChi;
-    
+    private String maQR;
+
     // NhanVien
     private String tenNhanVien;
     private LocalDate ngayVaoLam;
@@ -46,4 +47,6 @@ public class HoSoRequest {
     public void setTenNhanVien(String v)      { this.tenNhanVien = v; }
     public LocalDate getNgayVaoLam()          { return ngayVaoLam; }
     public void setNgayVaoLam(LocalDate v)    { this.ngayVaoLam = v; }
+    public String getMaQR() { return maQR; }
+    public void setMaQR(String v) { this.maQR = v; }
 }

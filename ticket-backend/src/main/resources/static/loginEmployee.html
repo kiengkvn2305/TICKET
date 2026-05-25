@@ -569,13 +569,16 @@
     </div>
 
     <!-- QR chuyển khoản -->
-    <div id="bankSection" style="display:none;text-align:center">
-      <img src="assets/qrcodes/MaQR_ThanhToan.jpg"
-           style="width:220px;border-radius:14px;border:1px solid #ddd;">
-      <p style="margin-top:10px;font-size:.88rem;color:#555">Quét mã QR để thanh toán</p>
-      <button class="confirm-buy-btn" onclick="confirmTransferPaid()" style="margin-top:8px">
-        ✅ Đã chuyển khoản
-      </button>
+    <div id="bankSection" style="display:none">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px 0">
+        <img id="qrOrganizerImg" src="" alt="QR thanh toán"
+             style="width:220px;border-radius:14px;border:1px solid #ddd;display:none;margin:0 auto">
+        <p id="qrOrganizerMsg" style="color:#888;font-size:.85rem;margin:8px 0 0"></p>
+        <p style="margin-top:10px;font-size:.88rem;color:#555">Quét mã QR để thanh toán</p>
+        <button class="confirm-buy-btn" onclick="confirmTransferPaid()" style="margin-top:12px">
+          ✅ Đã chuyển khoản
+        </button>
+      </div>
     </div>
 
     <!-- Tiền mặt -->
@@ -644,6 +647,7 @@
   <script src="js/employee/employeeKpiController.js"></script>
   <script src="js/employee/employeeMyTicketsController.js"></script>
   <script src="js/employee/employeeController.js"></script>
+  <script src="js/employee/employeeController_patch.js"></script>
 
   <!-- ===== SEAT MAP → VOUCHER MODAL BRIDGE ===== -->
  <script>
@@ -777,6 +781,6 @@
   });
   </script>
   <script src="js/common/sessionGuard.js"></script>
-
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </body>
 </html>

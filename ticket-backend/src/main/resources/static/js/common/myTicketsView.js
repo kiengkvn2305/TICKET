@@ -4,6 +4,21 @@
    Phụ thuộc: common/helpers.js
    ========================================================== */
 
+// Tính doanh thu đúng của 1 loại vé: gia × soLuong, trừ voucher phân bổ theo tỉ lệ
+// thanhTienGocHD  = tổng (gia × soLuong) tất cả vé trong HĐ (chưa voucher)
+// ve.thanhTienGoc = backend trả tổng HĐ chưa voucher (dùng để tính giamHD)
+// ve.thanhTien    = backend trả tổng HĐ sau voucher
+function _calcVeRevenue(ve, thanhTienGocHD) {
+    const giaTien    = (ve.gia || 0) * (ve.soLuong || 0);
+    const gocHoaDon  = thanhTienGocHD || giaTien;
+    // giamHD = tổng HĐ gốc - tổng HĐ sau voucher (backend trả giống nhau cho mọi vé trong HĐ)
+    const sauHoaDon  = ve.thanhTien    != null ? ve.thanhTien    : giaTien;
+    const giamHoaDon = gocHoaDon - sauHoaDon;
+    if (giamHoaDon <= 0 || gocHoaDon <= 0) return giaTien;
+    const giamVe = Math.round(giamHoaDon * giaTien / gocHoaDon);
+    return giaTien - giamVe;
+}
+
 const MyTicketsView = {
     // Cache group object theo maHoaDon — tránh JSON inject vào onclick
     _cache: new Map(),
@@ -57,6 +72,7 @@ const MyTicketsView = {
             return;
         }
 
+
         // Gom theo hoá đơn
         const groups = new Map();
         filtered.forEach(ve => {
@@ -64,11 +80,34 @@ const MyTicketsView = {
                 groups.set(ve.maHoaDon, {
                     maHoaDon: ve.maHoaDon, ngayMua: ve.ngayMua, tenSuKien: ve.tenSuKien,
                     maSuKien: ve.maSuKien, thoiGianBatDau: ve.thoiGianBatDau,
-                    thoiGianKetThuc: ve.thoiGianKetThuc, thanhTien: ve.thanhTien,
-                    thanhTienGoc: ve.thanhTienGoc, tickets: [],
+                    thoiGianKetThuc: ve.thoiGianKetThuc, tickets: [],
                 });
             }
             groups.get(ve.maHoaDon).tickets.push(ve);
+        });
+
+        // Backend trả thanhTien = tổng cả HĐ và thanhTienGoc = tổng HĐ chưa voucher
+        // (giống nhau cho mọi row trong cùng 1 HĐ) → lấy từ row đầu tiên làm đại diện
+        // rồi tính lại phân bổ voucher theo tỉ lệ gia × soLuong của từng loại vé
+        groups.forEach(g => {
+            const first  = g.tickets[0] || {};
+            // tổng gốc HĐ (chưa voucher) — backend trả giống nhau cho mọi row
+            const gocHD  = first.thanhTienGoc != null ? first.thanhTienGoc
+                         : g.tickets.reduce((s, v) => s + (v.gia || 0) * (v.soLuong || 0), 0);
+            // tổng sau voucher — backend trả giống nhau cho mọi row
+            const sauHD  = first.thanhTien != null ? first.thanhTien : gocHD;
+            const giamHD = gocHD - sauHD;  // tổng giảm của cả HĐ
+
+            // tổng (gia × soLuong) tính lại từ chi tiết (dùng làm mẫu phân bổ)
+            const tongGia = g.tickets.reduce((s, v) => s + (v.gia || 0) * (v.soLuong || 0), 0);
+
+            g.thanhTienGoc = tongGia;
+            g.thanhTien    = giamHD > 0 && tongGia > 0
+                ? g.tickets.reduce((s, v) => {
+                    const giaTien = (v.gia || 0) * (v.soLuong || 0);
+                    return s + giaTien - Math.round(giamHD * giaTien / tongGia);
+                  }, 0)
+                : tongGia;
         });
 
         const blocksHtml = [...groups.values()].map((g, idx) => {

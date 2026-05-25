@@ -1,107 +1,119 @@
 package com.example.ticket.service.impl;
 
-import com.example.ticket.dto.response.BaoCaoResponse;
+import com.example.ticket.dto.response.BaoCaoKpiResponse;
+import com.example.ticket.dto.response.VeKhachHangResponse;
 import com.example.ticket.model.BaoCao;
-import com.example.ticket.repository.*;
+import com.example.ticket.repository.BaoCaoRepository;
+import com.example.ticket.repository.HoaDonRepository;
 import com.example.ticket.service.BaoCaoService;
+import com.example.ticket.service.HoaDonService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
-@Transactional(readOnly = true)
 public class BaoCaoServiceImpl implements BaoCaoService {
 
-    private final BaoCaoRepository          baoCaoRepository;
-    private final HoaDonRepository          hoaDonRepository;
-    private final ChiTietHoaDonRepository   chiTietHoaDonRepository;
-    private final VeRepository              veRepository;
-    private final NhanVienRepository        nhanVienRepository;
+    private final BaoCaoRepository baoCaoRepo;
+    private final HoaDonRepository hoaDonRepo;
+    private final HoaDonService    hoaDonService;
 
-    public BaoCaoServiceImpl(BaoCaoRepository         baoCaoRepository,
-                             HoaDonRepository          hoaDonRepository,
-                             ChiTietHoaDonRepository   chiTietHoaDonRepository,
-                             VeRepository              veRepository,
-                             NhanVienRepository        nhanVienRepository) {
-        this.baoCaoRepository        = baoCaoRepository;
-        this.hoaDonRepository        = hoaDonRepository;
-        this.chiTietHoaDonRepository = chiTietHoaDonRepository;
-        this.veRepository            = veRepository;
-        this.nhanVienRepository      = nhanVienRepository;
+    public BaoCaoServiceImpl(BaoCaoRepository baoCaoRepo,
+                              HoaDonRepository hoaDonRepo,
+                              HoaDonService hoaDonService) {
+        this.baoCaoRepo   = baoCaoRepo;
+        this.hoaDonRepo   = hoaDonRepo;
+        this.hoaDonService = hoaDonService;
     }
-
-    // ── KẾT SỔ CUỐI NGÀY ─────────────────────────────────────────────────────
 
     @Override
     @Transactional
-    public BaoCaoResponse ketSoCuoiNgay(Long maNhanVien, LocalDate ngay) {
+    public BaoCaoKpiResponse taoVaLuuBaoCao(Long maNhanVien,
+                                             LocalDate ngayBatDau,
+                                             LocalDate ngayKetThuc) {
 
-        // 1. Tổng doanh thu: SUM(thanhTien) FROM HOADON
-        //    WHERE maNhanVien = ? AND ngayLap = ? AND trangThai <> 'DA_HUY'
-        Long doanhThu = hoaDonRepository
-                .sumDoanhThuByNhanVienAndNgay(maNhanVien, ngay);
-        if (doanhThu == null) doanhThu = 0L;
+        // 1. Lấy toàn bộ hóa đơn của nhân viên
+        List<VeKhachHangResponse> allOrders = hoaDonService.getVeByNhanVien(maNhanVien);
 
-        // 2. Tổng số vé ĐÃ BÁN trong ngày:
-        //    SUM(ct.soLuong)
-        //    FROM CHITIETHOADON ct JOIN HOADON hd ON ct.maHoaDon = hd.maHoaDon
-        //    WHERE hd.maNhanVien = ? AND hd.ngayLap = ? AND hd.trangThai <> 'DA_HUY'
-        //
-        //    Lưu ý: ChiTietHoaDon dùng @EmbeddedId → trong JPQL truy cập qua id.maHoaDon
-        Integer soVeDaBan = chiTietHoaDonRepository
-                .sumSoLuongByNhanVienAndNgay(maNhanVien, ngay);
-        if (soVeDaBan == null) soVeDaBan = 0;
+        // 2. Lọc theo khoảng thời gian
+        final LocalDate from = ngayBatDau  != null ? ngayBatDau  : LocalDate.now().withDayOfMonth(1);
+        final LocalDate to   = ngayKetThuc != null ? ngayKetThuc : LocalDate.now();
 
-        // 3. Vé tồn: SUM(soLuong - daBan) FROM VE WHERE soLuong > daBan
-        Integer soVeTon = veRepository.sumVeTon();
-        if (soVeTon == null) soVeTon = 0;
+        List<VeKhachHangResponse> inRange = allOrders.stream()
+                .filter(o -> {
+                    LocalDate d = o.getNgayMua();
+                    return d != null && !d.isBefore(from) && !d.isAfter(to);
+                })
+                .collect(Collectors.toList());
 
-        // 4. Upsert báo cáo
-        BaoCao bc = baoCaoRepository
-                .findByMaNhanVienAndNgayBatDauAndNgayKetThuc(maNhanVien, ngay, ngay)
-                .orElse(new BaoCao());
+        // 3. Tính tổng
+        long tongDoanhThu = inRange.stream()
+                .mapToLong(o -> o.getThanhTien() != null ? o.getThanhTien() : 0L)
+                .sum();
 
-        bc.setMaNhanVien(maNhanVien);
-        bc.setNgayBatDau(ngay);
-        bc.setNgayKetThuc(ngay);
-        bc.setDoanhThu(doanhThu);
-        bc.setSoVeDaBan(soVeDaBan);
-        bc.setSoVeTon(soVeTon);
+        int tongVeDaBan = inRange.stream()
+                .mapToInt(VeKhachHangResponse::getSoLuong)
+                .sum();
 
-        return toResponse(baoCaoRepository.save(bc));
-    }
+        // soVeTon = tổng tồn tất cả sự kiện liên quan (nếu không có API riêng, để 0)
+        int tongVeTon = 0;
 
-    // ── QUERIES ───────────────────────────────────────────────────────────────
+        // 4. Gom theo ngày
+        Map<LocalDate, List<VeKhachHangResponse>> byDay = inRange.stream()
+                .filter(o -> o.getNgayMua() != null)
+                .collect(Collectors.groupingBy(VeKhachHangResponse::getNgayMua));
 
-    @Override
-    public List<BaoCaoResponse> getBaoCaoByNhanVien(Long maNhanVien) {
-        return baoCaoRepository
-                .findByMaNhanVienOrderByNgayBatDauDesc(maNhanVien)
-                .stream().map(this::toResponse).toList();
-    }
+        List<BaoCaoKpiResponse.ChiTietNgay> chiTietNgay = byDay.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> {
+                    List<VeKhachHangResponse> list = e.getValue();
+                    long rev  = list.stream().mapToLong(o -> o.getThanhTien() != null ? o.getThanhTien() : 0L).sum();
+                    int  soVe = list.stream().mapToInt(VeKhachHangResponse::getSoLuong).sum();
+                    int  soHD = list.size();
+                    return new BaoCaoKpiResponse.ChiTietNgay(e.getKey().toString(), soVe, rev, soHD);
+                })
+                .collect(Collectors.toList());
 
-    @Override
-    public List<BaoCaoResponse> getBaoCaoByRange(Long maNhanVien,
-                                                  LocalDate from,
-                                                  LocalDate to) {
-        return baoCaoRepository
-                .findByNhanVienAndRange(maNhanVien, from, to)
-                .stream().map(this::toResponse).toList();
-    }
+        // 5. Chi tiết hóa đơn
+        List<BaoCaoKpiResponse.ChiTietHoaDon> chiTietHoaDon = inRange.stream()
+                .map(o -> new BaoCaoKpiResponse.ChiTietHoaDon(
+                        o.getMaHoaDon(),
+                        o.getNgayMua() != null ? o.getNgayMua().toString() : "",
+                        o.getTenVe(),
+                        o.getLoaiVe(),
+                        o.getSoLuong(),
+                        (long) o.getGia(),
+                        o.getThanhTien() != null ? o.getThanhTien() : 0L,
+                        o.getTrangThaiHoan()
+                ))
+                .collect(Collectors.toList());
 
-    // ── MAPPER ────────────────────────────────────────────────────────────────
+        // 6. Lưu vào DB (BAOCAO)
+        BaoCao entity = new BaoCao();
+        entity.setMaNhanVien(maNhanVien);
+        entity.setNgayBatDau(from);
+        entity.setNgayKetThuc(to);
+        entity.setDoanhThu(tongDoanhThu);
+        entity.setSoVeDaBan(tongVeDaBan);
+        entity.setSoVeTon(tongVeTon);
+        baoCaoRepo.save(entity);
 
-    private BaoCaoResponse toResponse(BaoCao bc) {
-        BaoCaoResponse r = new BaoCaoResponse();
-        r.setMaBaoCao(bc.getMaBaoCao());
-        r.setMaNhanVien(bc.getMaNhanVien());
-        r.setNgayBatDau(bc.getNgayBatDau());
-        r.setNgayKetThuc(bc.getNgayKetThuc());
-        r.setDoanhThu(bc.getDoanhThu());
-        r.setSoVeDaBan(bc.getSoVeDaBan());
-        r.setSoVeTon(bc.getSoVeTon());
-        return r;
+        // 7. Trả về payload
+        return new BaoCaoKpiResponse(
+                maNhanVien,
+                "",                        // tenNhanVien — frontend truyền sẵn
+                LocalDate.now().toString(),
+                tongDoanhThu,
+                tongVeDaBan,
+                tongVeTon,
+                from.toString(),
+                to.toString(),
+                chiTietNgay,
+                chiTietHoaDon
+        );
     }
 }
