@@ -43,13 +43,15 @@ window.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("email-creator").value    = data.email || "";
                 document.getElementById("sdt-creator").value      = data.soDienThoai || "";
 
-                // ✅ Hiển thị ảnh QR nếu đã có
+                // Hiển thị ảnh QR nếu đã có
                 if (data.maQR) {
                     const preview = document.getElementById("qr-preview");
                     if (preview) {
                         preview.src = data.maQR;
                         preview.style.display = "block";
                     }
+                    // Lưu lại URL QR hiện tại để dùng khi validate
+                    document.getElementById("qr-file").dataset.existingQR = data.maQR;
                 }
             }
             else if (user.loaiTaiKhoan === "Nhân viên") {
@@ -77,6 +79,58 @@ function previewQR(input) {
 
 
 // ======================================
+// VALIDATE FORM TRƯỚC KHI LƯU
+// ======================================
+function validateForm() {
+    if (user.loaiTaiKhoan === "Khách hàng") {
+        if (!document.getElementById("tenKhachHang").value.trim()) {
+            showMsg("Vui lòng nhập họ và tên.", "err"); return false;
+        }
+        if (!document.getElementById("email-customer").value.trim()) {
+            showMsg("Vui lòng nhập email.", "err"); return false;
+        }
+        if (!document.getElementById("sdt-customer").value.trim()) {
+            showMsg("Vui lòng nhập số điện thoại.", "err"); return false;
+        }
+    }
+    else if (user.loaiTaiKhoan === "Nhà tổ chức") {
+        if (!document.getElementById("tenCongTy").value.trim()) {
+            showMsg("Vui lòng nhập tên công ty.", "err"); return false;
+        }
+        if (!document.getElementById("tenNguoiDaiDien").value.trim()) {
+            showMsg("Vui lòng nhập tên người đại diện.", "err"); return false;
+        }
+        if (!document.getElementById("email-creator").value.trim()) {
+            showMsg("Vui lòng nhập email.", "err"); return false;
+        }
+        if (!document.getElementById("sdt-creator").value.trim()) {
+            showMsg("Vui lòng nhập số điện thoại.", "err"); return false;
+        }
+
+        // ✅ Bắt buộc có ảnh QR: hoặc đã có sẵn từ server, hoặc vừa chọn file mới
+        const fileInput = document.getElementById("qr-file");
+        const hasNewFile    = fileInput && fileInput.files[0];
+        const hasExistingQR = fileInput && fileInput.dataset.existingQR;
+        if (!hasNewFile && !hasExistingQR) {
+            showMsg("Vui lòng tải lên ảnh QR thanh toán.", "err"); return false;
+        }
+    }
+    else if (user.loaiTaiKhoan === "Nhân viên") {
+        if (!document.getElementById("tenNhanVien").value.trim()) {
+            showMsg("Vui lòng nhập tên nhân viên.", "err"); return false;
+        }
+        if (!document.getElementById("email-employee").value.trim()) {
+            showMsg("Vui lòng nhập email.", "err"); return false;
+        }
+        if (!document.getElementById("sdt-employee").value.trim()) {
+            showMsg("Vui lòng nhập số điện thoại.", "err"); return false;
+        }
+    }
+    return true;
+}
+
+
+// ======================================
 // LƯU HỒ SƠ
 // ======================================
 async function luuHoSo() {
@@ -84,6 +138,9 @@ async function luuHoSo() {
         window.location.href = "loginpopup.html";
         return;
     }
+
+    // ✅ Validate trước khi gửi
+    if (!validateForm()) return;
 
     const btn = document.querySelector(".btn-primary");
     btn.disabled = true;
@@ -100,7 +157,7 @@ async function luuHoSo() {
             };
         }
         else if (user.loaiTaiKhoan === "Nhà tổ chức") {
-            // ✅ Upload ảnh QR trước nếu có chọn file mới
+            // Upload ảnh QR trước nếu có chọn file mới
             let maQR = null;
             const fileInput = document.getElementById("qr-file");
             if (fileInput && fileInput.files[0]) {
@@ -147,6 +204,7 @@ async function luuHoSo() {
         }
 
         showMsg("Lưu hồ sơ thành công!", "ok");
+        setTimeout(() => goBack(), 1000);
 
     } catch (err) {
         showMsg(err.message, "err");

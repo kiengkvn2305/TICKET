@@ -11,7 +11,7 @@ function loadVouchers() {
             <button class="create-btn" onclick="openCreateVoucher()">Tạo khuyến mãi</button>
         </div>
         <div class="filter-panel">
-            <input type="text" id="filterMaCode"    placeholder="Tìm theo mã voucher..."  oninput="applyVoucherFilter()" />
+            <input type="text" id="filterMaCode"    placeholder="Tìm theo mã code..."     oninput="applyVoucherFilter()" />
             <input type="text" id="filterTenSuKien" placeholder="Tìm theo sự kiện..."     oninput="applyVoucherFilter()" />
         </div>
         <div id="voucherContent"></div>
@@ -74,7 +74,7 @@ function renderVouchers(data) {
 
         html += `
             <div class="ticket-card">
-                <p><strong>Mã voucher: ${v.maCode}</strong></p>
+                <p><strong>Mã code: ${v.maCode}</strong></p>
                 <p>Sự kiện áp dụng: ${suKienHtml}</p>
                 <p>Mức giảm: ${v.mucKhuyenMai}%</p>
                 <p>Lượt sử dụng: <strong>${v.luotSuDung}</strong> / ${v.soLuong} lượt</p>

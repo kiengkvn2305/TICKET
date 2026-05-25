@@ -69,7 +69,12 @@ const EventView = {
 
     /* ── MODAL MUA VÉ ───────────────────────────────────── */
 
-    openBuyModal(sk) {
+    /**
+     * @param {object} sk           - Sự kiện
+     * @param {object|null} diaDiem - Địa điểm (có sucChua, loaiSoDo, tenDiaDiem).
+     *                                Truyền null nếu không có / chưa load được.
+     */
+    openBuyModal(sk, diaDiem) {
         document.getElementById("buyMsg").textContent = "";
         document.getElementById("buyMsg").className   = "buy-msg";
         const vi = document.getElementById("voucherInput");  if (vi) vi.value = "";
@@ -78,16 +83,57 @@ const EventView = {
 
         document.getElementById("modalEventName").textContent = sk.tenSuKien;
         document.getElementById("modalEventDate").textContent = `📅 ${formatDate(sk.thoiGianBatDau)} → ${formatDate(sk.thoiGianKetThuc)}`;
+
+        // ── Hiển thị địa điểm + sức chứa + loại sơ đồ ghế ──────────────────────
+        const venueEl = document.getElementById("modalVenueInfo");
+        if (venueEl) {
+            if (diaDiem) {
+                const layoutIcon = diaDiem.loaiSoDo === "Hình tròn" ? "⭕" : "▭";
+                venueEl.innerHTML =
+                    `<span style="font-size:.82rem;color:#0d9488;font-weight:600">` +
+                    `📍 ${escHtml(diaDiem.tenDiaDiem || "—")}</span>` +
+                    `<span style="font-size:.78rem;color:#888;margin-left:8px">` +
+                    `${layoutIcon} ${escHtml(diaDiem.loaiSoDo || "")}` +
+                    `${diaDiem.sucChua ? ` · Sức chứa: <strong>${diaDiem.sucChua.toLocaleString("vi-VN")}</strong> chỗ` : ""}` +
+                    `</span>`;
+                venueEl.style.display = "block";
+            } else {
+                venueEl.style.display = "none";
+            }
+        }
+
+        // Lưu thông tin địa điểm vào dataset để renderModalTickets dùng khi tính max ghế
+        const buyModal = document.getElementById("buyModal");
+        if (buyModal) {
+            buyModal.dataset.sucChua   = diaDiem?.sucChua   ?? "";
+            buyModal.dataset.loaiSoDo  = diaDiem?.loaiSoDo  ?? "";
+            buyModal.dataset.maDiaDiem = diaDiem?.maDiaDiem ?? "";
+        }
+
         document.getElementById("modalTicketList").innerHTML  = `<div class="loading-state"><div class="spinner"></div><p>Đang tải vé...</p></div>`;
         openModal("buyModal", "buyOverlay");
     },
 
     closeBuyModal() { closeModal("buyModal", "buyOverlay"); },
 
-    renderModalTickets(tickets, cartModel, onChangeQty, onInputQty) {
+    /**
+     * @param {Array}  tickets       - Danh sách vé của sự kiện
+     * @param {object} cartModel     - Giỏ hàng hiện tại
+     * @param {string} onChangeQty   - Tên hàm xử lý nút ± (dùng trong onclick string)
+     * @param {string} onInputQty    - Tên hàm xử lý input trực tiếp
+     * @param {number|null} sucChua  - Sức chứa địa điểm; dùng làm trần max khi conLai = null.
+     *                                 Nếu null → fallback về 9999 (không giới hạn).
+     */
+    renderModalTickets(tickets, cartModel, onChangeQty, onInputQty, sucChua) {
         const list         = document.getElementById("modalTicketList");
         const voucherRow   = document.getElementById("voucherRow");
         const modalSummary = document.getElementById("modalSummary");
+
+        // Đọc sucChua từ dataset nếu caller không truyền (backward-compat)
+        if (sucChua == null) {
+            const stored = document.getElementById("buyModal")?.dataset.sucChua;
+            sucChua = stored ? Number(stored) : null;
+        }
 
         if (!tickets.length) {
             list.innerHTML = emptyState("😔", "Sự kiện này chưa có vé nào.");
@@ -104,11 +150,14 @@ const EventView = {
             const conLai  = ve.conLai  ?? null;
             const soLuong = ve.soLuong ?? null;
             const daBan   = ve.daBan   ?? null;
-            const pct     = soLuong > 0 && daBan != null ? Math.round((daBan / soLuong) * 100) : null;
+            // sucChua là sức chứa tổng địa điểm — dùng làm mẫu số cho progress bar nếu soLuong null
+            const capacity = soLuong ?? sucChua ?? null;
+            const pct     = capacity != null && capacity > 0 && daBan != null ? Math.round((daBan / capacity) * 100) : null;
             const lowStock = conLai != null && conLai > 0 && conLai <= 10;
-            const soldOut  = conLai != null && conLai === 0 && soLuong > 0;
+            const soldOut  = conLai != null && conLai === 0 && capacity != null && capacity > 0;
             const dis = soldOut ? "disabled" : "";
-            const max = conLai ?? 9999;
+            // max số lượng mua = conLai nếu có, ngược lại giới hạn bởi sucChua, cuối cùng fallback 9999
+            const max = conLai ?? sucChua ?? 9999;
 
             return `
             <div class="modal-ticket-row" style="${soldOut ? "opacity:.65" : ""}">
@@ -119,7 +168,7 @@ const EventView = {
                     </div>
                     <div class="modal-ticket-type">${escHtml(ve.loaiVe || "")}</div>
                     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;align-items:center">
-                        ${soLuong != null ? chip(soLuong.toLocaleString("vi-VN") + " vé", "#e0f2fe", "#0369a1") : ""}
+                        ${capacity != null ? chip(capacity.toLocaleString("vi-VN") + " chỗ", "#e0f2fe", "#0369a1") : ""}
                         ${daBan   != null ? chip("Đã bán: " + daBan.toLocaleString("vi-VN"), "#f3f4f6", "#555") : ""}
                         ${conLai  != null
                             ? lowStock
@@ -211,8 +260,8 @@ const EventView = {
     closePaymentModal() { closeModal("paymentModal", "paymentOverlay"); },
 
     showPaymentSection(method) {
-        document.getElementById("bankSection").style.display = method === "CHUYEN_KHOAN" ? "block" : "none";
-        document.getElementById("cashSection").style.display = method === "TIEN_MAT"    ? "block" : "none";
+        document.getElementById("bankSection").style.display = method === "Chuyển khoản ngân hàng" ? "block" : "none";
+        document.getElementById("cashSection").style.display = method === "Tiền mặt"    ? "block" : "none";
     },
 
     showPaymentMsg(text) {

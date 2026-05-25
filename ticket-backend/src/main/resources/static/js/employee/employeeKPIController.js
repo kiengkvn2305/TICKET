@@ -65,15 +65,31 @@ function _esc(s) {
         .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
+function _isRefunded(o) {
+    // Vé đã hoàn thành công: trangThaiHoan === "approved"
+    return o.trangThaiHoan === "approved";
+}
+
 function _countSeats(orders) {
-    // API /hoadon/nhanvien/{maNV} trả về VeKhachHangResponse:
-    // soLuong nằm trực tiếp ở root, KHÔNG có chiTiet[].
-    return orders.reduce((total, o) => total + (o.soLuong || 0), 0);
+    // soLuongHoan là int (default 0 khi chưa hoàn) — KHÔNG dùng || vì 0 là falsy.
+    return orders.reduce((total, o) => {
+        const bought   = o.soLuong    || 0;
+        const hoan     = _isRefunded(o) ? (o.soLuongHoan != null ? o.soLuongHoan : bought) : 0;
+        return total + bought - hoan;
+    }, 0);
 }
 
 function _sumRevenue(orders) {
-    // thanhTien = giá sau giảm giá (VeKhachHangResponse)
-    return orders.reduce((s, o) => s + (o.thanhTien || 0), 0);
+    // thanhTienHoan không có trong VeKhachHangResponse.
+    // Tính tỉ lệ: đơn giá bình quân (thanhTien/soLuong) × soLuongHoan.
+    return orders.reduce((s, o) => {
+        const revenue = o.thanhTien || 0;
+        if (!_isRefunded(o)) return s + revenue;
+        const bought  = o.soLuong    || 1;
+        const hoan    = o.soLuongHoan != null ? o.soLuongHoan : bought;
+        const hoanRev = (revenue / bought) * hoan;
+        return s + revenue - hoanRev;
+    }, 0);
 }
 
 function _groupByDay(orders) {
@@ -398,22 +414,39 @@ function renderKpi() {
               </thead>
               <tbody>
                 ${dayOrders.map(o => {
-                    const idx    = _kpiOrders.indexOf(o);
-                    const seats  = _countSeats([o]);
-                    const rev    = _sumRevenue([o]);
-                    const cancel = o.trangThai === "DA_HUY";
+                    const idx        = _kpiOrders.indexOf(o);
+                    const refunded   = _isRefunded(o);
+                    const bought     = o.soLuong     || 0;
+                    const hoanSeats  = refunded ? (o.soLuongHoan != null ? o.soLuongHoan : bought) : 0;
+                    const hoanRev    = (() => {
+                        if (!refunded) return 0;
+                        const revenue = o.thanhTien || 0;
+                        const hoan    = o.soLuongHoan != null ? o.soLuongHoan : bought;
+                        return (revenue / (bought || 1)) * hoan;
+                    })();
+                    const cancel     = o.trangThai === "DA_HUY";
+                    const statusBadge = refunded
+                        ? `<span class="kpi-badge" style="background:#d1fae5;color:#065f46">💚 Đã hoàn (${hoanSeats}/${bought} ghế)</span>`
+                        : cancel
+                            ? `<span class="kpi-badge" style="background:#fee2e2;color:#dc2626">❌ Đã huỷ</span>`
+                            : `<span class="kpi-badge green">✅ Hoàn thành</span>`;
+                    // Doanh thu thực = thanhTien - phần đã hoàn
+                    const netRev     = (o.thanhTien || 0) - hoanRev;
+                    const netSeats   = bought - hoanSeats;
                     return `
-                    <tr>
+                    <tr style="${refunded ? 'opacity:.8;background:#fff5f5' : ''}">
                       <td style="font-size:.82rem;color:#888;font-weight:600">#${o.maHoaDon||"—"}</td>
                       <td style="text-align:center">
-                          <span class="kpi-badge blue">💺 ${seats} ghế</span>
+                          <span class="kpi-badge" style="background:#dbeafe;color:#1d4ed8">
+                              💺 ${netSeats} ghế
+                          </span>
+                          ${refunded && hoanSeats > 0 ? `<div style="font-size:.7rem;color:#dc2626;margin-top:2px">-${hoanSeats} hoàn</div>` : ""}
                       </td>
-                      <td style="text-align:right;font-weight:700;color:#0d9488">${_fmt(rev)}</td>
-                      <td style="text-align:center">
-                          ${cancel
-                            ? `<span class="kpi-badge" style="background:#fee2e2;color:#dc2626">❌ Đã huỷ</span>`
-                            : `<span class="kpi-badge green">✅ Hoàn thành</span>`}
+                      <td style="text-align:right;font-weight:700;color:#0d9488">
+                          ${_fmt(netRev)}
+                          ${refunded && hoanRev > 0 ? `<div style="font-size:.7rem;color:#dc2626;font-weight:400">-${_fmt(hoanRev)}</div>` : ""}
                       </td>
+                      <td style="text-align:center">${statusBadge}</td>
                       <td style="text-align:center">
                           <button onclick="openKpiOrderDetail(${idx})"
                               style="background:#f0fdfa;color:#0d9488;
@@ -527,15 +560,19 @@ function _buildAndDownloadExcel(p) {
         [`Kỳ: ${p.ngayBatDau} → ${p.ngayKetThuc}  |  Xuất: ${p.ngayXuat}`],
         [],
         ["Mã HĐ","Ngày mua","Tên vé","Loại vé","Số lượng","Đơn giá (₫)","Thành tiền (₫)","Trạng thái"],
-        ...(p.chiTietHoaDon || []).map(hd => [
-            `#${hd.maHoaDon}`, hd.ngayMua, hd.tenVe, hd.loaiVe,
-            hd.soLuong, hd.gia, hd.thanhTien,
-            {pending:"⏳ Chờ hoàn",approved:"💚 Đã hoàn",rejected:"❌ Từ chối"}[hd.trangThaiHoan]
-                || "✅ Hoàn thành",
-        ]),
+        ...(p.chiTietHoaDon || []).map(hd => {
+            const isHoan     = hd.trangThaiHoan === "approved";
+            // Vé hoàn: soLuong và thanhTien hiển thị âm (trừ khỏi doanh thu)
+            const soLuongVal = isHoan ? -hd.soLuong : hd.soLuong;
+            const thanhTienVal = isHoan ? -hd.thanhTien : hd.thanhTien;
+            const trangThaiLabel = {pending:"⏳ Chờ hoàn",approved:"💚 Đã hoàn",rejected:"❌ Từ chối"}[hd.trangThaiHoan] || "✅ Hoàn thành";
+            return [`#${hd.maHoaDon}`, hd.ngayMua, hd.tenVe, hd.loaiVe,
+                soLuongVal, hd.gia, thanhTienVal, trangThaiLabel];
+        }),
         ["TỔNG","","","","",
          "",
-         (p.chiTietHoaDon||[]).reduce((s,h)=>s+h.thanhTien,0),
+         // Tổng thực = cộng hóa đơn bình thường, trừ hóa đơn đã hoàn
+         (p.chiTietHoaDon||[]).reduce((s,h) => h.trangThaiHoan === "approved" ? s - h.thanhTien : s + h.thanhTien, 0),
          ""],
     ];
     const ws2 = XLSX.utils.aoa_to_sheet(s2Data);

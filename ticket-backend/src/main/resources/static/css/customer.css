@@ -6,7 +6,7 @@
 /* ===== HERO BANNER ===== */
 .hero-banner {
   position: relative;
-  background: linear-gradient(135deg, #0d9488 0%, #3cdbd8 50%, #67e8f9 100%);
+  background: linear-gradient(135deg, #0d9488 0%, #111eb3e3 50%, #0c1d89 100%);
   padding: 52px 40px 48px;
   overflow: hidden;
   display: flex;
@@ -269,7 +269,7 @@
 
 .buy-btn {
   padding: 9px 20px;
-  background: linear-gradient(135deg, #0d9488, #3cdbd8);
+  background: linear-gradient(135deg, #0d9488, #1b63c0);
   color: white;
   border: none;
   border-radius: 10px;

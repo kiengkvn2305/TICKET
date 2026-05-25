@@ -7,9 +7,9 @@ const currentUser = JSON.parse(localStorage.getItem("user"));
 // ── STATE ────────────────────────────────────────────────
 let allEvents             = [];
 let allVouchersForEvent   = [];
-let currentEvent          = null;
+window.currentEvent = null;   // expose để patch script truy cập
 let _purchasedTicketTypes = [];
-let finalTotal            = 0;
+window.finalTotal = 0;            // expose để patch script truy cập
 
 // ── KHỞI ĐỘNG ────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
@@ -277,9 +277,17 @@ function confirmBuy() {
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         return u.includes('VIP') ? 'vip' : 'normal';
     };
+    // Rect layout: A-C = VIP, D-F = Normal
+    // Circle layout: A-D = VIP, E-H = Normal
+    const _layout = (window._seatState && window._seatState.layout) || 'rect';
     const selectedSeats = (window._selectedSeats || []).map(seatId => {
-        const rowChar = seatId.charAt(0);
-        const isVip   = rowChar <= 'C';
+        const zoneChar = seatId.charAt(0).toUpperCase();
+        let isVip;
+        if (_layout === 'circle') {
+            isVip = zoneChar <= 'D'; // A,B,C,D = VIP; E,F,G,H = Normal
+        } else {
+            isVip = zoneChar <= 'C'; // A,B,C = VIP; D,E,F = Normal
+        }
         const allT = window._currentTickets || [];
         const vipT    = allT.find(t => _normaliseType2(t.loaiVe) === 'vip');
         const normalT = allT.find(t => _normaliseType2(t.loaiVe) === 'normal');

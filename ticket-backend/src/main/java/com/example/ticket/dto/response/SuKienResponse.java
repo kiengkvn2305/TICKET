@@ -11,7 +11,8 @@ public class SuKienResponse {
     private LocalDate thoiGianBatDau;
     private LocalDate thoiGianKetThuc;
     private Long maCongTy;
-    private String trangThai = "Hoạt động";
+    private Long maDiaDiem;
+    private String trangThai;
     
     public SuKienResponse() {}
 
@@ -70,4 +71,6 @@ public class SuKienResponse {
     public void setTrangThai(String trangThai) {
         this.trangThai = trangThai;
     }
+    public Long getMaDiaDiem() { return maDiaDiem; }
+    public void setMaDiaDiem(Long maDiaDiem) { this.maDiaDiem = maDiaDiem; }
 }

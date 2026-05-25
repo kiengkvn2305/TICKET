@@ -7,27 +7,49 @@ function finalConfirmBuy() {
         return;
     }
 
-    const maCongTy = currentEvent?.maCongTy;
-    if (!maCongTy) {
-        // Không có nhà tổ chức → mua thẳng
-        confirmBuy();
-        return;
-    }
-
-    // Lấy QR của nhà tổ chức
-    EventService.getOrganizer(maCongTy)
-        .then(org => {
-            if (!org?.maQR) {
-                // Không có QR → mua thẳng
-                confirmBuy();
-                return;
-            }
-            _showQRPayModal(org.maQR);
-        })
-        .catch(() => {
-            // Lỗi lấy QR → mua thẳng
+    // Lấy maCongTy: ưu tiên từ currentEvent, nếu không có thì fetch từ getById
+    const _showQROrBuy = (maCongTy) => {
+        if (!maCongTy) {
             confirmBuy();
-        });
+            return;
+        }
+        EventService.getOrganizer(maCongTy)
+            .then(org => {
+                if (org?.maQR) {
+                    _showQRPayModal(org.maQR);
+                } else if (org?.soTaiKhoan || org?.stk) {
+                    const stk      = org.soTaiKhoan  || org.stk  || "";
+                    const nganHang = org.maNganHang   || org.bank || "";
+                    const tenChu   = org.tenCongTy    || org.tenNguoiDaiDien || "";
+                    const amount  = encodeURIComponent(finalTotal);
+                    const addInfo = encodeURIComponent(`Mua ve ${currentEvent?.tenSuKien || ""}`);
+                    const accName = encodeURIComponent(tenChu);
+                    const vietQrUrl = `https://img.vietqr.io/image/${nganHang}-${stk}-compact2.png?amount=${amount}&addInfo=${addInfo}&accountName=${accName}`;
+                    _showQRPayModal(vietQrUrl);
+                } else {
+                    confirmBuy();
+                }
+            })
+            .catch(() => confirmBuy());
+    };
+
+    // FIX: currentEvent từ allEvents (getAll) có thể không có maCongTy
+    // → fetch chi tiết sự kiện trước để lấy maCongTy chắc chắn
+    if (currentEvent?.maCongTy) {
+        // Đã có sẵn → dùng luôn
+        _showQROrBuy(currentEvent.maCongTy);
+    } else if (currentEvent?.maSuKien) {
+        // Chưa có → fetch detail
+        EventService.getById(currentEvent.maSuKien)
+            .then(detail => {
+                // Cập nhật luôn vào currentEvent để lần sau không cần fetch lại
+                if (detail?.maCongTy) currentEvent.maCongTy = detail.maCongTy;
+                _showQROrBuy(detail?.maCongTy || null);
+            })
+            .catch(() => confirmBuy());
+    } else {
+        confirmBuy();
+    }
 }
 
 function _showQRPayModal(qrPath) {
@@ -63,7 +85,6 @@ function confirmAfterQR() {
     qrMsg.textContent = "⏳ Đang xử lý...";
     qrMsg.className = "buy-msg";
 
-    // Gọi thẳng OrderService.purchase (giống confirmBuy nhưng không đóng voucherModal)
     const items = CartModel.getItems();
     const maVoucher = document.getElementById("voucherInput")?.value.trim() || null;
 
@@ -72,9 +93,17 @@ function confirmAfterQR() {
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         return u.includes('VIP') ? 'vip' : 'normal';
     };
+
+    // FIX: dùng _layout giống confirmBuy() gốc, không hardcode 'C'
+    const _layout = (window._seatState && window._seatState.layout) || 'rect';
     const selectedSeats = (window._selectedSeats || []).map(seatId => {
-        const rowChar = seatId.charAt(0);
-        const isVip   = rowChar <= 'C';
+        const zoneChar = seatId.charAt(0).toUpperCase();
+        let isVip;
+        if (_layout === 'circle') {
+            isVip = zoneChar <= 'D';
+        } else {
+            isVip = zoneChar <= 'C';
+        }
         const allT    = window._currentTickets || [];
         const vipT    = allT.find(t => _normaliseType2(t.loaiVe) === 'vip');
         const normalT = allT.find(t => _normaliseType2(t.loaiVe) === 'normal');

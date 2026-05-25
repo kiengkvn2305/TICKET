@@ -218,9 +218,10 @@ const MyTicketsView = {
             const hoanBtn = e.target.closest("[data-action='hoan-ve']");
             if (hoanBtn) {
                 e.stopPropagation();
-                const { mave, mahoadon, tenveSafe } = hoanBtn.dataset;
+                const { mave, mahoadon, tenveSafe, masukien } = hoanBtn.dataset;
                 MyTicketsView.openChonGheModal(
-                    Number(mave), Number(mahoadon), decodeURIComponent(tenveSafe), onHoanVe
+                    Number(mave), Number(mahoadon), decodeURIComponent(tenveSafe), onHoanVe,
+                    masukien ? Number(masukien) : null   // truyền maSuKien để fetch địa điểm
                 );
                 return;
             }
@@ -262,6 +263,7 @@ const MyTicketsView = {
                     data-action="hoan-ve"
                     data-mave="${ve.maVe}"
                     data-mahoadon="${ve.maHoaDon}"
+                    data-masukien="${ve.maSuKien || ""}"
                     data-tenve-safe="${encodeURIComponent(ve.tenVe || "")}">
                     🔄 Hoàn thêm (${conLai} còn lại)
                 </button>
@@ -280,6 +282,7 @@ const MyTicketsView = {
                     data-action="hoan-ve"
                     data-mave="${ve.maVe}"
                     data-mahoadon="${ve.maHoaDon}"
+                    data-masukien="${ve.maSuKien || ""}"
                     data-tenve-safe="${encodeURIComponent(ve.tenVe || "")}">
                     🔄 Gửi lại
                 </button>
@@ -292,6 +295,7 @@ const MyTicketsView = {
                 data-action="hoan-ve"
                 data-mave="${ve.maVe}"
                 data-mahoadon="${ve.maHoaDon}"
+                    data-masukien="${ve.maSuKien || ""}"
                 data-tenve-safe="${encodeURIComponent(ve.tenVe || "")}">
                 🔄 Hoàn vé
             </button>
@@ -300,10 +304,16 @@ const MyTicketsView = {
 
     /**
      * Mở modal chọn ghế cụ thể trước khi gửi yêu cầu hoàn.
-     * Gọi API GET /ghe?maVe=&maHoaDon= để lấy danh sách ghế hiện tại.
-     * Ghế trangThai = 'da_hoan' sẽ bị disable — không chọn được.
+     * Đồng thời fetch thông tin địa điểm của vé để lấy loaiSoDo và sucChua,
+     * giúp hiển thị đúng layout và giới hạn số ghế có thể chọn.
+     *
+     * @param {number} maVe
+     * @param {number} maHoaDon
+     * @param {string} tenVe
+     * @param {Function} onHoanVe
+     * @param {number|null} maSuKien - Truyền thêm để fetch địa điểm qua EventService.getVenueForEvent
      */
-    openChonGheModal(maVe, maHoaDon, tenVe, onHoanVe) {
+    openChonGheModal(maVe, maHoaDon, tenVe, onHoanVe, maSuKien) {
         // Xóa modal cũ nếu có
         document.getElementById("chonGheModal")?.remove();
 
@@ -316,6 +326,7 @@ const MyTicketsView = {
                     <div>
                         <div class="cgm-title">🔄 Chọn ghế muốn hoàn</div>
                         <div class="cgm-sub">${escHtml(tenVe)}</div>
+                        <div id="cgmVenueInfo" style="font-size:.76rem;color:#0d9488;margin-top:4px;font-weight:600"></div>
                     </div>
                     <button class="cgm-close" id="cgmClose">✕</button>
                 </div>
@@ -337,70 +348,112 @@ const MyTicketsView = {
         document.getElementById("cgmCancel").onclick = close;
         modal.addEventListener("click", e => { if (e.target === modal) close(); });
 
-        // Load ghế từ API — chỉ lấy ghế chưa da_hoan
-        fetch(`${BASE_URL}/ghe?maVe=${maVe}&maHoaDon=${maHoaDon}`)
-            .then(r => r.json())
-            .then(gheList => {
-                const body = document.getElementById("cgmBody");
-                if (!gheList.length) {
-                    body.innerHTML = `<div class="cgm-empty">Không còn ghế nào có thể hoàn.</div>`;
-                    return;
-                }
+        // Fetch ghế + địa điểm song song
+        const ghePromise    = fetch(`${BASE_URL}/ghe?maVe=${maVe}&maHoaDon=${maHoaDon}`).then(r => r.json());
+        const venuePromise  = maSuKien
+            ? (typeof EventService !== "undefined"
+                ? EventService.getVenueForEvent(maSuKien)
+                : fetch(`${BASE_URL}/sukien/${maSuKien}`)
+                    .then(r => r.json())
+                    .then(sk => sk?.maDiaDiem
+                        ? fetch(`${BASE_URL}/diadiem/${sk.maDiaDiem}`).then(r => r.json())
+                        : null))
+            : Promise.resolve(null);
 
-                // Nhóm theo khuVuc để hiển thị rõ hơn
-                const byKhu = new Map();
-                gheList.forEach(g => {
-                    const khu = g.khuVuc || "Khu vực khác";
-                    if (!byKhu.has(khu)) byKhu.set(khu, []);
-                    byKhu.get(khu).push(g);
-                });
+        Promise.allSettled([ghePromise, venuePromise]).then(([gheResult, venueResult]) => {
+            // ── Thông tin địa điểm ──────────────────────────────────────────────
+            const diaDiem   = venueResult.status === "fulfilled" ? venueResult.value : null;
+            const sucChua   = diaDiem?.sucChua   ?? null;
+            const loaiSoDo  = diaDiem?.loaiSoDo  ?? null;
+            const tenDD     = diaDiem?.tenDiaDiem ?? null;
 
-                body.innerHTML = [...byKhu.entries()].map(([khu, ghes]) => `
-                    <div class="cgm-khu">
-                        <div class="cgm-khu-label">${escHtml(khu)}</div>
-                        <div class="cgm-ghe-grid">
-                            ${ghes.map(g => {
-                                const daHoan = g.trangThai === "da_hoan";
-                                return `<button
-                                    class="cgm-ghe-btn${daHoan ? " cgm-ghe-hoan" : ""}"
-                                    data-maghe="${g.maGhe}"
-                                    ${daHoan ? "disabled title='Ghế đã được hoàn'" : ""}
-                                >#${g.maGhe}${daHoan ? " ✓" : ""}</button>`;
-                            }).join("")}
-                        </div>
-                    </div>`).join("");
+            const venueInfoEl = document.getElementById("cgmVenueInfo");
+            if (venueInfoEl && diaDiem) {
+                const layoutIcon = loaiSoDo === "Hình tròn" ? "⭕" : "▭";
+                venueInfoEl.textContent =
+                    `📍 ${tenDD || "—"}  ${layoutIcon} ${loaiSoDo || ""}` +
+                    (sucChua ? `  · Sức chứa: ${sucChua.toLocaleString("vi-VN")} chỗ` : "");
+            }
 
-                // Toggle chọn ghế
-                const selectedIds = new Set();
-                const submitBtn   = document.getElementById("cgmSubmit");
-                const countLabel  = document.getElementById("cgmCount");
+            // ── Danh sách ghế ───────────────────────────────────────────────────
+            const body = document.getElementById("cgmBody");
+            if (gheResult.status === "rejected" || !gheResult.value) {
+                body.innerHTML = `<div class="cgm-empty" style="color:#e55">Không thể tải danh sách ghế.</div>`;
+                return;
+            }
+            const gheList = gheResult.value;
 
-                body.querySelectorAll(".cgm-ghe-btn:not([disabled])").forEach(btn => {
-                    btn.addEventListener("click", () => {
-                        const id = Number(btn.dataset.maghe);
-                        if (selectedIds.has(id)) {
-                            selectedIds.delete(id);
-                            btn.classList.remove("cgm-ghe-selected");
-                        } else {
-                            selectedIds.add(id);
-                            btn.classList.add("cgm-ghe-selected");
-                        }
-                        const n = selectedIds.size;
-                        countLabel.textContent = n > 0 ? `Đã chọn ${n} ghế` : "Chưa chọn ghế nào";
-                        submitBtn.disabled = n === 0;
-                    });
-                });
+            if (!gheList.length) {
+                body.innerHTML = `<div class="cgm-empty">Không còn ghế nào có thể hoàn.</div>`;
+                return;
+            }
 
-                // Tiếp tục → mở form nhập lý do rồi submit
-                submitBtn.onclick = () => {
-                    if (!selectedIds.size) return;
-                    this._showLyDoForm([...selectedIds], maVe, maHoaDon, tenVe, onHoanVe, modal);
-                };
-            })
-            .catch(() => {
-                document.getElementById("cgmBody").innerHTML =
-                    `<div class="cgm-empty" style="color:#e55">Không thể tải danh sách ghế.</div>`;
+            // Nhóm theo khuVuc để hiển thị rõ hơn
+            const byKhu = new Map();
+            gheList.forEach(g => {
+                const khu = g.khuVuc || "Khu vực khác";
+                if (!byKhu.has(khu)) byKhu.set(khu, []);
+                byKhu.get(khu).push(g);
             });
+
+            // Cảnh báo sức chứa nếu số ghế vượt quá sucChua (data inconsistency)
+            const availableCount = gheList.filter(g => g.trangThai !== "da_hoan").length;
+            let warningHtml = "";
+            if (sucChua != null && availableCount > sucChua) {
+                warningHtml = `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:.78rem;color:#92400e">
+                    ⚠️ Số ghế hiện tại (${availableCount}) vượt sức chứa địa điểm (${sucChua.toLocaleString("vi-VN")}). Vui lòng liên hệ quản trị viên.
+                </div>`;
+            }
+
+            body.innerHTML = warningHtml + [...byKhu.entries()].map(([khu, ghes]) => `
+                <div class="cgm-khu">
+                    <div class="cgm-khu-label">${escHtml(khu)}</div>
+                    <div class="cgm-ghe-grid">
+                        ${ghes.map(g => {
+                            const daHoan = g.trangThai === "da_hoan";
+                            return `<button
+                                class="cgm-ghe-btn${daHoan ? " cgm-ghe-hoan" : ""}"
+                                data-maghe="${g.maGhe}"
+                                ${daHoan ? "disabled title='Ghế đã được hoàn'" : ""}
+                            >#${g.maGhe}${daHoan ? " ✓" : ""}</button>`;
+                        }).join("")}
+                    </div>
+                </div>`).join("");
+
+            // Toggle chọn ghế — giới hạn không vượt sucChua nếu có
+            const selectedIds = new Set();
+            const submitBtn   = document.getElementById("cgmSubmit");
+            const countLabel  = document.getElementById("cgmCount");
+
+            body.querySelectorAll(".cgm-ghe-btn:not([disabled])").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const id = Number(btn.dataset.maghe);
+                    if (selectedIds.has(id)) {
+                        selectedIds.delete(id);
+                        btn.classList.remove("cgm-ghe-selected");
+                    } else {
+                        // Giới hạn số ghế chọn tối đa = sucChua (nếu có)
+                        if (sucChua != null && selectedIds.size >= sucChua) {
+                            countLabel.textContent = `⚠️ Tối đa ${sucChua} ghế (sức chứa địa điểm)`;
+                            return;
+                        }
+                        selectedIds.add(id);
+                        btn.classList.add("cgm-ghe-selected");
+                    }
+                    const n = selectedIds.size;
+                    countLabel.textContent = n > 0
+                        ? `Đã chọn ${n} ghế${sucChua != null ? ` / ${sucChua}` : ""}`
+                        : "Chưa chọn ghế nào";
+                    submitBtn.disabled = n === 0;
+                });
+            });
+
+            // Tiếp tục → mở form nhập lý do rồi submit
+            submitBtn.onclick = () => {
+                if (!selectedIds.size) return;
+                this._showLyDoForm([...selectedIds], maVe, maHoaDon, tenVe, onHoanVe, modal);
+            };
+        });
     },
 
     /** Bước 2: nhập lý do rồi gọi onHoanVe */

@@ -15,35 +15,21 @@ public class DiaDiem {
     private String diaChi;
     private int sucChua;
 
-    public Long getMaDiaDiem() {
-        return maDiaDiem;
-    }
+    @Column(name = "LOAISODO")
+    private String loaiSoDo = "Hình chữ nhật";
 
-    public void setMaDiaDiem(Long maDiaDiem) {
-        this.maDiaDiem = maDiaDiem;
-    }
+    public Long getMaDiaDiem() { return maDiaDiem; }
+    public void setMaDiaDiem(Long maDiaDiem) { this.maDiaDiem = maDiaDiem; }
 
-    public String getTenDiaDiem() {
-        return tenDiaDiem;
-    }
+    public String getTenDiaDiem() { return tenDiaDiem; }
+    public void setTenDiaDiem(String tenDiaDiem) { this.tenDiaDiem = tenDiaDiem; }
 
-    public void setTenDiaDiem(String tenDiaDiem) {
-        this.tenDiaDiem = tenDiaDiem;
-    }
+    public String getDiaChi() { return diaChi; }
+    public void setDiaChi(String diaChi) { this.diaChi = diaChi; }
 
-    public String getDiaChi() {
-        return diaChi;
-    }
+    public int getSucChua() { return sucChua; }
+    public void setSucChua(int sucChua) { this.sucChua = sucChua; }
 
-    public void setDiaChi(String diaChi) {
-        this.diaChi = diaChi;
-    }
-
-    public int getSucChua() {
-        return sucChua;
-    }
-
-    public void setSucChua(int sucChua) {
-        this.sucChua = sucChua;
-    }
+    public String getLoaiSoDo() { return loaiSoDo; }
+    public void setLoaiSoDo(String loaiSoDo) { this.loaiSoDo = loaiSoDo; }
 }

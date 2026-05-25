@@ -78,12 +78,22 @@ function loadIncome() {
         });
 }
 
+/* ── TÍNH DOANH THU THỰC TỪ CHITIẾT (gia × daBan) ── */
+function _calcDoanhThuSuKien(sk) {
+    // Ưu tiên tính từ chiTietLoaiVe để tránh backend tính sai
+    if (sk.chiTietLoaiVe && sk.chiTietLoaiVe.length > 0) {
+        return sk.chiTietLoaiVe.reduce((s, v) => s + (v.gia || 0) * (v.daBan || 0), 0);
+    }
+    // Fallback: dùng tongDoanhThu nếu không có chiTiet
+    return sk.tongDoanhThu || 0;
+}
+
 /* ── KPI CARDS ── */
 function renderKPI(data) {
-    const tongDoanhThu = data.reduce((s, d) => s + d.tongDoanhThu, 0);
-    const tongVeBan    = data.reduce((s, d) => s + d.tongVeDaBan, 0);
-    const soSuKien     = data.length;
-    const soSuKienCoDoanh = data.filter(d => d.tongDoanhThu > 0).length;
+    const tongDoanhThu    = data.reduce((s, d) => s + _calcDoanhThuSuKien(d), 0);
+    const tongVeBan       = data.reduce((s, d) => s + (d.tongVeDaBan || 0), 0);
+    const soSuKien        = data.length;
+    const soSuKienCoDoanh = data.filter(d => _calcDoanhThuSuKien(d) > 0).length;
 
     const kpiRow = document.getElementById("kpiRow");
     if (!kpiRow) return;
@@ -116,8 +126,8 @@ function renderCharts(data) {
     if (!data.length) return;
 
     const labels   = data.map(d => truncate(d.tenSuKien, 18));
-    const revenues = data.map(d => d.tongDoanhThu);
-    const tickets  = data.map(d => d.tongVeDaBan);
+    const revenues = data.map(d => _calcDoanhThuSuKien(d));
+    const tickets  = data.map(d => d.tongVeDaBan || 0);
 
     const COLORS = [
         "#6366f1","#f59e0b","#10b981","#ef4444","#3b82f6",
@@ -210,24 +220,28 @@ function renderTable(data) {
     }
 
     const rows = data.map(sk => {
-        const phanTramBan = sk.tongVeTongSo > 0
-            ? Math.round(sk.tongVeDaBan / sk.tongVeTongSo * 100)
+        const doanhThuThuc = _calcDoanhThuSuKien(sk);
+        const tongVeDaBan  = sk.tongVeDaBan || 0;
+        const phanTramBan  = sk.tongVeTongSo > 0
+            ? Math.round(tongVeDaBan / sk.tongVeTongSo * 100)
             : 0;
 
-        // Chi tiết loại vé (collapsible)
-        const chiTietRows = (sk.chiTietLoaiVe || []).map(v => `
+        // Chi tiết loại vé: doanh thu = gia × daBan (tránh dùng v.doanhThu backend tính sai)
+        const chiTietRows = (sk.chiTietLoaiVe || []).map(v => {
+            const doanhThuVe = (v.gia || 0) * (v.daBan || 0);
+            return `
             <tr class="detail-row">
                 <td style="padding:8px 16px 8px 40px;color:#555">↳ ${esc(v.tenVe)}</td>
                 <td style="padding:8px 16px;color:#777;font-size:0.85rem">${esc(v.loaiVe || "—")}</td>
                 <td style="padding:8px 16px;text-align:right;color:#777">${formatPrice(v.gia)}</td>
                 <td style="padding:8px 16px;text-align:center">
-                    <span class="sold-badge">${v.daBan}</span>
+                    <span class="sold-badge">${v.daBan || 0}</span>
                 </td>
                 <td></td>
-                <td style="padding:8px 16px;text-align:right;color:#059669;font-weight:600">${formatPrice(v.doanhThu)}</td>
+                <td style="padding:8px 16px;text-align:right;color:#059669;font-weight:600">${formatPrice(doanhThuVe)}</td>
                 <td></td>
             </tr>
-        `).join("");
+        `}).join("");
 
         return `
             <tr class="event-row" onclick="toggleDetail('detail-${sk.maSuKien}')">
@@ -241,7 +255,7 @@ function renderTable(data) {
                 </td>
                 <td style="padding:14px 16px;text-align:right">—</td>
                 <td style="padding:14px 16px;text-align:center">
-                    <span class="sold-badge sold-total">${sk.tongVeDaBan}</span>
+                    <span class="sold-badge sold-total">${tongVeDaBan}</span>
                 </td>
                 <td style="padding:14px 16px">
                     <div class="progress-wrap">
@@ -250,7 +264,7 @@ function renderTable(data) {
                     <div style="font-size:0.78rem;color:#888;margin-top:3px;text-align:center">${phanTramBan}%</div>
                 </td>
                 <td style="padding:14px 16px;text-align:right;font-weight:800;color:#4f46e5;font-size:1rem">
-                    ${formatPrice(sk.tongDoanhThu)}
+                    ${formatPrice(doanhThuThuc)}
                 </td>
                 <td style="padding:14px 16px;text-align:center">
                     <span class="expand-hint">Chi tiết</span>

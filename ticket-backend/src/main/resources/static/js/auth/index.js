@@ -16,9 +16,10 @@ window.addEventListener("DOMContentLoaded", () => {
   if (raw) {
     try {
       const u = JSON.parse(raw);
-      if (u.loaiTaiKhoan === "customer") { window.location.href = "loginCustomer.html"; return; }
-      if (u.loaiTaiKhoan === "creator")  { window.location.href = "loginCreator.html";  return; }
-      if (u.loaiTaiKhoan === "admin")    { window.location.href = "loginAdmin.html";     return; }
+      if (u.loaiTaiKhoan === "Khách hàng") { window.location.href = "loginCustomer.html"; return; }
+      if (u.loaiTaiKhoan === "Nhà tổ chức")  { window.location.href = "loginCreator.html";  return; }
+      if (u.loaiTaiKhoan === "Nhân viên") { window.location.href = "loginEmployee.html"; return; }
+      if (u.loaiTaiKhoan === "Quản lý")    { window.location.href = "loginAdmin.html";     return; }
     } catch (e) {}
   }
   loadEvents();

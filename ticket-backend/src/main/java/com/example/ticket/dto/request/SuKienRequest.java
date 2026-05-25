@@ -9,7 +9,7 @@ public class SuKienRequest {
     private LocalDate thoiGianBatDau;
     private LocalDate thoiGianKetThuc;
     private Long maTaiKhoan;
-
+    private Long maDiaDiem;
     public SuKienRequest() {
     }
 
@@ -52,4 +52,7 @@ public class SuKienRequest {
     public void setMaTaiKhoan(Long maTaiKhoan) {
         this.maTaiKhoan = maTaiKhoan;
     }
+
+    public Long getMaDiaDiem() { return maDiaDiem; }
+    public void setMaDiaDiem(Long maDiaDiem) { this.maDiaDiem = maDiaDiem; }
 }

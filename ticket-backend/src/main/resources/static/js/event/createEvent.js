@@ -2,12 +2,12 @@
    js/event/createEvent.js
    ========================================================== */
 
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
     const currentUser = JSON.parse(localStorage.getItem("user"));
     if (!currentUser) { window.location.href = "loginpopup.html"; return; }
 
     // ── Hiện thông tin nhà tổ chức ────────────────────────────────────────────
-    fetch(`${BASE_URL}/nhatochuc/taikhoan/${currentUser.maTaiKhoan}`)
+    fetch(`${BASE_URL}/nhatochuc/by-taikhoan/${currentUser.maTaiKhoan}`)
         .then(r => r.ok ? r.json() : null)
         .then(org => {
             const nameEl = document.getElementById("orgName");
@@ -25,24 +25,43 @@ window.addEventListener("DOMContentLoaded", () => {
             if (nameEl) nameEl.textContent = "Không lấy được thông tin nhà tổ chức";
         });
 
-    // Set min date = hôm nay
+    // ── Load dropdown địa điểm ────────────────────────────────────────────────
+    try {
+        const diaDiemList = await fetch(`${BASE_URL}/diadiem`).then(r => r.json());
+        const select = document.getElementById("diaDiem");
+        if (select) {
+            select.innerHTML = '<option value="">-- Chọn địa điểm --</option>';
+            diaDiemList.forEach(dd => {
+                const option = document.createElement("option");
+                option.value = dd.maDiaDiem;
+                option.textContent = dd.tenDiaDiem;
+                select.appendChild(option);
+            });
+        }
+    } catch {
+        console.warn("Không load được danh sách địa điểm");
+    }
+
+    // ── Set min date = hôm nay ────────────────────────────────────────────────
     const today = new Date().toISOString().split("T")[0];
-    document.getElementById("thoiGianBatDau").min = today;
-    document.getElementById("thoiGianKetThuc").min = today;
-    document.getElementById("thoiGianBatDau").addEventListener("change", () => {
-        document.getElementById("thoiGianKetThuc").min = document.getElementById("thoiGianBatDau").value;
+    const batDauEl    = document.getElementById("thoiGianBatDau");
+    const ketThucEl   = document.getElementById("thoiGianKetThuc");
+    if (batDauEl)  batDauEl.min  = today;
+    if (ketThucEl) ketThucEl.min = today;
+    batDauEl?.addEventListener("change", () => {
+        if (ketThucEl) ketThucEl.min = batDauEl.value;
     });
 });
 
 async function handleCreateEvent() {
     const btn = document.querySelector("button.create-btn");
-    if (btn.disabled) return;
+    if (!btn || btn.disabled) return;
 
-    const tenSuKien       = document.getElementById("tenSuKien").value.trim();
-    const diaDiem         = document.getElementById("diaDiem")?.value.trim() || "";
-    const moTa            = document.getElementById("moTa").value.trim();
-    const thoiGianBatDau  = document.getElementById("thoiGianBatDau").value;
-    const thoiGianKetThuc = document.getElementById("thoiGianKetThuc").value;
+    const tenSuKien       = document.getElementById("tenSuKien")?.value.trim()       || "";
+    const moTa            = document.getElementById("moTa")?.value.trim()            || "";
+    const maDiaDiem       = document.getElementById("diaDiem")?.value                || null;
+    const thoiGianBatDau  = document.getElementById("thoiGianBatDau")?.value         || "";
+    const thoiGianKetThuc = document.getElementById("thoiGianKetThuc")?.value        || "";
 
     if (!tenSuKien || !thoiGianBatDau || !thoiGianKetThuc) {
         showMsg("⚠️ Vui lòng điền đầy đủ thông tin bắt buộc.", "err");
@@ -56,7 +75,7 @@ async function handleCreateEvent() {
     const currentUser = JSON.parse(localStorage.getItem("user"));
     if (!currentUser) { window.location.href = "loginpopup.html"; return; }
 
-    btn.disabled = true;
+    btn.disabled    = true;
     btn.textContent = "Đang tạo...";
 
     try {
@@ -65,7 +84,8 @@ async function handleCreateEvent() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 tenSuKien,
-                moTa: diaDiem ? `[${diaDiem}] ${moTa}` : moTa,
+                moTa,
+                maDiaDiem: maDiaDiem || null,
                 thoiGianBatDau,
                 thoiGianKetThuc,
                 maTaiKhoan: currentUser.maTaiKhoan
@@ -83,7 +103,7 @@ async function handleCreateEvent() {
 
     } catch (error) {
         showMsg("❌ " + error.message, "err");
-        btn.disabled = false;
+        btn.disabled    = false;
         btn.textContent = "Tạo sự kiện";
     }
 }
@@ -91,13 +111,12 @@ async function handleCreateEvent() {
 function showMsg(text, type) {
     const el = document.getElementById("msgBox");
     if (!el) return;
-    el.textContent = text;
-    el.style.color      = type === "ok" ? "#0d9488" : "#dc2626";
+    el.textContent  = text;
+    el.style.color  = type === "ok" ? "#0d9488" : "#dc2626";
     el.style.fontWeight = "600";
 }
 
 function showToast(text) {
-    // Xóa toast cũ nếu có
     document.getElementById("_toast")?.remove();
 
     const toast = document.createElement("div");
@@ -125,15 +144,13 @@ function showToast(text) {
     `;
     document.body.appendChild(toast);
 
-    // Animate vào
     requestAnimationFrame(() => {
-        toast.style.opacity = "1";
+        toast.style.opacity   = "1";
         toast.style.transform = "translateY(0)";
     });
 
-    // Tự mất sau 2.5s
     setTimeout(() => {
-        toast.style.opacity = "0";
+        toast.style.opacity   = "0";
         toast.style.transform = "translateY(12px)";
         setTimeout(() => toast.remove(), 300);
     }, 2500);

@@ -82,6 +82,8 @@ function openBuyModal(maSuKien) {
     const sk = allEvents.find(e => e.maSuKien === maSuKien);
     if (!sk) return;
     currentEvent = sk;
+    // Lưu toàn bộ object sự kiện để seat map đọc maDiaDiem → loaiSoDo
+    window._currentEventData = sk;
     CartModel.reset();
     EventView.openBuyModal(sk);
 
@@ -138,13 +140,60 @@ function openVoucherModal() {
 }
 
 function _loadBookedSeatsAndOpenMap(eventName, eventDate, totalQty) {
+    // Đọc maDiaDiem từ currentEvent (giống loginCustomer.html)
+    const maDiaDiem = currentEvent.maDiaDiem || currentEvent.MaDiaDiem
+        || (currentEvent.diaDiem && (currentEvent.diaDiem.maDiaDiem || currentEvent.diaDiem.MaDiaDiem));
+
+    function _openSeat(bookedSet, loaiSoDo) {
+        openSeatModal(eventName, eventDate, totalQty, bookedSet, loaiSoDo);
+    }
+
+    function _fetchLoaiSoDoThenOpen(bookedSet) {
+        // Ưu tiên 1: maDiaDiem có → gọi getDiaDiem (đây là cách chính xác, giống customer)
+        if (maDiaDiem && typeof EventService.getDiaDiem === "function") {
+            EventService.getDiaDiem(maDiaDiem)
+                .then(dd => {
+                    const loai = (dd && dd.loaiSoDo) ? dd.loaiSoDo : "";
+                    if (loai) currentEvent._cachedLoaiSoDo = loai;
+                    _openSeat(bookedSet, loai);
+                })
+                .catch(() => _openSeat(bookedSet, ""));
+            return;
+        }
+
+        // Ưu tiên 2: đã cache từ lần trước
+        if (currentEvent._cachedLoaiSoDo) {
+            _openSeat(bookedSet, currentEvent._cachedLoaiSoDo);
+            return;
+        }
+
+        // Ưu tiên 3: fetch /sukien/{id} để lấy maDiaDiem rồi fetch tiếp getDiaDiem
+        EventService.getById(currentEvent.maSuKien)
+            .then(detail => {
+                const madd = detail && (detail.maDiaDiem || detail.MaDiaDiem
+                    || (detail.diaDiem && (detail.diaDiem.maDiaDiem || detail.diaDiem.MaDiaDiem)));
+                if (madd && typeof EventService.getDiaDiem === "function") {
+                    return EventService.getDiaDiem(madd).then(dd => {
+                        return (dd && dd.loaiSoDo) ? dd.loaiSoDo : "";
+                    });
+                }
+                // Nếu detail trả về loaiSoDo trực tiếp
+                return (detail && (detail.loaiSoDo || (detail.diaDiem && detail.diaDiem.loaiSoDo))) || "";
+            })
+            .then(loai => {
+                if (loai) currentEvent._cachedLoaiSoDo = loai;
+                _openSeat(bookedSet, loai);
+            })
+            .catch(() => _openSeat(bookedSet, ""));
+    }
+
     apiFetch(`/ghe/sukien/${currentEvent.maSuKien}`)
         .then(bookedSeats => {
             const bookedSet = new Set(bookedSeats.map(g => g.soThuTu));
-            openSeatModal(eventName, eventDate, totalQty, bookedSet);
+            _fetchLoaiSoDoThenOpen(bookedSet);
         })
         .catch(() => {
-            openSeatModal(eventName, eventDate, totalQty, new Set());
+            _fetchLoaiSoDoThenOpen(new Set());
         });
 }
 
@@ -251,6 +300,72 @@ function closePaymentModal() {
 }
 
 // ── BƯỚC 5: CHỌN PHƯƠNG THỨC & THANH TOÁN ───────────────
+
+function _loadOrganizerQR() {
+
+    const img   = document.getElementById("qrOrganizerImg");
+    const msgEl = document.getElementById("qrOrganizerMsg");
+
+    if (!img) return;
+    img.style.display = "none";
+    if (msgEl) {
+        msgEl.textContent = "";
+    }
+    const maCongTy =
+        currentEvent?.maCongTy ||
+        currentEvent?.MaCongTy;
+    if (!maCongTy) {
+        if (msgEl) {
+            msgEl.textContent =
+               "⚠️ Không tìm thấy thông tin nhà tổ chức.";
+        }
+        return;
+    }
+    EventService.getOrganizer(maCongTy)
+        .then(org => {
+            console.log("Organizer =", org);
+            const qrPath = org.maQR || org.qr || "";
+            if (!qrPath) {
+                if (msgEl) {
+                    msgEl.textContent =
+                        "⚠️ Nhà tổ chức chưa cập nhật mã QR.";
+                }
+                return;
+            }
+            const qrUrl =
+                window.location.origin + qrPath;
+            console.log(qrUrl);
+            img.src = qrUrl;
+            img.onload = () => {
+                img.style.display = "block";
+            };
+            img.onerror = () => {
+                img.style.display = "none";
+                if (msgEl) {
+                    msgEl.textContent =
+                        "⚠️ Không tải được ảnh QR.";
+                }
+            };
+
+        })
+        .catch(err => {
+
+            console.error(err);
+
+            if (msgEl) {
+                msgEl.textContent =
+                    "⚠️ Không thể tải QR thanh toán.";
+            }
+        });
+}
+
+function closeQRPayModal() {
+    const modal   = document.getElementById("qrPayModal");
+    const overlay = document.getElementById("qrPayOverlay");
+    if (modal)   { modal.classList.remove("open"); setTimeout(() => modal.style.display = "none", 220); }
+    if (overlay) overlay.style.display = "none";
+}
+
 function selectPaymentMethod(method) {
     paymentMethod = method;
     document.getElementById("bankSection").style.display =

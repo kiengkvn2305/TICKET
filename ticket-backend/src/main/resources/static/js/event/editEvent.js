@@ -1,29 +1,84 @@
 const params   = new URLSearchParams(window.location.search);
 const maSuKien = params.get("id");
 
-window.addEventListener("DOMContentLoaded", function () {
+// Các trạng thái không cho phép chỉnh sửa
+const LOCKED_STATUSES = ["DANG_TO_CHUC", "DA_KET_THUC", "DA_HUY"];
 
-    fetch(`${BASE_URL}/sukien/${maSuKien}`)
-        .then(r => { if (!r.ok) throw new Error("Không lấy được sự kiện"); return r.json(); })
-        .then(data => {
-            document.getElementById("tenSuKien").value       = data.tenSuKien || "";
-            document.getElementById("moTa").value            = data.moTa      || "";
-            // FIX: backend trả array [y,m,d,h,m,s] hoặc ISO string — cần normalize về datetime-local
-            document.getElementById("thoiGianBatDau").value  = toDatetimeLocal(data.thoiGianBatDau);
-            document.getElementById("thoiGianKetThuc").value = toDatetimeLocal(data.thoiGianKetThuc);
+window.addEventListener("DOMContentLoaded", async function () {
+    try {
+        // Load song song: thông tin sự kiện + danh sách địa điểm
+        const [eventRes, diaDiemRes] = await Promise.all([
+            fetch(`${BASE_URL}/sukien/${maSuKien}`),
+            fetch(`${BASE_URL}/diadiem`)
+        ]);
 
-            // Set min sau khi load
-            document.getElementById("thoiGianBatDau").addEventListener("change", () => {
-                document.getElementById("thoiGianKetThuc").min =
-                    document.getElementById("thoiGianBatDau").value;
-            });
-        })
-        .catch(err => showMsg("❌ " + err.message, "err"));
+        if (!eventRes.ok) throw new Error("Không lấy được sự kiện");
+        if (!diaDiemRes.ok) throw new Error("Không lấy được địa điểm");
+
+        const data      = await eventRes.json();
+        const diaDiemList = await diaDiemRes.json();
+
+        // ── Điền thông tin sự kiện ─────────────────────────────────────────
+        document.getElementById("tenSuKien").value       = data.tenSuKien || "";
+        document.getElementById("moTa").value            = data.moTa      || "";
+        document.getElementById("thoiGianBatDau").value  = toDatetimeLocal(data.thoiGianBatDau);
+        document.getElementById("thoiGianKetThuc").value = toDatetimeLocal(data.thoiGianKetThuc);
+
+        document.getElementById("thoiGianBatDau").addEventListener("change", () => {
+            document.getElementById("thoiGianKetThuc").min =
+                document.getElementById("thoiGianBatDau").value;
+        });
+
+        // ── Điền dropdown địa điểm ────────────────────────────────────────
+        const select = document.getElementById("diaDiem");
+        select.innerHTML = '<option value="">-- Chọn địa điểm --</option>';
+        diaDiemList.forEach(dd => {
+            const option = document.createElement("option");
+            option.value = dd.maDiaDiem;
+            option.textContent = dd.tenDiaDiem;
+            // Chọn sẵn địa điểm hiện tại của sự kiện
+            if (data.maDiaDiem && dd.maDiaDiem === data.maDiaDiem) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+
+        // ── Khóa form nếu đang tổ chức / đã kết thúc / đã hủy ───────────
+        if (LOCKED_STATUSES.includes(data.trangThai)) {
+            lockForm(data.trangThai);
+        }
+
+    } catch (err) {
+        showMsg("❌ " + err.message, "err");
+    }
 });
 
-function updateEvent() {
+function lockForm(trangThai) {
+    const labels = {
+        DANG_TO_CHUC: "đang diễn ra",
+        DA_KET_THUC:  "đã kết thúc",
+        DA_HUY:       "đã bị hủy"
+    };
 
+    // Disable toàn bộ input
+    ["tenSuKien", "moTa", "diaDiem", "thoiGianBatDau", "thoiGianKetThuc"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = true;
+    });
+
+    // Disable nút cập nhật
+    const btn = document.querySelector(".create-btn");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Không thể chỉnh sửa";
+    }
+
+    showMsg(`⚠️ Sự kiện ${labels[trangThai] || trangThai} — không thể chỉnh sửa.`, "err");
+}
+
+async function updateEvent() {
     const tenSuKien       = document.getElementById("tenSuKien").value.trim();
+    const maDiaDiem       = document.getElementById("diaDiem")?.value || null;
     const moTa            = document.getElementById("moTa").value.trim();
     const thoiGianBatDau  = document.getElementById("thoiGianBatDau").value;
     const thoiGianKetThuc = document.getElementById("thoiGianKetThuc").value;
@@ -35,31 +90,38 @@ function updateEvent() {
         showMsg("⚠️ Ngày kết thúc phải sau ngày bắt đầu.", "err"); return;
     }
 
-    const btn = document.querySelector(".create-btn, .button-group button");
+    const btn = document.querySelector(".create-btn");
     if (btn) { btn.disabled = true; btn.textContent = "Đang cập nhật..."; }
 
-    fetch(`${BASE_URL}/sukien/${maSuKien}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenSuKien, moTa, thoiGianBatDau, thoiGianKetThuc })
-    })
-    .then(async r => {
-        if (!r.ok) { const t = await r.text(); throw new Error(t || "Cập nhật thất bại"); }
-        return r.json();
-    })
-    .then(() => {
+    try {
+        const res = await fetch(`${BASE_URL}/sukien/${maSuKien}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                tenSuKien,
+                moTa,
+                thoiGianBatDau,
+                thoiGianKetThuc,
+                maDiaDiem: maDiaDiem || null
+            })
+        });
+
+        if (!res.ok) {
+            const t = await res.text();
+            throw new Error(t || "Cập nhật thất bại");
+        }
+
         showMsg("✅ Cập nhật thành công! Đang chuyển hướng...", "ok");
         setTimeout(() => window.location.href = "loginCreator.html", 1200);
-    })
-    .catch(err => {
+
+    } catch (err) {
         showMsg("❌ " + err.message, "err");
-        if (btn) { btn.disabled = false; btn.textContent = "Cập nhật sự kiện"; }
-    });
+        if (btn) { btn.disabled = false; btn.textContent = "Cập nhật"; }
+    }
 }
 
-/* ── helpers ── */
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
 
-// FIX: normalize datetime từ array [y,m,d] hoặc ISO string → "YYYY-MM-DDTHH:mm"
 function toDatetimeLocal(val) {
     if (!val) return "";
     if (Array.isArray(val)) {
@@ -74,15 +136,11 @@ function toDatetimeLocal(val) {
 function pad(n) { return String(n).padStart(2, "0"); }
 
 function showMsg(text, type) {
-    let el = document.getElementById("msgBox");
-    if (!el) {
-        el = document.createElement("div");
-        el.id = "msgBox";
-        el.style.cssText = "margin:10px 0;font-size:.88rem;font-weight:600";
-        document.querySelector(".button-group")?.insertAdjacentElement("beforebegin", el);
-    }
+    const el = document.getElementById("msgBox");
+    if (!el) return;
     el.textContent = text;
-    el.style.color = type === "ok" ? "#0d9488" : "#dc2626";
+    el.style.color      = type === "ok" ? "#0d9488" : "#dc2626";
+    el.style.fontWeight = "600";
 }
 
 function goBack() { window.location.href = "loginCreator.html"; }

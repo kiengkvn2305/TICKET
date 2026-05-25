@@ -1,7 +1,8 @@
 /* ==========================================================
    js/common/authGuard.js
    1. Redirect nếu chưa đăng nhập
-   2. Redirect sang hoSo.html nếu chưa điền thông tin
+   2. Redirect sang hoSo.html nếu chưa điền đầy đủ thông tin
+      (bao gồm ảnh QR cho Nhà tổ chức)
    ========================================================== */
 (function () {
   const raw = localStorage.getItem("user");
@@ -37,7 +38,14 @@ function isHoSoDayDu(loai, data) {
     return !!(data.tenKhachHang && data.email && data.soDienThoai);
   }
   if (loai === "Nhà tổ chức") {
-    return !!(data.tenCongTy && data.tenNguoiDaiDien && data.email && data.soDienThoai);
+    // ✅ Bắt buộc có ảnh QR thanh toán
+    return !!(
+      data.tenCongTy &&
+      data.tenNguoiDaiDien &&
+      data.email &&
+      data.soDienThoai &&
+      data.maQR
+    );
   }
   if (loai === "Nhân viên") {
     return !!(data.tenNhanVien && data.email && data.soDienThoai);

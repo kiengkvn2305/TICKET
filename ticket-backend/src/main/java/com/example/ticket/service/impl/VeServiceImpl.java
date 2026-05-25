@@ -3,9 +3,11 @@ package com.example.ticket.service.impl;
 import com.example.ticket.dto.request.VeRequest;
 import com.example.ticket.dto.response.VeResponse;
 import com.example.ticket.exception.*;
+import com.example.ticket.model.DiaDiem;
 import com.example.ticket.model.NhaToChuc;
 import com.example.ticket.model.SuKien;
 import com.example.ticket.model.Ve;
+import com.example.ticket.repository.DiaDiemRepository;
 import com.example.ticket.repository.NhaToChucRepository;
 import com.example.ticket.repository.SuKienRepository;
 import com.example.ticket.repository.VeRepository;
@@ -26,13 +28,16 @@ public class VeServiceImpl implements VeService {
     private final VeRepository veRepository;
     private final SuKienRepository suKienRepository;
     private final NhaToChucRepository nhaToChucRepository;
+    private final DiaDiemRepository diaDiemRepository;
 
     public VeServiceImpl(VeRepository veRepository,
                          SuKienRepository suKienRepository,
-                         NhaToChucRepository nhaToChucRepository) {
+                         NhaToChucRepository nhaToChucRepository,
+                         DiaDiemRepository diaDiemRepository) {
         this.veRepository        = veRepository;
         this.suKienRepository    = suKienRepository;
         this.nhaToChucRepository = nhaToChucRepository;
+        this.diaDiemRepository   = diaDiemRepository;
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
@@ -49,6 +54,47 @@ public class VeServiceImpl implements VeService {
 
     private void validateGia(double gia) {
         if (gia < 0) throw new BadRequestException("Giá vé không được âm");
+    }
+
+    /**
+     * Tính số lượng vé theo sức chứa địa điểm và loại sơ đồ.
+     *
+     * Hình vuông (HINH_VUONG): 3 vị trí VIP, 3 vị trí Thường
+     *   VIP   = sucChua / 10 * 3   (chia 3 vị trí → seatsPerBlock = VIP / 3)
+     *   Thường = sucChua / 10 * 7  (chia 3 vị trí → seatsPerBlock = Thuong / 3)
+     *
+     * Hình tròn (HINH_TRON): 4 vị trí VIP, 4 vị trí Thường
+     *   VIP   = sucChua / 10 * 3   (chia 4 vị trí → seatsPerZone = VIP / 4)
+     *   Thường = sucChua / 10 * 7  (chia 4 vị trí → seatsPerZone = Thuong / 4)
+     */
+    private int tinhSoLuong(SuKien suKien, String loaiVe) {
+        if (suKien.getMaDiaDiem() == null) {
+            // fallback cũ nếu sự kiện chưa gắn địa điểm
+            boolean isVip = loaiVe != null && loaiVe.toUpperCase().contains("VIP");
+            return isVip ? 30 : 70;
+        }
+        DiaDiem dd = diaDiemRepository.findById(suKien.getMaDiaDiem()).orElse(null);
+        if (dd == null) {
+            boolean isVip = loaiVe != null && loaiVe.toUpperCase().contains("VIP");
+            return isVip ? 30 : 70;
+        }
+
+        int sucChua = dd.getSucChua();
+        boolean isVip = loaiVe != null && loaiVe.toUpperCase().contains("VIP");
+        String loaiSoDo = dd.getLoaiSoDo() == null ? "HINH_VUONG" : dd.getLoaiSoDo();
+
+        int soLuongVip    = sucChua / 10 * 3;
+        int soLuongThuong = sucChua / 10 * 7;
+
+        if ("HINH_TRON".equalsIgnoreCase(loaiSoDo)) {
+            // 4 vị trí mỗi loại → tổng ghế = seatsPerZone * 4
+            int seatsPerZone = isVip ? (soLuongVip / 4) : (soLuongThuong / 4);
+            return seatsPerZone * 4;
+        } else {
+            // HINH_VUONG: 3 vị trí mỗi loại → tổng ghế = seatsPerBlock * 3
+            int seatsPerBlock = isVip ? (soLuongVip / 3) : (soLuongThuong / 3);
+            return seatsPerBlock * 3;
+        }
     }
 
     private VeResponse mapToResponse(Ve ve, SuKien suKien) {
@@ -132,9 +178,8 @@ public class VeServiceImpl implements VeService {
                 "Sự kiện này đã có vé loại '" + request.getLoaiVe() + "'. Mỗi sự kiện chỉ được tạo một vé VIP và một vé Thường."
             );
         }
-        // Số lượng mặc định theo loại vé: VIP = 30, còn lại = 70
-        int soLuongMacDinh = (request.getLoaiVe() != null
-                && request.getLoaiVe().toUpperCase().contains("VIP")) ? 30 : 70;
+        // Số lượng tính theo sức chứa địa điểm và loại sơ đồ
+        int soLuongMacDinh = tinhSoLuong(sk, request.getLoaiVe());
 
         Ve ve = new Ve();
         ve.setTenVe(request.getTenVe());

@@ -35,6 +35,10 @@ public class SuKien {
     @Column(name = "MACONGTY")
     private Long maCongTy;
 
+    /** Địa điểm tổ chức — liên kết tới DiaDiem.maDiaDiem */
+    @Column(name = "MADIADIEM")
+    private Long maDiaDiem;
+
     /**
      * Trạng thái admin quản lý: "Hoạt động" | "Vi phạm" | "Ẩn"
      * Mặc định "Hoạt động" khi tạo mới.
@@ -42,62 +46,29 @@ public class SuKien {
     @Column(name = "TRANGTHAI")
     private String trangThai = "Hoạt động";
 
-    
     public SuKien() {}
 
-    public Long getMaSuKien() {
-        return maSuKien;
-    }
+    public Long getMaSuKien() { return maSuKien; }
+    public void setMaSuKien(Long maSuKien) { this.maSuKien = maSuKien; }
 
-    public void setMaSuKien(Long maSuKien) {
-        this.maSuKien = maSuKien;
-    }
+    public String getTenSuKien() { return tenSuKien; }
+    public void setTenSuKien(String tenSuKien) { this.tenSuKien = tenSuKien; }
 
-    public String getTenSuKien() {
-        return tenSuKien;
-    }
+    public String getMoTa() { return moTa; }
+    public void setMoTa(String moTa) { this.moTa = moTa; }
 
-    public void setTenSuKien(String tenSuKien) {
-        this.tenSuKien = tenSuKien;
-    }
+    public LocalDate getThoiGianBatDau() { return thoiGianBatDau; }
+    public void setThoiGianBatDau(LocalDate thoiGianBatDau) { this.thoiGianBatDau = thoiGianBatDau; }
 
-    public String getMoTa() {
-        return moTa;
-    }
+    public LocalDate getThoiGianKetThuc() { return thoiGianKetThuc; }
+    public void setThoiGianKetThuc(LocalDate thoiGianKetThuc) { this.thoiGianKetThuc = thoiGianKetThuc; }
 
-    public void setMoTa(String moTa) {
-        this.moTa = moTa;
-    }
+    public Long getMaCongTy() { return maCongTy; }
+    public void setMaCongTy(Long maCongTy) { this.maCongTy = maCongTy; }
 
-    public LocalDate getThoiGianBatDau() {
-        return thoiGianBatDau;
-    }
+    public Long getMaDiaDiem() { return maDiaDiem; }
+    public void setMaDiaDiem(Long maDiaDiem) { this.maDiaDiem = maDiaDiem; }
 
-    public void setThoiGianBatDau(LocalDate thoiGianBatDau) {
-        this.thoiGianBatDau = thoiGianBatDau;
-    }
-
-    public LocalDate getThoiGianKetThuc() {
-        return thoiGianKetThuc;
-    }
-
-    public void setThoiGianKetThuc(LocalDate thoiGianKetThuc) {
-        this.thoiGianKetThuc = thoiGianKetThuc;
-    }
-
-    public Long getMaCongTy() {
-        return maCongTy;
-    }
-
-    public void setMaCongTy(Long maCongTy) {
-        this.maCongTy = maCongTy;
-    }
-
-    public String getTrangThai() {
-        return trangThai;
-    }
-
-    public void setTrangThai(String trangThai) {
-        this.trangThai = trangThai;
-    }
+    public String getTrangThai() { return trangThai; }
+    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
 }

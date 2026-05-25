@@ -15,11 +15,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Map URL /uploads/** → thư mục thực trên máy
-        // Nhờ đó ảnh QR truy cập được qua http://localhost:8080/uploads/qr_xxx.jpg
-        String location = "file:" + Paths.get(uploadDir).toAbsolutePath().normalize() + "/";
-        registry
-            .addResourceHandler("/uploads/**")
-            .addResourceLocations(location);
+        String absolutePath = Paths.get(uploadDir).toAbsolutePath().normalize().toString();
+
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:" + absolutePath + "/");
     }
 }

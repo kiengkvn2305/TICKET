@@ -71,6 +71,7 @@ public class SuKienServiceImpl implements SuKienService {
         r.setMaSuKien(s.getMaSuKien());
         r.setTenSuKien(s.getTenSuKien());
         r.setMoTa(s.getMoTa());
+        r.setMaDiaDiem(s.getMaDiaDiem());
         r.setThoiGianBatDau(s.getThoiGianBatDau());
         r.setThoiGianKetThuc(s.getThoiGianKetThuc());
         r.setMaCongTy(s.getMaCongTy());
@@ -143,6 +144,10 @@ public class SuKienServiceImpl implements SuKienService {
     public SuKienResponse create(SuKienRequest request) {
         if (request.getMaTaiKhoan() == null)
             throw new BadRequestException("Thiếu thông tin tài khoản");
+
+        if (request.getMaDiaDiem() == null)
+            throw new BadRequestException("Phải chọn địa điểm");
+
         if (request.getTenSuKien() == null || request.getTenSuKien().isBlank())
             throw new BadRequestException("Tên sự kiện không được để trống");
 
@@ -157,6 +162,7 @@ public class SuKienServiceImpl implements SuKienService {
         suKien.setMoTa(request.getMoTa());
         suKien.setThoiGianBatDau(request.getThoiGianBatDau());
         suKien.setThoiGianKetThuc(request.getThoiGianKetThuc());
+        suKien.setMaDiaDiem(request.getMaDiaDiem());
         suKien.setMaCongTy(ntc.getMaCongTy());
         suKien.setTrangThai("Chờ duyệt"); // chờ admin duyệt trước khi hiển thị
 
@@ -172,7 +178,7 @@ public class SuKienServiceImpl implements SuKienService {
     public SuKienResponse update(Long id, SuKienRequest request) {
         validateThoiGian(request);
         SuKien existing = findSuKien(id);
-
+        existing.setMaDiaDiem(request.getMaDiaDiem());
         existing.setTenSuKien(request.getTenSuKien());
         existing.setMoTa(request.getMoTa());
         existing.setThoiGianBatDau(request.getThoiGianBatDau());

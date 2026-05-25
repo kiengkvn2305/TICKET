@@ -176,7 +176,7 @@ body {
 
 .rectangle-parent {
   position: relative;
-  background: linear-gradient(135deg, #0d9488 0%, #3cdbd8 50%, #67e8f9 100%);
+  background: linear-gradient(135deg, #0d9488 0%, #1d378d 50%, #2025ac 100%);
   padding: 52px 40px 48px;
   overflow: hidden;
   display: flex;
@@ -256,8 +256,8 @@ body {
   border-radius: 14px;
   background: linear-gradient(
     135deg,
-    #3cdbd8,
-    #2bb8b5
+    #0739b7,
+    #211d94
   );
   color: white;
   font-size: 16px;

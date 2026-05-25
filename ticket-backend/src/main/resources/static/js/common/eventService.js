@@ -36,6 +36,24 @@ const EventService = {
     getBookedSeats(maSuKien) {
         return apiFetch(`/sukien/${maSuKien}/ghe-da-dat`);
     },
+    /**
+     * Lấy thông tin một địa điểm theo mã — dùng để đọc loaiSoDo trước khi mở seat map.
+     * Trả về object DiaDiem, trong đó có trường loaiSoDo ("Hình chữ nhật" | "Hình tròn").
+     */
+    getDiaDiem(maDiaDiem) {
+        return apiFetch(`/diadiem/${maDiaDiem}`);
+    },
+
+    /**
+     * Lấy thông tin địa điểm của một sự kiện.
+     * Tiện ích gộp: lấy sự kiện → đọc maDiaDiem → lấy DiaDiem.
+     * Trả về { sucChua, loaiSoDo, tenDiaDiem, ... } hoặc null nếu không có địa điểm.
+     */
+    async getVenueForEvent(maSuKien) {
+        const sk = await apiFetch(`/sukien/${maSuKien}`);
+        if (!sk?.maDiaDiem) return null;
+        return apiFetch(`/diadiem/${sk.maDiaDiem}`);
+    },
 };
 
 const OrderService = {

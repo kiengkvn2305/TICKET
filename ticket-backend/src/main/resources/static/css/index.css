@@ -25,7 +25,7 @@ body {
 ============================== */
 .hero {
   position: relative;
-  background: linear-gradient(135deg, #0d9488 0%, #3cdbd8 55%, #a7f3f0 100%);
+  background: linear-gradient(135deg, #40498e 0%, #2a42a1 55%, #1c48a8 100%);
   padding: 72px 48px 80px;
   overflow: hidden;
   display: flex;
@@ -395,7 +395,7 @@ body {
 
 .pub-buy-btn {
   padding: 10px 22px;
-  background: linear-gradient(135deg, #0d9488, #3cdbd8);
+  background: linear-gradient(135deg, #1535c0, #1c1c9ad0);
   color: #fff;
   border: none;
   border-radius: 11px;
