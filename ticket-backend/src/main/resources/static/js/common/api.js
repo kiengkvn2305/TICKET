@@ -1,4 +1,4 @@
-const BASE_URL = "https://shopper-reheat-earshot.ngrok-free.dev/api";
+const BASE_URL = "/api";
 
 async function apiFetch(path, options = {}) {
     const defaultHeaders = {
