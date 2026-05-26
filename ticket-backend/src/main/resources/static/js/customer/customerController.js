@@ -74,6 +74,20 @@ function loadEventMeta(sk) {
             .then(detail => { if (detail?.maCongTy) loadOrg(detail.maCongTy); })
             .catch(() => {});
     }
+
+    // Địa điểm tổ chức
+    const loadVenue = (maDiaDiem) =>
+        EventService.getDiaDiem(maDiaDiem)
+            .then(dd => EventView.updateVenueCard(sk.maSuKien, dd))
+            .catch(() => {});
+
+    if (sk.maDiaDiem) {
+        loadVenue(sk.maDiaDiem);
+    } else {
+        EventService.getById(sk.maSuKien)
+            .then(detail => { if (detail?.maDiaDiem) loadVenue(detail.maDiaDiem); })
+            .catch(() => {});
+    }
 }
 
 function applyEventFilter() {

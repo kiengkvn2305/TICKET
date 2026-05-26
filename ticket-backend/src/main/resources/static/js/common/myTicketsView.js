@@ -81,6 +81,10 @@ const MyTicketsView = {
                     maHoaDon: ve.maHoaDon, ngayMua: ve.ngayMua, tenSuKien: ve.tenSuKien,
                     maSuKien: ve.maSuKien, thoiGianBatDau: ve.thoiGianBatDau,
                     thoiGianKetThuc: ve.thoiGianKetThuc, tickets: [],
+                    maVoucher:  ve.maVoucher  || ve.MaVoucher  || null,
+                    tenVoucher: ve.tenVoucher || ve.TenVoucher || null,
+                    loaiGiam:   ve.loaiGiam   || ve.LoaiGiam   || null, // "%" hoặc "fixed"
+                    giaTriGiam: ve.giaTriGiam || ve.GiaTriGiam || null, // % hoặc số tiền
                 });
             }
             groups.get(ve.maHoaDon).tickets.push(ve);
@@ -557,4 +561,95 @@ const MyTicketsView = {
         .cgm-textarea:focus{border-color:#0d9488}`;
         document.head.appendChild(s);
     },
+};
+// ── Fix: định nghĩa openHoaDonDetail bị thiếu ──────────────
+window.openHoaDonDetail = function(g) {
+    document.getElementById("hoaDonDetailOverlay")?.remove();
+
+    const giamHD = (g.thanhTienGoc || 0) - (g.thanhTien || 0);
+
+    // Dòng voucher — hiển thị chi tiết nếu có
+    let voucherHtml = "";
+    if (giamHD > 0) {
+        const tenV      = g.tenVoucher || g.maVoucher || null;
+        const loai      = (g.loaiGiam  || "").toString().trim();
+        const giaTriRaw = g.giaTriGiam;
+
+        // Mô tả mức giảm: ưu tiên loaiGiam + giaTriGiam, fallback sang số tiền thực tế
+        let mucGiamText = "";
+        if (giaTriRaw != null && giaTriRaw > 0) {
+            if (loai === "%" || loai.toLowerCase() === "phan_tram" || loai.toLowerCase() === "phantram") {
+                mucGiamText = `${giaTriRaw}% → tiết kiệm ${formatPrice(giamHD)}`;
+            } else {
+                mucGiamText = `giảm ${formatPrice(giaTriRaw)}`;
+            }
+        } else {
+            mucGiamText = `tiết kiệm ${formatPrice(giamHD)}`;
+        }
+
+        voucherHtml = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f5f5f5;font-family:'Inter',sans-serif;font-size:.88rem">
+            <span style="color:#888;font-weight:600">Voucher</span>
+            <span style="text-align:right">
+                ${tenV ? `<span style="background:#fef3c7;color:#92400e;font-weight:700;padding:2px 8px;border-radius:6px;font-size:.8rem;margin-right:6px">${escHtml(tenV)}</span>` : ""}
+                <span style="color:#dc2626;font-weight:700">−${formatPrice(giamHD)}</span>
+                <div style="font-size:.76rem;color:#aaa;margin-top:2px">${mucGiamText}</div>
+            </span>
+        </div>`;
+    }
+
+    const showDiscount = giamHD > 0;
+    const priceHtml = showDiscount
+        ? `<span style="text-decoration:line-through;color:#bbb;font-size:.85rem;margin-right:6px">${formatPrice(g.thanhTienGoc)}</span><span style="color:#0d9488;font-size:1.1rem;font-weight:800">${formatPrice(g.thanhTien)}</span>`
+        : `<span style="color:#0d9488;font-size:1.1rem;font-weight:800">${formatPrice(g.thanhTien || 0)}</span>`;
+
+    const ticketRows = (g.tickets || []).map(ve => `
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f5;font-size:.88rem;font-family:'Inter',sans-serif">
+            <span>🎟️ ${escHtml(ve.tenVe || ve.loaiVe || "—")} × ${ve.soLuong}</span>
+            <span style="font-weight:700">${formatPrice((ve.gia || 0) * (ve.soLuong || 0))}</span>
+        </div>`).join("");
+
+    const overlay = document.createElement("div");
+    overlay.id = "hoaDonDetailOverlay";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px";
+
+    overlay.innerHTML = `
+        <div style="background:#fff;border-radius:20px;width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.22);overflow:hidden">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:20px 22px 14px;border-bottom:1px solid #f0f0f0;background:#fafafa">
+                <div>
+                    <div style="font-size:1.05rem;font-weight:800;color:#1a1a2e;font-family:'Inter',sans-serif">🧾 Hóa đơn #${g.maHoaDon}</div>
+                    <div style="font-size:.82rem;color:#888;margin-top:3px;font-family:'Inter',sans-serif">📅 ${formatDate(g.ngayMua)}</div>
+                </div>
+                <button id="_hdCloseX" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#aaa;padding:4px 8px;border-radius:8px">✕</button>
+            </div>
+            <div style="flex:1;overflow-y:auto;padding:18px 22px">
+                <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f5;font-family:'Inter',sans-serif;font-size:.88rem">
+                    <span style="color:#888;font-weight:600">Sự kiện</span>
+                    <span style="font-weight:700;text-align:right">${escHtml(g.tenSuKien || "—")}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f5;font-family:'Inter',sans-serif;font-size:.88rem">
+                    <span style="color:#888;font-weight:600">Thời gian</span>
+                    <span style="font-weight:700">${formatDate(g.thoiGianBatDau) || "—"}</span>
+                </div>
+                ${voucherHtml}
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f5f5f5;font-family:'Inter',sans-serif;font-size:.88rem">
+                    <span style="color:#888;font-weight:600">Tổng tiền</span>
+                    <span>${priceHtml}</span>
+                </div>
+                <div style="background:#f8f9fb;border-radius:12px;padding:12px 14px;margin-top:12px">
+                    <div style="font-size:.78rem;font-weight:700;color:#0d9488;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;font-family:'Inter',sans-serif">Chi tiết vé</div>
+                    ${ticketRows}
+                </div>
+            </div>
+            <div style="padding:14px 22px;border-top:1px solid #f0f0f0;background:#fafafa;text-align:right">
+                <button id="_hdCloseBtn" style="padding:9px 24px;border-radius:10px;border:1.5px solid #e0e0e0;background:#fff;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;color:#555">Đóng</button>
+            </div>
+        </div>`;
+
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.querySelector("#_hdCloseX").onclick   = close;
+    overlay.querySelector("#_hdCloseBtn").onclick = close;
+    overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
 };

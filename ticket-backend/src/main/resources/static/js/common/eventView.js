@@ -21,6 +21,9 @@ const EventView = {
                     <div id="org-${sk.maSuKien}" class="card-organizer">
                         <span style="color:#ccc;font-size:0.78rem">🏢 Đang tải...</span>
                     </div>
+                    <div id="venue-${sk.maSuKien}" class="card-organizer">
+                        <span style="color:#ccc;font-size:0.78rem">📍 Đang tải...</span>
+                    </div>
                     <p class="card-event-desc">${escHtml(sk.moTa || "Không có mô tả")}</p>
                     <div class="card-dates">
                         <span class="date-badge">📅 ${formatDate(sk.thoiGianBatDau)}</span>
@@ -43,6 +46,18 @@ const EventView = {
         el.innerHTML = `
             <span style="font-size:.8rem;color:#0d9488;font-weight:600">🏢 ${escHtml(org.tenCongTy || "—")}</span>
             ${org.tenNguoiDaiDien ? `<span style="font-size:.75rem;color:#888"> · ${escHtml(org.tenNguoiDaiDien)}</span>` : ""}`;
+    },
+
+    updateVenueCard(maSuKien, diaDiem) {
+        const el = document.getElementById(`venue-${maSuKien}`);
+        if (!el) return;
+        if (!diaDiem) {
+            el.innerHTML = '';
+            return;
+        }
+        el.innerHTML =
+            `<span style="font-size:.8rem;color:#555;font-weight:600">📍 ${escHtml(diaDiem.tenDiaDiem || "—")}</span>` +
+            (diaDiem.diaChi ? `<span style="font-size:.75rem;color:#888"> · ${escHtml(diaDiem.diaChi)}</span>` : "");
     },
 
     updatePriceStock(maSuKien, tickets) {

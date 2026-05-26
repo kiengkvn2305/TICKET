@@ -140,8 +140,8 @@
   <!-- ===================================================================
        BƯỚC 1 — MODAL CHỌN VÉ
        =================================================================== -->
-  <div id="buyOverlay" class="modal-overlay" onclick="closeBuyModal()"></div>
-  <div id="buyModal" class="modal-box">
+  <div id="buyOverlay" class="modal-overlay" style="display:none" onclick="closeBuyModal()"></div>
+  <div id="buyModal" class="modal-box" style="display:none">
     <button class="modal-close" onclick="closeBuyModal()">✕</button>
     <h2 id="modalEventName" class="modal-event-name"></h2>
     <p  id="modalEventDate" class="modal-event-date"></p>
@@ -882,8 +882,8 @@
   <!-- ===================================================================
        MODAL HOÀN VÉ
        =================================================================== -->
-  <div id="hoanVeOverlay" class="modal-overlay" onclick="closeHoanVeModal()"></div>
-  <div id="hoanVeModal"   class="modal-box">
+  <div id="hoanVeOverlay" class="modal-overlay" style="display:none" onclick="closeHoanVeModal()"></div>
+  <div id="hoanVeModal"   class="modal-box" style="display:none">
     <button class="modal-close" onclick="closeHoanVeModal()">✕</button>
     <h2 class="modal-event-name">🔄 Yêu cầu hoàn vé</h2>
     <p id="hoanVeInfo" class="modal-event-date"></p>
