@@ -114,6 +114,10 @@ function renderEvents(data) {
               <span class="pub-date-icon">🏁</span>
               <span>Kết thúc: <strong>${fmtDate(sk.thoiGianKetThuc)}</strong></span>
             </div>
+            <div class="pub-date-row" id="venue-${sk.maSuKien}">
+              <span class="pub-date-icon">📍</span>
+              <span style="color:#aaa;font-size:.78rem">Đang tải...</span>
+            </div>
           </div>
         </div>
         <div class="pub-card-footer">
@@ -126,8 +130,8 @@ function renderEvents(data) {
       </div>`;
   }).join("");
 
-  // Tải giá vé thấp nhất cho từng sự kiện
-  data.forEach(sk => loadMinPrice(sk.maSuKien));
+  // Tải giá vé thấp nhất + địa điểm cho từng sự kiện
+  data.forEach(sk => { loadMinPrice(sk.maSuKien); loadVenue(sk); });
 }
 
 function loadMinPrice(maSuKien) {
@@ -147,6 +151,35 @@ function loadMinPrice(maSuKien) {
       const el = document.getElementById(`price-${maSuKien}`);
       if (el) el.textContent = "—";
     });
+}
+
+function loadVenue(sk) {
+  const el = document.getElementById(`venue-${sk.maSuKien}`);
+  if (!el) return;
+
+  const render = (dd) => {
+    if (!dd || !dd.tenDiaDiem) { el.style.display = "none"; return; }
+    el.innerHTML =
+      `<span class="pub-date-icon">📍</span>` +
+      `<span>${esc(dd.tenDiaDiem)}${dd.diaChi ? ` · <span style="color:#aaa">${esc(dd.diaChi)}</span>` : ""}</span>`;
+  };
+
+  if (sk.maDiaDiem) {
+    fetch(`${BASE_URL}/diadiem/${sk.maDiaDiem}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(render)
+      .catch(() => { el.style.display = "none"; });
+  } else {
+    fetch(`${BASE_URL}/sukien/${sk.maSuKien}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(detail => {
+        if (!detail?.maDiaDiem) { el.style.display = "none"; return; }
+        return fetch(`${BASE_URL}/diadiem/${detail.maDiaDiem}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(render);
+      })
+      .catch(() => { el.style.display = "none"; });
+  }
 }
 
 function requireLogin() {
