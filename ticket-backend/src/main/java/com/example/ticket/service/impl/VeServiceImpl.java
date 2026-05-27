@@ -81,12 +81,13 @@ public class VeServiceImpl implements VeService {
 
         int sucChua = dd.getSucChua();
         boolean isVip = loaiVe != null && loaiVe.toUpperCase().contains("VIP");
-        String loaiSoDo = dd.getLoaiSoDo() == null ? "HINH_VUONG" : dd.getLoaiSoDo();
+        String loaiSoDo = dd.getLoaiSoDo() == null ? "Hình vuông" : dd.getLoaiSoDo();
+        boolean isCircle = "Hình tròn".equalsIgnoreCase(loaiSoDo);
 
-        int soLuongVip    = sucChua / 10 * 3;
-        int soLuongThuong = sucChua / 10 * 7;
+        int soLuongVip    = isCircle ? sucChua / 10 * 4 : sucChua / 10 * 3;
+        int soLuongThuong = isCircle ? sucChua / 10 * 6 : sucChua / 10 * 7;
 
-        if ("HINH_TRON".equalsIgnoreCase(loaiSoDo)) {
+        if (isCircle) {
             // 4 vị trí mỗi loại → tổng ghế = seatsPerZone * 4
             int seatsPerZone = isVip ? (soLuongVip / 4) : (soLuongThuong / 4);
             return seatsPerZone * 4;

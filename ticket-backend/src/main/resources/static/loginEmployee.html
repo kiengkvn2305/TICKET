@@ -336,41 +336,44 @@
    * Fallback: đọc soLuong vé từ backend, cuối cùng 30/70.
    */
   function _computeSeatCounts() {
-    const state   = window._seatState;
-    const tickets = window._currentTickets || [];
-    const vipT    = tickets.find(t => (t.loaiVe || '').toUpperCase().includes('VIP'));
-    const normT   = tickets.find(t => !(t.loaiVe || '').toUpperCase().includes('VIP'));
-
+    const state    = window._seatState;
     const sucChua  = window._currentSucChua  ?? null;
     const loaiSoDo = window._currentLoaiSoDo ?? '';
     const isCircle = loaiSoDo.toUpperCase().includes('TRON')
                   || loaiSoDo.toUpperCase().includes('TRÒN')
                   || loaiSoDo.toUpperCase() === 'CIRCLE';
 
+    const vipZones  = isCircle ? 4 : 3;
+    const normZones = isCircle ? 4 : 3;
+
     let vipTotal, normTotal;
+
+    // Ưu tiên 1: sucChua từ địa điểm — nguồn đáng tin nhất
     if (sucChua != null && sucChua > 0) {
-      if (isCircle) {
-        vipTotal  = Math.floor(sucChua / 10 * 4);
-        normTotal = Math.floor(sucChua / 10 * 6);
-      } else {
-        vipTotal  = Math.floor(sucChua / 10 * 3);
-        normTotal = Math.floor(sucChua / 10 * 7);
-      }
-    } else {
+      vipTotal  = isCircle ? Math.floor(sucChua / 10 * 4) : Math.floor(sucChua / 10 * 3);
+      normTotal = isCircle ? Math.floor(sucChua / 10 * 6) : Math.floor(sucChua / 10 * 7);
+    }
+    // Ưu tiên 2: soLuong từ _currentTickets — chỉ tin khi soLuong > 1
+    // (tránh nhầm với dữ liệu per-ghế có soLuong=1 mỗi item)
+    else {
+      const tickets = (window._currentTickets || []).filter(t => (t.soLuong || 0) > 1);
+      const vipT  = tickets.find(t => (t.loaiVe || '').toUpperCase().includes('VIP'));
+      const normT = tickets.find(t => {
+        const l = (t.loaiVe || '').toUpperCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return !l.includes('VIP') && l !== '';
+      });
       vipTotal  = vipT  ? (vipT.soLuong  || 30) : 30;
       normTotal = normT ? (normT.soLuong || 70) : 70;
     }
-
-    const vipZones  = isCircle ? 4 : 3;
-    const normZones = isCircle ? 4 : 3;
 
     state.seatsPerBlock = {
       vip:    Math.max(1, Math.floor(vipTotal  / vipZones)),
       normal: Math.max(1, Math.floor(normTotal / normZones)),
     };
     state.seatsPerZone = {
-      vip:    Math.max(1, Math.floor(vipTotal  / 4)),
-      normal: Math.max(1, Math.floor(normTotal / 4)),
+      vip:    Math.max(1, Math.floor(vipTotal  / vipZones)),   // fix: dùng vipZones thay vì hardcode 4
+      normal: Math.max(1, Math.floor(normTotal / normZones)),  // fix: dùng normZones thay vì hardcode 4
     };
     state.totalByType = { vip: vipTotal, normal: normTotal };
   }
@@ -1158,6 +1161,7 @@
 
 
   <script src="js/common/sessionGuard.js"></script>
+  <script src="js/common/seatHoldPatch.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </body>
 </html>

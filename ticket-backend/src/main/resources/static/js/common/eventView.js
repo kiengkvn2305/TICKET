@@ -165,14 +165,14 @@ const EventView = {
             const conLai  = ve.conLai  ?? null;
             const soLuong = ve.soLuong ?? null;
             const daBan   = ve.daBan   ?? null;
-            // sucChua là sức chứa tổng địa điểm — dùng làm mẫu số cho progress bar nếu soLuong null
-            const capacity = soLuong ?? sucChua ?? null;
+            // capacity = soLuong của loại vé này (KHÔNG dùng sucChua toàn sân làm capacity từng khu)
+            const capacity = soLuong ?? null;
             const pct     = capacity != null && capacity > 0 && daBan != null ? Math.round((daBan / capacity) * 100) : null;
             const lowStock = conLai != null && conLai > 0 && conLai <= 10;
             const soldOut  = conLai != null && conLai === 0 && capacity != null && capacity > 0;
             const dis = soldOut ? "disabled" : "";
-            // max số lượng mua = conLai nếu có, ngược lại giới hạn bởi sucChua, cuối cùng fallback 9999
-            const max = conLai ?? sucChua ?? 9999;
+            // max số lượng mua: ưu tiên conLai → soLuong của khu → fallback 9999
+            const max = conLai ?? soLuong ?? 9999;
 
             return `
             <div class="modal-ticket-row" style="${soldOut ? "opacity:.65" : ""}">

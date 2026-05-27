@@ -110,6 +110,11 @@ function openBuyModal(maSuKien) {
     const sk = allEvents.find(e => e.maSuKien === maSuKien);
     if (!sk) return;
     currentEvent = sk;
+    window._currentMaSuKien = maSuKien;   // expose để seatHoldPatch đọc
+
+    // Nếu đang có session giữ vé còn hạn cho sự kiện này → restore thẳng vào voucher modal
+    if (window._seatHoldTryRestore && window._seatHoldTryRestore(maSuKien)) return;
+
     CartModel.reset();
     EventView.openBuyModal(sk);
 
@@ -230,6 +235,7 @@ function _proceedToVoucherModal() {
 }
 
 function closeVoucherModal() {
+    // seatHoldPatch sẽ wrap hàm này — chỉ cần đóng UI ở đây
     const overlay = document.getElementById("voucherOverlay");
     const modal   = document.getElementById("voucherModal");
     modal.classList.remove("open");
@@ -237,6 +243,15 @@ function closeVoucherModal() {
         overlay.style.display = "none";
         modal.style.display   = "none";
     }, 220);
+}
+
+/** Quay lại từ voucherModal: hủy giữ vé rồi đóng. */
+function closeVoucherModalBack() {
+    if (typeof window.seatHoldGoBack === 'function') {
+        window.seatHoldGoBack('closeVoucherModal');
+    } else {
+        closeVoucherModal();
+    }
 }
 
 function finalConfirmBuy() { confirmBuy(); }
@@ -333,3 +348,5 @@ function confirmBuy() {
         if (btn) { btn.disabled = false; btn.textContent = "Thanh toán"; }
     });
 }
+
+

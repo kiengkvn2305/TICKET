@@ -616,18 +616,11 @@
    * Sơ đồ chữ nhật: VIP chia 3 khu (A-C); Thường chia 3 khu (D-F)
    */
   function _computeSeatCounts() {
-    const state   = window._seatState;
-    const tickets = window._currentTickets || [];
-    const VIPT  = tickets.find(t => (t.loaiVe || '').toUpperCase().includes('VIP'));
-    const normT = tickets.find(t => {
-      const l = (t.loaiVe || '').toUpperCase();
-      return l === 'THƯỜNG' || l === 'THUONG' || l === 'NORMAL' || (!l.includes('VIP') && l !== '');
-    });
-
+    const state    = window._seatState;
     const sucChua  = window._currentSucChua  ?? null;
     const loaiSoDo = window._currentLoaiSoDo ?? '';
-    const isCircle = loaiSoDo.toUpperCase().includes('TRON')
-                  || loaiSoDo.toUpperCase().includes('TRÒN')
+    const isCircle = loaiSoDo.toUpperCase().includes('TRÒN')
+                  || loaiSoDo.toUpperCase().includes('TRON')
                   || loaiSoDo.toUpperCase() === 'CIRCLE';
 
     const vipZones  = isCircle ? 4 : 3;
@@ -635,33 +628,42 @@
 
     let vipTotal, normTotal, source;
 
-    // Ưu tiên 1: soLuong thực tế từ backend
-    if (VIPT && normT && (VIPT.soLuong > 0 || normT.soLuong > 0)) {
-      vipTotal  = VIPT.soLuong  || 0;
-      normTotal = normT.soLuong || 0;
-      source = 'backend';
-    } else if (VIPT && VIPT.soLuong > 0) {
-      vipTotal  = VIPT.soLuong;
-      normTotal = isCircle ? Math.round(vipTotal / 4 * 6) : Math.round(vipTotal / 3 * 7);
-      source = 'backend-vip-only';
-    } else if (normT && normT.soLuong > 0) {
-      normTotal = normT.soLuong;
-      vipTotal  = isCircle ? Math.round(normTotal / 6 * 4) : Math.round(normTotal / 7 * 3);
-      source = 'backend-norm-only';
-    }
-    // Ưu tiên 2: công thức sucChua
-    else if (sucChua != null && sucChua > 0) {
+    // Ưu tiên 1: sucChua từ địa điểm — nguồn đáng tin nhất về tổng sức chứa
+    if (sucChua != null && sucChua > 0) {
       vipTotal  = isCircle ? Math.floor(sucChua / 10 * 4) : Math.floor(sucChua / 10 * 3);
       normTotal = isCircle ? Math.floor(sucChua / 10 * 6) : Math.floor(sucChua / 10 * 7);
       source = 'succhua';
     }
-    // Fallback
+    // Ưu tiên 2: soLuong từ _currentTickets — chỉ tin khi soLuong > 1
+    // (tránh nhầm với dữ liệu per-ghế từ /ve?maSuKien= có soLuong=1 mỗi item)
     else {
-      vipTotal  = 30;
-      normTotal = 70;
-      source = 'fallback';
+      const tickets = (window._currentTickets || []).filter(t => (t.soLuong || 0) > 1);
+      const VIPT  = tickets.find(t => (t.loaiVe || '').toUpperCase().includes('VIP'));
+      const normT = tickets.find(t => {
+        const l = (t.loaiVe || '').toUpperCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return !l.includes('VIP') && l !== '';
+      });
+      if (VIPT && normT) {
+        vipTotal  = VIPT.soLuong;
+        normTotal = normT.soLuong;
+        source = 'backend';
+      } else if (VIPT) {
+        vipTotal  = VIPT.soLuong;
+        normTotal = isCircle ? Math.round(vipTotal / 4 * 6) : Math.round(vipTotal / 3 * 7);
+        source = 'backend-vip-only';
+      } else if (normT) {
+        normTotal = normT.soLuong;
+        vipTotal  = isCircle ? Math.round(normTotal / 6 * 4) : Math.round(normTotal / 7 * 3);
+        source = 'backend-norm-only';
+      } else {
+        vipTotal  = 30;
+        normTotal = 70;
+        source = 'fallback';
+      }
     }
-
+    console.log(`vipTotal = ${vipTotal}`);
+    console.log(`normalTotal = ${normTotal}`);
     console.log(`[SeatMap] Tính ghế (${source}): VIP=${vipTotal}, Thường=${normTotal}, Circle=${isCircle}`);
 
     state.seatsPerBlock = {
@@ -1190,6 +1192,11 @@
     const switcher = document.getElementById('layoutSwitcher');
     if (switcher) switcher.style.display = 'none';
 
+    // ── Đảm bảo _currentLoaiSoDo luôn đúng TRƯỚC khi tính ghế ────────
+    // _computeSeatCounts() đọc window._currentLoaiSoDo để biết circle hay rect.
+    // Nếu không sync ở đây, nó có thể đọc giá trị cũ → tính sai tỉ lệ.
+    if (rawLoai) window._currentLoaiSoDo = rawLoai;
+
     // Tính số ghế mỗi vị trí từ soLuong vé hiện tại
     _computeSeatCounts();
 
@@ -1297,18 +1304,43 @@
 </div>
 
   <!-- ===== MODAL QR THANH TOÁN ===== -->
-  <div id="qrPayOverlay" class="modal-overlay" style="display:none" onclick="closeQRPayModal()"></div>
-  <div id="qrPayModal" class="modal-box" style="display:none;max-width:400px">
-    <button class="modal-close" onclick="closeQRPayModal()">✕</button>
-    <h2 class="modal-event-name" style="text-align:center;margin-bottom:15px">📱 Quét mã thanh toán</h2>
-    <div style="text-align:center; padding: 15px 0;">
-      <img id="qrPayImg" src="" alt="QR Code" style="width:250px; border-radius:10px; border:1px solid #ddd; margin-bottom: 10px; display:inline-block">
-      <p style="font-size:1.15rem; color:#dc2626; font-weight:bold" id="qrPayTotal">0 ₫</p>
-      <p style="font-size:0.9rem; color:#666">Mở ứng dụng ngân hàng để quét mã QR</p>
+  <!-- Overlay nằm trên mọi thứ (z-index 9998) -->
+  <div id="qrPayOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:9998" onclick="closeQRPayModal()"></div>
+  <!-- Modal nằm trên overlay (z-index 9999) -->
+  <div id="qrPayModal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:#fff;border-radius:20px;padding:28px 24px 22px;max-width:420px;width:92vw;box-shadow:0 24px 60px rgba(0,0,0,.24);max-height:92vh;overflow-y:auto">
+    <button onclick="closeQRPayModal()" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.35rem;cursor:pointer;color:#888;line-height:1">✕</button>
+
+    <h2 style="text-align:center;font-size:1.15rem;font-weight:800;margin:0 0 4px;color:#1a1a2e">📱 Quét mã thanh toán</h2>
+    <p style="text-align:center;font-size:.8rem;color:#888;margin:0 0 14px">Mở ứng dụng ngân hàng và quét mã QR bên dưới</p>
+
+    <!-- Slot cho đồng hồ đếm ngược từ seatHoldPatch -->
+    <div id="qrTimerSlot" style="display:flex;justify-content:center;margin-bottom:12px"></div>
+
+    <!-- Ảnh QR -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div style="padding:10px;background:#f8f9fa;border-radius:16px;border:1.5px solid #e5e7eb">
+        <img id="qrPayImg" src="" alt="QR Code"
+             style="width:220px;height:220px;border-radius:10px;display:block;object-fit:contain">
+      </div>
+
+      <div style="background:#fff5f5;border:1.5px solid #fecaca;border-radius:12px;padding:10px 28px;text-align:center">
+        <div style="font-size:.74rem;color:#888;margin-bottom:2px">Số tiền cần thanh toán</div>
+        <div id="qrPayTotal" style="font-size:1.4rem;font-weight:800;color:#dc2626">0 ₫</div>
+      </div>
+
+      <!-- Thông tin chuyển khoản (controller có thể điền vào) -->
+      <div id="qrBankInfo" style="display:none;width:100%;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:10px 14px;font-size:.82rem;color:#166534;line-height:1.7"></div>
     </div>
-    <div id="qrPayMsg" class="buy-msg"></div>
-    <div style="text-align:center; margin-top:10px;">
-      <button class="confirm-buy-btn" id="confirmAfterQRBtn" onclick="confirmAfterQR()">
+
+    <div id="qrPayMsg" class="buy-msg" style="margin-top:10px"></div>
+
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="closeQRPayModal()"
+              style="flex:1;padding:11px 0;border-radius:12px;border:1.5px solid #e5e7eb;background:#f9fafb;color:#555;font-weight:600;font-size:.9rem;cursor:pointer">
+        ← Quay lại
+      </button>
+      <button id="confirmAfterQRBtn" onclick="confirmAfterQR()"
+              style="flex:2;padding:11px 0;border-radius:12px;border:none;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;font-size:.9rem;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,.35)">
         ✅ Đã thanh toán
       </button>
     </div>
@@ -1596,6 +1628,126 @@
   </script>
   
 <script src="js/common/sessionGuard.js"></script>
+<script src="js/common/seatHoldPatch.js"></script>
 
+  <!-- ===== PATCH: Đảm bảo QR modal luôn hiển thị đúng ===== -->
+  <script>
+  (function() {
+    'use strict';
+
+    /* ─── openQRPayModal: đóng voucher modal trước, rồi mở QR ─── */
+    function _openQRPayModal(qrSrc, totalText, bankInfoHtml) {
+      // Đóng tất cả modal đang mở phía dưới
+      var ids = ['voucherOverlay','voucherModal','buyOverlay','buyModal','seatOverlay','seatModal'];
+      ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+
+      // Điền dữ liệu
+      var img   = document.getElementById('qrPayImg');
+      var total = document.getElementById('qrPayTotal');
+      var info  = document.getElementById('qrBankInfo');
+      var msg   = document.getElementById('qrPayMsg');
+
+      if (img)   { img.src = qrSrc || ''; }
+      if (total) { total.textContent = totalText || '0 ₫'; }
+      if (msg)   { msg.textContent = ''; }
+
+      if (info) {
+        if (bankInfoHtml) {
+          info.innerHTML = bankInfoHtml;
+          info.style.display = 'block';
+        } else {
+          info.style.display = 'none';
+        }
+      }
+
+      // Hiện overlay + modal
+      var overlay = document.getElementById('qrPayOverlay');
+      var modal   = document.getElementById('qrPayModal');
+      if (overlay) overlay.style.display = 'block';
+      if (modal)   modal.style.display   = 'block';
+    }
+
+    /* ─── closeQRPayModal (nếu controller chưa định nghĩa) ─── */
+    function _closeQRPayModal() {
+      var overlay = document.getElementById('qrPayOverlay');
+      var modal   = document.getElementById('qrPayModal');
+      if (overlay) overlay.style.display = 'none';
+      if (modal)   modal.style.display   = 'none';
+    }
+
+    /* ─── Hook vào controller sau khi load xong ─── */
+    window.addEventListener('DOMContentLoaded', function() {
+      // Đợi controller load xong
+      setTimeout(function() {
+
+        // 1) Nếu controller đã có openQRPayModal → wrap thêm đảm bảo đóng voucher trước
+        if (typeof window.openQRPayModal === 'function') {
+          var _origOpen = window.openQRPayModal;
+          window.openQRPayModal = function() {
+            // Đóng voucher trước
+            var vo = document.getElementById('voucherOverlay');
+            var vm = document.getElementById('voucherModal');
+            if (vo) vo.style.display = 'none';
+            if (vm) vm.style.display = 'none';
+            return _origOpen.apply(this, arguments);
+          };
+        } else {
+          // Controller không có → expose để finalConfirmBuy có thể gọi
+          window.openQRPayModal = _openQRPayModal;
+        }
+
+        // 2) Nếu controller chưa có closeQRPayModal → expose
+        if (typeof window.closeQRPayModal !== 'function') {
+          window.closeQRPayModal = _closeQRPayModal;
+        } else {
+          // Wrap để đảm bảo elements bị ẩn
+          var _origClose = window.closeQRPayModal;
+          window.closeQRPayModal = function() {
+            _closeQRPayModal();
+            return _origClose.apply(this, arguments);
+          };
+        }
+
+        // 3) Nếu controller không có confirmAfterQR → tạo fallback đơn giản
+        if (typeof window.confirmAfterQR !== 'function') {
+          window.confirmAfterQR = function() {
+            var msg = document.getElementById('qrPayMsg');
+            if (msg) {
+              msg.style.color = '#16a34a';
+              msg.textContent = '✅ Cảm ơn bạn đã thanh toán! Vé sẽ được xác nhận sớm.';
+            }
+            setTimeout(function() {
+              _closeQRPayModal();
+              if (typeof window.CartModel !== 'undefined' && window.CartModel.reset) {
+                window.CartModel.reset();
+              }
+            }, 1800);
+          };
+        }
+
+        // 4) Wrap finalConfirmBuy: nếu controller gọi openQRPayModal bên trong
+        //    thì việc wrapper openQRPayModal ở trên đã đủ.
+        //    Nếu finalConfirmBuy KHÔNG gọi openQRPayModal (chỉ gọi alert/redirect)
+        //    → ta wrap thêm để bắt trường hợp đó.
+        if (typeof window.finalConfirmBuy === 'function') {
+          var _origFCB = window.finalConfirmBuy;
+          window.finalConfirmBuy = function() {
+            // Đóng voucher trước khi controller chạy
+            var vo = document.getElementById('voucherOverlay');
+            var vm = document.getElementById('voucherModal');
+            if (vo) vo.style.display = 'none';
+            if (vm) vm.style.display = 'none';
+            return _origFCB.apply(this, arguments);
+          };
+        }
+
+        console.log('[qrPayFix] ✅ QR modal patch đã kích hoạt');
+      }, 300);
+    });
+  })();
+  </script>
 </body>
 </html>

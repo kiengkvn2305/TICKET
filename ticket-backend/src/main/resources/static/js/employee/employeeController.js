@@ -96,8 +96,13 @@ function openBuyModal(maSuKien) {
     const sk = allEvents.find(e => e.maSuKien === maSuKien);
     if (!sk) return;
     currentEvent = sk;
+    window._currentMaSuKien  = maSuKien;   // expose để seatHoldPatch đọc
     // Lưu toàn bộ object sự kiện để seat map đọc maDiaDiem → loaiSoDo
     window._currentEventData = sk;
+
+    // Nếu đang có session giữ vé còn hạn cho sự kiện này → restore thẳng vào voucher modal
+    if (window._seatHoldTryRestore && window._seatHoldTryRestore(maSuKien)) return;
+
     CartModel.reset();
     EventView.openBuyModal(sk);
 
@@ -246,6 +251,15 @@ function closeVoucherModal() {
     }, 220);
 }
 
+/** Quay lại từ voucherModal: hủy giữ vé rồi đóng. */
+function closeVoucherModalBack() {
+    if (typeof window.seatHoldGoBack === 'function') {
+        window.seatHoldGoBack('closeVoucherModal');
+    } else {
+        closeVoucherModal();
+    }
+}
+
 function filterVoucherList() {
     const kw = document.getElementById("voucherInput").value.trim().toLowerCase();
     const filtered = allVouchersForEvent.filter(v => v.maCode.toLowerCase().includes(kw));
@@ -283,8 +297,10 @@ function applyVoucher() {
 
 // ── BƯỚC 4: XÁC NHẬN → MỞ THANH TOÁN ───────────────────
 function finalConfirmBuy() {
+    // Đánh dấu đây là chuyển bước hợp lệ (không phải dismiss)
+    // nên seatHoldPatch không hủy hold khi closeVoucherModal chạy
+    if (typeof window._seatHoldSetReason === 'function') window._seatHoldSetReason('proceed');
     closeVoucherModal();
-    // Cập nhật finalTotal trước khi mở modal thanh toán
     finalTotal = CartModel.getTotal();
     _openPaymentModal();
 }
@@ -311,6 +327,15 @@ function closePaymentModal() {
         modal.style.display   = "none";
         overlay.style.display = "none";
     }, 220);
+}
+
+/** Quay lại từ paymentModal: hủy giữ vé rồi đóng. */
+function closePaymentModalBack() {
+    if (typeof window.seatHoldGoBack === 'function') {
+        window.seatHoldGoBack('closePaymentModal');
+    } else {
+        closePaymentModal();
+    }
 }
 
 // ── BƯỚC 5: CHỌN PHƯƠNG THỨC & THANH TOÁN ───────────────
