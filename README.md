@@ -44,13 +44,13 @@
 ## KẾ HOẠCH DỰ ÁN
 - ***Công tác chuẩn bị***
     ```
-    Xác định đề tài(2 Ngày)
+    Xác định đề tài
     ```
     ```
-    Khảo sát hiện trạng(3 Ngày)
+    Khảo sát hiện trạng
     ```
     ```
-    Xác định yêu cầu(2 Ngày)
+    Xác định yêu cầu
     ```
 - ***Phân tích yêu cầu*** 
     ```
