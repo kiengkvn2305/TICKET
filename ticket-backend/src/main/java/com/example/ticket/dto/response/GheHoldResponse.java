@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public class GheHoldResponse {
 
-    private String  soThuTu;
+    private String  khuVuc;
     private Long    maSuKien;
     private Long    maTaiKhoan;
 
@@ -19,9 +19,9 @@ public class GheHoldResponse {
 
     public GheHoldResponse() {}
 
-    public GheHoldResponse(String soThuTu, Long maSuKien, Long maTaiKhoan,
+    public GheHoldResponse(String khuVuc, Long maSuKien, Long maTaiKhoan,
                            String trangThai, LocalDateTime thoiGianHetHan) {
-        this.soThuTu        = soThuTu;
+        this.khuVuc        = khuVuc;
         this.maSuKien       = maSuKien;
         this.maTaiKhoan     = maTaiKhoan;
         this.trangThai      = trangThai;
@@ -31,7 +31,7 @@ public class GheHoldResponse {
                 : -1;
     }
 
-    public String  getSoThuTu()                    { return soThuTu; }
+    public String  getKhuVuc()                    { return khuVuc; }
     public Long    getMaSuKien()                   { return maSuKien; }
     public Long    getMaTaiKhoan()                 { return maTaiKhoan; }
     public String  getTrangThai()                  { return trangThai; }

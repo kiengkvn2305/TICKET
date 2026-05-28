@@ -204,7 +204,7 @@ function _loadBookedSeatsAndOpenMap(eventName, eventDate, totalQty) {
     apiFetch(`/ghe/sukien/${currentEvent.maSuKien}`)
         .then(bookedSeats => {
             // bookedSeats: [{ khuVuc:"A1", maVe:5, trangThai:"da_dat", ... }]
-            // Backend Ghe entity dùng field "khuVuc" (không phải "soThuTu")
+            // Backend Ghe entity dùng field "khuVuc" (không phải "khuVuc")
             const bookedSet = new Set(
                 bookedSeats.map(g => g.khuVuc).filter(Boolean)
             );

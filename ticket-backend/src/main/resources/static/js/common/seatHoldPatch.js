@@ -35,10 +35,10 @@
     //  STATE
     // ══════════════════════════════════════════════════════════════════
 
-    /** soThuTu mà user NÀY đang giữ trong phiên hiện tại. */
+    /** khuVuc mà user NÀY đang giữ trong phiên hiện tại. */
     const _myHeldSeats = new Set();
 
-    /** soThuTu đang bị người KHÁC giữ (fetch khi mở modal). */
+    /** khuVuc đang bị người KHÁC giữ (fetch khi mở modal). */
     let _othersHeldSeats = new Set();
 
     /** Trạng thái: đã confirm chọn ghế (đang trong luồng thanh toán). */
@@ -69,11 +69,11 @@
     }
 
     /**
-     * Chuyển internal seat ID → soThuTu gửi lên backend.
+     * Chuyển internal seat ID → khuVuc gửi lên backend.
      * Rect layout:  "R_A1" → rawId "A1"
      * Circle layout: "A1"  → "A1"
      */
-    function _toSoThuTu(internalId) {
+    function _toKhuVuc(internalId) {
         if (!internalId) return internalId;
         const state = window._seatState;
         if (internalId.startsWith('R_') && state?.seats) {
@@ -88,20 +88,20 @@
     //  HOLD / UNHOLD API
     // ══════════════════════════════════════════════════════════════════
 
-    function _holdSeat(soThuTu) {
+    function _holdSeat(khuVuc) {
         const maSuKien = _currentMaSuKien();
         const user     = _currentUser();
         if (!maSuKien || !user) return;
-        _myHeldSeats.add(soThuTu);
-        _apiPut(`/ghe/giu?maSuKien=${maSuKien}&soThuTu=${encodeURIComponent(soThuTu)}&maTaiKhoan=${user.maTaiKhoan}`);
+        _myHeldSeats.add(khuVuc);
+        _apiPut(`/ghe/giu?maSuKien=${maSuKien}&khuVuc=${encodeURIComponent(khuVuc)}&maTaiKhoan=${user.maTaiKhoan}`);
     }
 
-    function _unholdSeat(soThuTu) {
+    function _unholdSeat(khuVuc) {
         const maSuKien = _currentMaSuKien();
         const user     = _currentUser();
         if (!maSuKien || !user) return;
-        _myHeldSeats.delete(soThuTu);
-        _apiPut(`/ghe/huy-giu?maSuKien=${maSuKien}&soThuTu=${encodeURIComponent(soThuTu)}&maTaiKhoan=${user.maTaiKhoan}`);
+        _myHeldSeats.delete(khuVuc);
+        _apiPut(`/ghe/huy-giu?maSuKien=${maSuKien}&khuVuc=${encodeURIComponent(khuVuc)}&maTaiKhoan=${user.maTaiKhoan}`);
     }
 
     function _unholdAll() {
@@ -117,8 +117,8 @@
     function _diffAndSync(before, after) {
         const added   = [...after].filter(id => !before.has(id));
         const removed = [...before].filter(id => !after.has(id));
-        added.forEach(id   => _holdSeat(_toSoThuTu(id)));
-        removed.forEach(id => _unholdSeat(_toSoThuTu(id)));
+        added.forEach(id   => _holdSeat(_toKhuVuc(id)));
+        removed.forEach(id => _unholdSeat(_toKhuVuc(id)));
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -698,9 +698,9 @@
         const maSuKien = _currentMaSuKien();
         const user     = _currentUser();
         if (!maSuKien || !user) return;
-        _myHeldSeats.forEach(soThuTu => {
+        _myHeldSeats.forEach(khuVuc => {
             navigator.sendBeacon(
-                `${BASE}/ghe/huy-giu?maSuKien=${maSuKien}&soThuTu=${encodeURIComponent(soThuTu)}&maTaiKhoan=${user.maTaiKhoan}`
+                `${BASE}/ghe/huy-giu?maSuKien=${maSuKien}&khuVuc=${encodeURIComponent(khuVuc)}&maTaiKhoan=${user.maTaiKhoan}`
             );
         });
     });

@@ -59,37 +59,37 @@ public class GheController {
     /**
      * Giữ ghế trước khi thanh toán (tối đa 10 phút).
      *
-     * PUT /api/ghe/giu?maSuKien=5&soThuTu=A1&maTaiKhoan=123
+     * PUT /api/ghe/giu?maSuKien=5&khuVuc=A1&maTaiKhoan=123
      *
-     * Response: { soThuTu, maSuKien, maTaiKhoan, trangThai:"DANG_GIU",
+     * Response: { khuVuc, maSuKien, maTaiKhoan, trangThai:"DANG_GIU",
      *             thoiGianHetHan, giayConLai }
      * Lỗi 400 : ghế đang bị người khác giữ.
      */
     @PutMapping("/giu")
     public ResponseEntity<GheHoldResponse> giuGhe(
             @RequestParam Long   maSuKien,
-            @RequestParam String soThuTu,
+            @RequestParam String khuVuc,
             @RequestParam Long   maTaiKhoan) {
-        return ResponseEntity.ok(gheService.giuGhe(maSuKien, soThuTu, maTaiKhoan));
+        return ResponseEntity.ok(gheService.giuGhe(maSuKien, khuVuc, maTaiKhoan));
     }
 
     /**
      * Hủy giữ ghế (khách bấm hủy / đóng modal).
      *
-     * PUT /api/ghe/huy-giu?maSuKien=5&soThuTu=A1&maTaiKhoan=123
+     * PUT /api/ghe/huy-giu?maSuKien=5&khuVuc=A1&maTaiKhoan=123
      *
-     * Response: { soThuTu, maSuKien, maTaiKhoan, trangThai:"TRONG", ... }
+     * Response: { khuVuc, maSuKien, maTaiKhoan, trangThai:"TRONG", ... }
      */
     @PutMapping("/huy-giu")
     public ResponseEntity<GheHoldResponse> huyGiuGhe(
             @RequestParam Long   maSuKien,
-            @RequestParam String soThuTu,
+            @RequestParam String khuVuc,
             @RequestParam Long   maTaiKhoan) {
-        return ResponseEntity.ok(gheService.huyGiuGhe(maSuKien, soThuTu, maTaiKhoan));
+        return ResponseEntity.ok(gheService.huyGiuGhe(maSuKien, khuVuc, maTaiKhoan));
     }
 
     /**
-     * Danh sách soThuTu đang bị giữ trong sự kiện.
+     * Danh sách khuVuc đang bị giữ trong sự kiện.
      * Frontend merge vào bookedSet để tô màu trên sơ đồ ghế.
      *
      * GET /api/ghe/dang-giu?maSuKien=5

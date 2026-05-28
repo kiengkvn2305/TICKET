@@ -20,24 +20,24 @@ public class GheServiceImpl implements GheService {
     // ── giữ ghế ───────────────────────────────────────────────────────────────
 
     /**
-     * Giữ ghế theo soThuTu (không cần ghế tồn tại trong DB).
+     * Giữ ghế theo khuVuc (không cần ghế tồn tại trong DB).
      *
      * Logic:
      *  1. Ghế đang bị người KHÁC giữ (còn hạn) → ném lỗi 400
      *  2. Còn lại (trống / chính mình đang giữ) → ghi / gia hạn hold
      */
     @Override
-    public GheHoldResponse giuGhe(Long maSuKien, String soThuTu, Long maTaiKhoan) {
-        if (holdRegistry.isDangGiuBoiNguoiKhac(maSuKien, soThuTu, maTaiKhoan)) {
+    public GheHoldResponse giuGhe(Long maSuKien, String khuVuc, Long maTaiKhoan) {
+        if (holdRegistry.isDangGiuBoiNguoiKhac(maSuKien, khuVuc, maTaiKhoan)) {
             throw new BadRequestException(
-                    "Ghế " + soThuTu + " đang được khách khác giữ, vui lòng chọn ghế khác");
+                    "Ghế " + khuVuc + " đang được khách khác giữ, vui lòng chọn ghế khác");
         }
 
-        holdRegistry.giuGhe(maSuKien, soThuTu, maTaiKhoan);
+        holdRegistry.giuGhe(maSuKien, khuVuc, maTaiKhoan);
 
-        GheHoldRegistry.HoldInfo info = holdRegistry.getHoldInfo(maSuKien, soThuTu);
+        GheHoldRegistry.HoldInfo info = holdRegistry.getHoldInfo(maSuKien, khuVuc);
         return new GheHoldResponse(
-                soThuTu, maSuKien, maTaiKhoan,
+                khuVuc, maSuKien, maTaiKhoan,
                 "DANG_GIU",
                 info != null ? info.hetHan() : null
         );
@@ -46,15 +46,15 @@ public class GheServiceImpl implements GheService {
     // ── hủy giữ ghế ──────────────────────────────────────────────────────────
 
     @Override
-    public GheHoldResponse huyGiuGhe(Long maSuKien, String soThuTu, Long maTaiKhoan) {
-        holdRegistry.huyGiu(maSuKien, soThuTu);
-        return new GheHoldResponse(soThuTu, maSuKien, maTaiKhoan, "TRONG", null);
+    public GheHoldResponse huyGiuGhe(Long maSuKien, String khuVuc, Long maTaiKhoan) {
+        holdRegistry.huyGiu(maSuKien, khuVuc);
+        return new GheHoldResponse(khuVuc, maSuKien, maTaiKhoan, "TRONG", null);
     }
 
     // ── query ─────────────────────────────────────────────────────────────────
 
     /**
-     * Trả Set<String> gồm các soThuTu ("A1", "B3"...) đang bị giữ trong sự kiện.
+     * Trả Set<String> gồm các khuVuc ("A1", "B3"...) đang bị giữ trong sự kiện.
      * Frontend dùng trực tiếp để merge vào bookedSet khi render sơ đồ.
      */
     @Override
