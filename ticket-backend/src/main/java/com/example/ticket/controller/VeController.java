@@ -1,13 +1,24 @@
 package com.example.ticket.controller;
 
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.ticket.dto.request.VeRequest;
 import com.example.ticket.dto.response.VeResponse;
 import com.example.ticket.service.VeService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -69,5 +80,18 @@ public class VeController {
             @RequestParam String loaiVe) {
         boolean exists = veService.checkLoaiVeExists(maSuKien, loaiVe);
         return ResponseEntity.ok(Map.of("exists", exists));
+    }
+
+    /**
+     * Giảm số vé còn lại khi mua thành công.
+     * Gọi từ frontend sau khi OrderService.purchase / hoadon/nhanvien/mua thành công.
+     * PATCH /api/ve/{id}/decrease-daban?soLuong=N
+     */
+    @PatchMapping("/{id}/decrease-daban")
+    public ResponseEntity<Void> decreaseDaBan(
+            @PathVariable Long id,
+            @RequestParam int soLuong) {
+        veService.decreaseDaBan(id, soLuong);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -237,6 +237,20 @@ public class HoaDonServiceImpl implements HoaDonService {
             gheRepository.save(ghe);
         }
 
+        // ── Tặng voucher loyalty sau mua ──────────────────────────────────────
+        // Điều kiện: khách đã mua tổng cộng >= 20 vé (tính cả đơn vừa mua)
+        // - Lần đầu đạt ngưỡng hoặc chưa có voucher LOYALTY active: giảm 10%
+        // - Những lần sau (đã từng có LOYALTY): giảm 5%
+        if (kh.getMaKhachHang() != null) {
+            try {
+                tangVoucherLoyalty(kh.getMaKhachHang(), saved, tongSoLuong);
+            } catch (Exception e) {
+                // Không để lỗi tặng voucher ảnh hưởng đến giao dịch chính
+                org.slf4j.LoggerFactory.getLogger(getClass())
+                    .warn("[Loyalty] Lỗi tặng voucher cho khách {}: {}", kh.getMaKhachHang(), e.getMessage());
+            }
+        }
+
         MuaVeResponse response = new MuaVeResponse();
         response.setMaHoaDon(saved.getMaHoaDon());
         response.setNgayLap(saved.getNgayLap());
@@ -402,5 +416,75 @@ public class HoaDonServiceImpl implements HoaDonService {
             case "approved" -> 1;
             default         -> 0;
         };
+    }
+
+    // ── Tặng voucher loyalty ──────────────────────────────────────────────────
+    /**
+     * Gọi sau mỗi lần mua thành công.
+     * Tính tổng vé đã mua của khách (gồm cả đơn vừa mua).
+     * Nếu >= 20 → tặng 1 voucher cho lần mua tiếp:
+     *   - Chưa từng có LOYALTY active  → giảm 10% (lần đầu)
+     *   - Đã từng có LOYALTY           → giảm  5% (các lần sau)
+     */
+    private void tangVoucherLoyalty(Long maKhachHang, HoaDon hoaDonVuaMua, int soVeVuaMua) {
+        final int    NGUONG          = 20;
+        final double GIAM_LAN_DAU    = 10.0;
+        final double GIAM_LAN_SAU    = 5.0;
+        final int    HAN_NGAY        = 30;
+        final String PREFIX          = "LOYALTY_" + maKhachHang + "_";
+
+        // 1. Tính tổng vé đã mua (bao gồm đơn vừa xong)
+        int tongVeCu = hoaDonRepository.findByMaKhachHang(maKhachHang).stream()
+                .filter(hd -> "THANH_CONG".equalsIgnoreCase(hd.getTrangThai())
+                           || hd.getMaHoaDon().equals(hoaDonVuaMua.getMaHoaDon()))
+                .flatMap(hd -> chiTietHoaDonRepository
+                        .findByIdMaHoaDonIn(java.util.List.of(hd.getMaHoaDon())).stream())
+                .mapToInt(ct -> ct.getSoLuong())
+                .sum();
+
+        // Cộng thêm soLuong đơn vừa mua (pending chưa THANH_CONG)
+        int tongVe = tongVeCu + soVeVuaMua;
+        if (tongVe < NGUONG) return; // chưa đủ điều kiện
+
+        // 2. Kiểm tra đã có voucher LOYALTY active chưa
+        java.util.List<com.example.ticket.model.Voucher> existing =
+                voucherRepository.findAll().stream()
+                        .filter(v -> v.getMaCode() != null && v.getMaCode().startsWith(PREFIX))
+                        .toList();
+
+        boolean daCoActive = existing.stream()
+                .anyMatch(v -> "active".equalsIgnoreCase(v.getTrangThai()));
+        if (daCoActive) return; // đã có rồi, không tặng thêm
+
+        // 3. Xác định mức giảm
+        boolean laLanDau = existing.isEmpty(); // chưa từng có LOYALTY nào
+        double mucGiam = laLanDau ? GIAM_LAN_DAU : GIAM_LAN_SAU;
+
+        // 4. Lấy danh sách tất cả sự kiện
+        String danhSachSuKien = suKienRepository.findAll().stream()
+                .map(sk -> String.valueOf(sk.getMaSuKien()))
+                .collect(java.util.stream.Collectors.joining(","));
+        if (danhSachSuKien.isBlank()) return;
+
+        // 5. Tạo voucher
+        LocalDate homNay = LocalDate.now();
+        String maCode = PREFIX + homNay; // VD: LOYALTY_42_2026-05-27
+
+        com.example.ticket.model.Voucher voucher = new com.example.ticket.model.Voucher();
+        voucher.setMaCode(maCode);
+        voucher.setMucKhuyenMai(mucGiam);
+        voucher.setSoLuong(1);
+        voucher.setLuotSuDung(0);
+        voucher.setTrangThai("active");
+        voucher.setNgayBatDau(homNay);
+        voucher.setNgayKetThuc(homNay.plusDays(HAN_NGAY));
+        voucher.setDanhSachSuKien(danhSachSuKien);
+        voucher.setMaCongTy(null); // voucher hệ thống
+
+        voucherRepository.save(voucher);
+
+        org.slf4j.LoggerFactory.getLogger(getClass()).info(
+            "[Loyalty] Tặng voucher {} ({}%) cho khách ID={}, tổng vé={}",
+            maCode, mucGiam, maKhachHang, tongVe);
     }
 }

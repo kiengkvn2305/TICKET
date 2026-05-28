@@ -1660,7 +1660,14 @@ ALTER TABLE GHE DROP COLUMN MAHOADON;
 ALTER TABLE GHE ADD CONSTRAINT fk_ghe_hd
     FOREIGN KEY (MaHoaDon) REFERENCES HOADON(MaHoaDon);
 
+
+    
+----------Nháp--------------------------
 UPDATE SUKIEN
 SET TRANGTHAI = 'Đã tổ chức'
 WHERE TRANGTHAI = 'Đã kết thúc';
 commit;
+
+SELECT COUNT(*)
+FROM GHE
+WHERE MaHoaDon = 107;

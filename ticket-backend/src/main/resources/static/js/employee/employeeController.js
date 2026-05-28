@@ -126,6 +126,7 @@ function closeBuyModal() { EventView.closeBuyModal(); }
 function changeQty(maVe, delta, maxConLai) {
     const next = CartModel.changeQty(maVe, delta, maxConLai);
     EventView.syncQtyInput(maVe, next);
+    EventView.syncQtyButtons(maVe, next, maxConLai);
     EventView.renderTotal(CartModel.getSubtotal(), CartModel.getDiscount());
 }
 
@@ -133,6 +134,7 @@ function inputQty(maVe, maxConLai) {
     const input = document.getElementById(`qty-${maVe}`);
     const next  = CartModel.setQty(maVe, parseInt(input.value) || 0, maxConLai);
     input.value = next;
+    EventView.syncQtyButtons(maVe, next, maxConLai);
     EventView.renderTotal(CartModel.getSubtotal(), CartModel.getDiscount());
 }
 
@@ -208,7 +210,9 @@ function _loadBookedSeatsAndOpenMap(eventName, eventDate, totalQty) {
 
     apiFetch(`/ghe/sukien/${currentEvent.maSuKien}`)
         .then(bookedSeats => {
-            const bookedSet = new Set(bookedSeats.map(g => g.soThuTu));
+            const bookedSet = new Set(
+                bookedSeats.map(g => g.khuVuc).filter(Boolean)
+            );
             _fetchLoaiSoDoThenOpen(bookedSet);
         })
         .catch(() => {

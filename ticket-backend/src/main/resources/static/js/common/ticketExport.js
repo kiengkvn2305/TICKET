@@ -36,23 +36,23 @@
     /* ── ĐỊNH NGHĨA SƠ ĐỒ ───────────────────────────────── */
     // Rect: 6 khu A-F (A/B/C = VIP, D/E/F = Thường)
     const RECT_ZONES = [
-        { id: 'A', sub: 'Trái',  type: 'vip'    },
-        { id: 'B', sub: 'Giữa',  type: 'vip'    },
-        { id: 'C', sub: 'Phải',  type: 'vip'    },
-        { id: 'D', sub: 'Trái',  type: 'normal' },
-        { id: 'E', sub: 'Giữa',  type: 'normal' },
-        { id: 'F', sub: 'Phải',  type: 'normal' },
+        { id: 'A', sub: 'Trái',  type: 'VIP'    },
+        { id: 'B', sub: 'Giữa',  type: 'VIP'    },
+        { id: 'C', sub: 'Phải',  type: 'VIP'    },
+        { id: 'D', sub: 'Trái',  type: 'Thường' },
+        { id: 'E', sub: 'Giữa',  type: 'Thường' },
+        { id: 'F', sub: 'Phải',  type: 'Thường' },
     ];
     // Circle: 8 khu A-H (A-D = VIP, E-H = Thường)
     const CIRCLE_ZONES = [
-        { id: 'A', dir: 'Tây Bắc',  type: 'vip'    },
-        { id: 'B', dir: 'Đông Bắc', type: 'vip'    },
-        { id: 'C', dir: 'Đông Nam', type: 'vip'    },
-        { id: 'D', dir: 'Tây Nam',  type: 'vip'    },
-        { id: 'E', dir: 'Tây Bắc',  type: 'normal' },
-        { id: 'F', dir: 'Đông Bắc', type: 'normal' },
-        { id: 'G', dir: 'Đông Nam', type: 'normal' },
-        { id: 'H', dir: 'Tây Nam',  type: 'normal' },
+        { id: 'A', dir: 'Tây Bắc',  type: 'VIP'    },
+        { id: 'B', dir: 'Đông Bắc', type: 'VIP'    },
+        { id: 'C', dir: 'Đông Nam', type: 'VIP'    },
+        { id: 'D', dir: 'Tây Nam',  type: 'VIP'    },
+        { id: 'E', dir: 'Tây Bắc',  type: 'Thường' },
+        { id: 'F', dir: 'Đông Bắc', type: 'Thường' },
+        { id: 'G', dir: 'Đông Nam', type: 'Thường' },
+        { id: 'H', dir: 'Tây Nam',  type: 'Thường' },
     ];
 
     /* khuVuc lưu trong DB chỉ là chữ cái đơn: "A", "B", ... */
@@ -126,7 +126,7 @@
                 const zDef  = RECT_ZONES.find(z => z.id === zid);
                 const isMine   = mySeats.has(zid);
                 const isBooked = !isMine && takenSeats.has(zid);
-                const type  = zDef ? zDef.type : 'normal';
+                const type  = zDef ? zDef.type : 'Thường';
                 let cls = `sm-zone-card sm-zone-${type}`;
                 if (isMine)        cls += ' sm-zone-mine';
                 else if (isBooked) cls += ' sm-zone-booked';
@@ -151,14 +151,14 @@
     /* ── BUILD SƠ ĐỒ CIRCLE (modal) SVG ─────────────────── */
     function _buildCircleMapHtml(mySeats, takenSeats) {
         const quadrants = [
-            { id:'A', type:'vip',    s:200, e:270, r1:65,  r2:100 },
-            { id:'B', type:'vip',    s:290, e:360, r1:65,  r2:100 },
-            { id:'C', type:'vip',    s:20,  e:90,  r1:65,  r2:100 },
-            { id:'D', type:'vip',    s:110, e:180, r1:65,  r2:100 },
-            { id:'E', type:'normal', s:200, e:270, r1:110, r2:150 },
-            { id:'F', type:'normal', s:290, e:360, r1:110, r2:150 },
-            { id:'G', type:'normal', s:20,  e:90,  r1:110, r2:150 },
-            { id:'H', type:'normal', s:110, e:180, r1:110, r2:150 },
+            { id:'A', type:'VIP',    s:200, e:270, r1:65,  r2:100 },
+            { id:'B', type:'VIP',    s:290, e:360, r1:65,  r2:100 },
+            { id:'C', type:'VIP',    s:20,  e:90,  r1:65,  r2:100 },
+            { id:'D', type:'VIP',    s:110, e:180, r1:65,  r2:100 },
+            { id:'E', type:'Thường', s:200, e:270, r1:110, r2:150 },
+            { id:'F', type:'Thường', s:290, e:360, r1:110, r2:150 },
+            { id:'G', type:'Thường', s:20,  e:90,  r1:110, r2:150 },
+            { id:'H', type:'Thường', s:110, e:180, r1:110, r2:150 },
         ];
         function arc(cx,cy,r1,r2,sD,eD){
             const toR=d=>d*Math.PI/180;
@@ -180,13 +180,13 @@
             const isBooked = !isMine && takenSeats.has(q.id);
             const fill   = isMine   ? '#81c784'
                          : isBooked ? '#e0e0e0'
-                         : q.type === 'vip' ? '#f7d060' : '#7ec8f7';
+                         : q.type === 'VIP' ? '#f7d060' : '#7ec8f7';
             const stroke = isMine   ? '#388e3c'
                          : isBooked ? '#bbb'
-                         : q.type === 'vip' ? '#c98f00' : '#2176c7';
+                         : q.type === 'VIP' ? '#c98f00' : '#2176c7';
             const txtC   = isMine   ? '#14532d'
                          : isBooked ? '#999'
-                         : q.type === 'vip' ? '#6b4800' : '#0d3c6e';
+                         : q.type === 'VIP' ? '#6b4800' : '#0d3c6e';
             const mid = ((q.s + q.e) / 2) * Math.PI / 180;
             const mr  = (q.r1 + q.r2) / 2;
             const lx  = cx + mr * Math.cos(mid);
@@ -232,18 +232,18 @@
                      <div style="display:flex;gap:5px;margin-bottom:4px">`;
             sec.zones.forEach(zid => {
                 const zDef   = RECT_ZONES.find(z => z.id === zid);
-                const type   = zDef ? zDef.type : 'normal';
+                const type   = zDef ? zDef.type : 'Thường';
                 const isMine   = mySeats.has(zid);
                 const isBooked = !isMine && takenSeats.has(zid);
                 const bg     = isMine   ? '#81c784'
                              : isBooked ? '#e0e0e0'
-                             : type === 'vip' ? '#f7d060' : '#7ec8f7';
+                             : type === 'VIP' ? '#f7d060' : '#7ec8f7';
                 const border = isMine   ? '#388e3c'
                              : isBooked ? '#bbb'
-                             : type === 'vip' ? '#c98f00' : '#2176c7';
+                             : type === 'VIP' ? '#c98f00' : '#2176c7';
                 const txtC   = isMine   ? '#14532d'
                              : isBooked ? '#999'
-                             : type === 'vip' ? '#6b4800' : '#0d3c6e';
+                             : type === 'VIP' ? '#6b4800' : '#0d3c6e';
                 html += `<div style="flex:1;min-height:52px;border-radius:8px;background:${bg};
                               border:2px solid ${border};display:flex;flex-direction:column;
                               align-items:center;justify-content:center;gap:2px;padding:4px">
@@ -267,14 +267,14 @@
     /* ── BUILD SƠ ĐỒ CIRCLE (in) SVG ───────────────────── */
     function _buildCircleMapPrint(mySeats, takenSeats) {
         const quadrants = [
-            { id:'A', type:'vip',    s:200, e:270, r1:55,  r2:85  },
-            { id:'B', type:'vip',    s:290, e:360, r1:55,  r2:85  },
-            { id:'C', type:'vip',    s:20,  e:90,  r1:55,  r2:85  },
-            { id:'D', type:'vip',    s:110, e:180, r1:55,  r2:85  },
-            { id:'E', type:'normal', s:200, e:270, r1:92,  r2:128 },
-            { id:'F', type:'normal', s:290, e:360, r1:92,  r2:128 },
-            { id:'G', type:'normal', s:20,  e:90,  r1:92,  r2:128 },
-            { id:'H', type:'normal', s:110, e:180, r1:92,  r2:128 },
+            { id:'A', type:'VIP',    s:200, e:270, r1:55,  r2:85  },
+            { id:'B', type:'VIP',    s:290, e:360, r1:55,  r2:85  },
+            { id:'C', type:'VIP',    s:20,  e:90,  r1:55,  r2:85  },
+            { id:'D', type:'VIP',    s:110, e:180, r1:55,  r2:85  },
+            { id:'E', type:'Thường', s:200, e:270, r1:92,  r2:128 },
+            { id:'F', type:'Thường', s:290, e:360, r1:92,  r2:128 },
+            { id:'G', type:'Thường', s:20,  e:90,  r1:92,  r2:128 },
+            { id:'H', type:'Thường', s:110, e:180, r1:92,  r2:128 },
         ];
         function arc(cx,cy,r1,r2,sD,eD){
             const toR=d=>d*Math.PI/180;
@@ -296,13 +296,13 @@
             const isBooked = !isMine && takenSeats.has(q.id);
             const fill   = isMine   ? '#81c784'
                          : isBooked ? '#e0e0e0'
-                         : q.type === 'vip' ? '#f7d060' : '#7ec8f7';
+                         : q.type === 'VIP' ? '#f7d060' : '#7ec8f7';
             const stroke = isMine   ? '#388e3c'
                          : isBooked ? '#bbb'
-                         : q.type === 'vip' ? '#c98f00' : '#2176c7';
+                         : q.type === 'VIP' ? '#c98f00' : '#2176c7';
             const txtC   = isMine   ? '#14532d'
                          : isBooked ? '#999'
-                         : q.type === 'vip' ? '#6b4800' : '#0d3c6e';
+                         : q.type === 'VIP' ? '#6b4800' : '#0d3c6e';
             const mid = ((q.s + q.e) / 2) * Math.PI / 180;
             const mr  = (q.r1 + q.r2) / 2;
             const lx  = cx + mr * Math.cos(mid);

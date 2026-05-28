@@ -591,89 +591,64 @@ async function blockUser(id, name) {
   ══════════════════════════════════════════════════════════ */
 
   /* ── 1. XEM CHI TIẾT TÀI KHOẢN ── */
-  async function viewUserDetail(id) {
-    id = Number(id);
-    const u = allUsersData.find(x => Number(x.maTaiKhoan) === id);
+  function viewUserDetail(id) {
+    const u = allUsersData.find(x => x.maTaiKhoan === id);
     if (!u) return;
 
     _injectAccountModals();
     const modal   = document.getElementById('_acModal');
     const content = document.getElementById('_acContent');
-    const color   = roleColor(u.loaiTaiKhoan);
+
     const initials = (u.tenDangNhap || '?').charAt(0).toUpperCase();
-
-    // Loading state
-    content.innerHTML = `
-      <div class="ac-loading">
-        <div class="ac-avatar" style="background:${color}">${initials}</div>
-        <div class="ac-loading-text">⏳ Đang tải hồ sơ...</div>
-      </div>`;
-    modal.classList.add('open');
-
-    // Gọi API hồ sơ
-    let hs = null;
-    try { hs = await apiFetch(`/taikhoan/${id}/ho-so`); } catch(e) {}
-
-    const tenHienThi = hs
-      ? (hs.tenKhachHang || hs.tenNguoiDaiDien || hs.tenNhanVien || u.tenDangNhap || '—')
-      : (u.tenDangNhap || '—');
-
-    // Rows thông tin theo loại tài khoản
-    let extraRows = '';
-    if (hs) {
-      if (u.loaiTaiKhoan === 'Khách hàng') {
-        extraRows = acRow('Họ tên', hs.tenKhachHang);
-      } else if (u.loaiTaiKhoan === 'Nhà tổ chức') {
-        extraRows = acRow('Người đại diện', hs.tenNguoiDaiDien)
-                  + acRow('Công ty', hs.tenCongTy)
-                  + acRow('Địa chỉ', hs.diaChi);
-      } else if (u.loaiTaiKhoan === 'Nhân viên') {
-        extraRows = acRow('Họ tên', hs.tenNhanVien)
-                  + acRow('Ngày vào làm', hs.ngayVaoLam);
-      }
-      extraRows += acRow('Email', hs.email)
-                + acRow('Số điện thoại', hs.soDienThoai);
-    }
+    const color    = roleColor(u.loaiTaiKhoan);
 
     content.innerHTML = `
-      <div style="text-align:center">
-        <div class="ac-avatar" style="background:${color}">${initials}</div>
-        <div class="ac-title">${tenHienThi}</div>
-        <div class="ac-username">${u.tenDangNhap}</div>
-        <div class="ac-badges">${roleBadge(u.loaiTaiKhoan)} ${statusBadge(u.trangThai||'active')}</div>
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="width:64px;height:64px;border-radius:50%;background:${color};
+                    color:#fff;font-size:1.6rem;font-weight:800;display:flex;
+                    align-items:center;justify-content:center;margin:0 auto 10px">
+          ${initials}
+        </div>
+        <div style="font-size:1.1rem;font-weight:800;color:#1a1a2e">${u.tenDangNhap || '—'}</div>
+        <div style="margin-top:6px">${roleBadge(u.loaiTaiKhoan)} ${statusBadge(u.trangThai||'active')}</div>
       </div>
-      <div class="ac-info">
-        ${acRow('Mã tài khoản', '#' + u.maTaiKhoan)}
-        ${acRow('Tên đăng nhập', u.tenDangNhap)}
-        ${acRow('Ngày tạo', u.ngayTao)}
-        ${extraRows}
-        ${u.lyDoChaN ? acRowRed('Lý do chặn', u.lyDoChaN) : ''}
-        ${!hs ? '<div class="ac-no-profile">⚠️ Không tải được hồ sơ chi tiết</div>' : ''}
+      <div style="background:#f8f9fb;border-radius:12px;padding:16px;font-size:.88rem;display:grid;gap:10px">
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:#888;font-weight:600">Mã tài khoản</span>
+          <span style="font-weight:700">#${u.maTaiKhoan}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:#888;font-weight:600">Tên đăng nhập</span>
+          <span style="font-weight:700">${u.tenDangNhap || '—'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:#888;font-weight:600">Loại tài khoản</span>
+          <span>${roleBadge(u.loaiTaiKhoan)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:#888;font-weight:600">Trạng thái</span>
+          <span>${statusBadge(u.trangThai||'active')}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:#888;font-weight:600">Ngày tạo</span>
+          <span style="font-weight:700">${u.ngayTao || '—'}</span>
+        </div>
+        ${u.lyDoChaN ? `<div style="display:flex;justify-content:space-between">
+          <span style="color:#888;font-weight:600">Lý do chặn</span>
+          <span style="color:#dc2626;font-weight:600">${u.lyDoChaN}</span>
+        </div>` : ''}
       </div>
-      <div class="ac-actions">
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
         ${u.loaiTaiKhoan !== 'Quản lý' ? `
           ${u.trangThai !== 'blocked'
-            ? `<button class="btn-action btn-orange" onclick="closeAccountModal();confirmBlock(${u.maTaiKhoan},'${escHtml(u.tenDangNhap)}')">🚫 Chặn</button>`
-            : `<button class="btn-action btn-green"  onclick="closeAccountModal();confirmUnblock(${u.maTaiKhoan},'${escHtml(u.tenDangNhap)}')">✅ Bỏ chặn</button>`}
-          <button class="btn-action btn-red" onclick="closeAccountModal();confirmDelete(${u.maTaiKhoan},'${escHtml(u.tenDangNhap)}','user')">🗑 Xoá</button>
-        ` : `<div class="ac-admin-note">👑 Không thể chặn hoặc xoá tài khoản Admin</div>`}
-        <button class="btn-action btn-gray" onclick="closeAccountModal()">Đóng</button>
+            ? `<button class="btn-action btn-orange" style="flex:1" onclick="closeAccountModal();confirmBlock(${u.maTaiKhoan},'${escHtml(u.tenDangNhap)}')">🚫 Chặn</button>`
+            : `<button class="btn-action btn-green"  style="flex:1" onclick="closeAccountModal();confirmUnblock(${u.maTaiKhoan},'${escHtml(u.tenDangNhap)}')">✅ Bỏ chặn</button>`}
+          <button class="btn-action btn-red" style="flex:1" onclick="closeAccountModal();confirmDelete(${u.maTaiKhoan},'${escHtml(u.tenDangNhap)}','user')">🗑 Xoá</button>
+        ` : `<div style="color:#888;font-size:.85rem;text-align:center;width:100%">👑 Không thể chặn hoặc xoá tài khoản Admin</div>`}
+        <button class="btn-action btn-gray" style="flex:1" onclick="closeAccountModal()">Đóng</button>
       </div>`;
-  }
 
-  function acRow(label, val) {
-    if (!val) return '';
-    return `<div class="ac-row">
-      <span class="ac-row-label">${label}</span>
-      <span class="ac-row-value">${val}</span>
-    </div>`;
-  }
-  function acRowRed(label, val) {
-    if (!val) return '';
-    return `<div class="ac-row">
-      <span class="ac-row-label">${label}</span>
-      <span class="ac-row-value red">${val}</span>
-    </div>`;
+    modal.classList.add('open');
   }
 
   function closeAccountModal() {
@@ -687,28 +662,33 @@ async function blockUser(id, name) {
     const content = document.getElementById('_acContent');
 
     content.innerHTML = `
-      <div class="ac-title" style="margin-bottom:16px">➕ Tạo tài khoản mới</div>
+      <div style="font-size:1.1rem;font-weight:800;color:#1a1a2e;margin-bottom:16px">➕ Tạo tài khoản mới</div>
       <div style="display:grid;gap:12px">
         <div>
-          <label class="ac-label">Tên đăng nhập *</label>
-          <input id="_acUsername" type="text" class="ac-input" placeholder="Nhập tên đăng nhập..." />
+          <label style="font-size:.82rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Tên đăng nhập *</label>
+          <input id="_acUsername" type="text" placeholder="Nhập tên đăng nhập..."
+            style="width:100%;border:1.5px solid #e0e0e0;border-radius:10px;padding:9px 12px;font-size:.9rem;box-sizing:border-box;outline:none"
+            onfocus="this.style.borderColor='#0d9488'" onblur="this.style.borderColor='#e0e0e0'" />
         </div>
         <div>
-          <label class="ac-label">Mật khẩu *</label>
-          <input id="_acPassword" type="password" class="ac-input" placeholder="Nhập mật khẩu..." />
+          <label style="font-size:.82rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Mật khẩu *</label>
+          <input id="_acPassword" type="password" placeholder="Nhập mật khẩu..."
+            style="width:100%;border:1.5px solid #e0e0e0;border-radius:10px;padding:9px 12px;font-size:.9rem;box-sizing:border-box;outline:none"
+            onfocus="this.style.borderColor='#0d9488'" onblur="this.style.borderColor='#e0e0e0'" />
         </div>
         <div>
-          <label class="ac-label">Loại tài khoản *</label>
-          <select id="_acRole" class="ac-select">
+          <label style="font-size:.82rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Loại tài khoản *</label>
+          <select id="_acRole"
+            style="width:100%;border:1.5px solid #e0e0e0;border-radius:10px;padding:9px 12px;font-size:.9rem;box-sizing:border-box;outline:none;background:#fff">
             <option value="Nhân viên">💼 Nhân viên</option>
             <option value="Khách hàng">🛒 Khách hàng</option>
             <option value="Nhà tổ chức">🎪 Nhà tổ chức</option>
           </select>
         </div>
-        <div id="_acCreateMsg" class="ac-msg"></div>
-        <div class="ac-actions">
-          <button class="btn-action btn-cancel-m" onclick="closeAccountModal()">Huỷ</button>
-          <button class="btn-action btn-teal" onclick="submitCreateAccount()">➕ Tạo tài khoản</button>
+        <div id="_acCreateMsg" style="font-size:.83rem;font-weight:600;min-height:20px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-action btn-cancel-m" style="flex:1" onclick="closeAccountModal()">Huỷ</button>
+          <button class="btn-action btn-teal" style="flex:1" onclick="submitCreateAccount()">➕ Tạo tài khoản</button>
         </div>
       </div>`;
 
@@ -762,22 +742,26 @@ async function blockUser(id, name) {
     content.innerHTML = `
       <div style="text-align:center;margin-bottom:16px">
         <div style="font-size:2rem;margin-bottom:8px">🔑</div>
-        <div class="ac-title">Reset mật khẩu</div>
-        <div class="ac-username">Tài khoản: <b>${name}</b></div>
+        <div style="font-size:1.1rem;font-weight:800;color:#1a1a2e">Reset mật khẩu</div>
+        <div style="font-size:.85rem;color:#888;margin-top:4px">Tài khoản: <b>${name}</b></div>
       </div>
       <div style="display:grid;gap:12px">
         <div>
-          <label class="ac-label">Mật khẩu mới *</label>
-          <input id="_acNewPwd" type="password" class="ac-input" placeholder="Nhập mật khẩu mới..." />
+          <label style="font-size:.82rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Mật khẩu mới *</label>
+          <input id="_acNewPwd" type="password" placeholder="Nhập mật khẩu mới..."
+            style="width:100%;border:1.5px solid #e0e0e0;border-radius:10px;padding:9px 12px;font-size:.9rem;box-sizing:border-box;outline:none"
+            onfocus="this.style.borderColor='#0d9488'" onblur="this.style.borderColor='#e0e0e0'" />
         </div>
         <div>
-          <label class="ac-label">Xác nhận mật khẩu *</label>
-          <input id="_acConfPwd" type="password" class="ac-input" placeholder="Nhập lại mật khẩu..." />
+          <label style="font-size:.82rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Xác nhận mật khẩu *</label>
+          <input id="_acConfPwd" type="password" placeholder="Nhập lại mật khẩu..."
+            style="width:100%;border:1.5px solid #e0e0e0;border-radius:10px;padding:9px 12px;font-size:.9rem;box-sizing:border-box;outline:none"
+            onfocus="this.style.borderColor='#0d9488'" onblur="this.style.borderColor='#e0e0e0'" />
         </div>
-        <div id="_acPwdMsg" class="ac-msg"></div>
-        <div class="ac-actions">
-          <button class="btn-action btn-cancel-m" onclick="closeAccountModal()">Huỷ</button>
-          <button class="btn-action btn-teal" onclick="submitResetPassword(${id},'${escHtml(name)}')">🔑 Xác nhận reset</button>
+        <div id="_acPwdMsg" style="font-size:.83rem;font-weight:600;min-height:20px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-action btn-cancel-m" style="flex:1" onclick="closeAccountModal()">Huỷ</button>
+          <button class="btn-action btn-teal" style="flex:1" onclick="submitResetPassword(${id},'${escHtml(name)}')">🔑 Xác nhận reset</button>
         </div>
       </div>`;
 
@@ -826,19 +810,22 @@ async function blockUser(id, name) {
     content.innerHTML = `
       <div style="text-align:center;margin-bottom:16px">
         <div style="font-size:2rem;margin-bottom:8px">🔄</div>
-        <div class="ac-title">Đổi loại tài khoản</div>
-        <div class="ac-username">Tài khoản: <b>${name}</b></div>
+        <div style="font-size:1.1rem;font-weight:800;color:#1a1a2e">Đổi loại tài khoản</div>
+        <div style="font-size:.85rem;color:#888;margin-top:4px">Tài khoản: <b>${name}</b></div>
         <div style="margin-top:6px">Hiện tại: ${roleBadge(currentRole)}</div>
       </div>
       <div style="display:grid;gap:10px;margin-bottom:16px">
         ${roles.filter(r => r !== currentRole).map(r => `
-          <button class="ac-role-btn" onclick="submitChangeRole(${id},'${escHtml(name)}','${r}')">
+          <button onclick="submitChangeRole(${id},'${escHtml(name)}','${r}')"
+            style="padding:12px 16px;border:1.5px solid #e0e0e0;border-radius:10px;
+                   background:#f8f9fb;font-size:.9rem;font-weight:600;cursor:pointer;
+                   text-align:left;transition:.15s"
+            onmouseover="this.style.borderColor='#0d9488';this.style.background='#f0fdfb'"
+            onmouseout="this.style.borderColor='#e0e0e0';this.style.background='#f8f9fb'">
             ${roleBadge(r)} → Chuyển sang <b>${r}</b>
           </button>`).join('')}
       </div>
-      <div class="ac-actions">
-        <button class="btn-action btn-cancel-m" style="width:100%" onclick="closeAccountModal()">Huỷ</button>
-      </div>`;
+      <button class="btn-action btn-cancel-m" style="width:100%" onclick="closeAccountModal()">Huỷ</button>`;
 
     modal.classList.add('open');
   }
@@ -864,15 +851,37 @@ async function blockUser(id, name) {
   function _injectAccountModals() {
     if (document.getElementById('_acModal')) return;
 
+    // Modal overlay
     const overlay = document.createElement('div');
     overlay.id = '_acModal';
+    overlay.style.cssText = `
+      display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+      z-index:10000;align-items:center;justify-content:center;padding:16px;
+      backdrop-filter:blur(3px)`;
     overlay.innerHTML = `
-      <div class="ac-box">
-        <button class="ac-close" onclick="closeAccountModal()">✕</button>
+      <div style="background:#fff;border-radius:20px;width:100%;max-width:460px;
+                  max-height:90vh;overflow-y:auto;padding:28px;position:relative;
+                  box-shadow:0 20px 60px rgba(0,0,0,.2)">
+        <button onclick="closeAccountModal()" style="position:absolute;top:14px;right:16px;
+          background:none;border:none;font-size:1.2rem;cursor:pointer;color:#aaa;
+          line-height:1;padding:4px 8px;border-radius:8px">✕</button>
         <div id="_acContent"></div>
       </div>`;
     overlay.addEventListener('click', e => { if (e.target === overlay) closeAccountModal(); });
     document.body.appendChild(overlay);
+
+    // CSS cho btn-purple
+    if (!document.getElementById('_acCSS')) {
+      const s = document.createElement('style');
+      s.id = '_acCSS';
+      s.textContent = `
+        #_acModal { display:none }
+        #_acModal.open { display:flex }
+        .btn-purple { background:#7c3aed!important;color:#fff!important }
+        .btn-purple:hover { background:#6d28d9!important }
+      `;
+      document.head.appendChild(s);
+    }
   }
 
   /* ── PATCH renderUserRows để thêm nút "Xem chi tiết" ── */

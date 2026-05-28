@@ -154,6 +154,7 @@ function closeBuyModal() { EventView.closeBuyModal(); }
 function changeQty(maVe, delta, maxConLai) {
     const next = CartModel.changeQty(maVe, delta, maxConLai);
     EventView.syncQtyInput(maVe, next);
+    EventView.syncQtyButtons(maVe, next, maxConLai);
     EventView.renderTotal(CartModel.getSubtotal(), CartModel.getDiscount());
 }
 
@@ -161,6 +162,7 @@ function inputQty(maVe, maxConLai) {
     const input = document.getElementById(`qty-${maVe}`);
     const next  = CartModel.setQty(maVe, parseInt(input.value) || 0, maxConLai);
     input.value = next;
+    EventView.syncQtyButtons(maVe, next, maxConLai);
     EventView.renderTotal(CartModel.getSubtotal(), CartModel.getDiscount());
 }
 
@@ -201,8 +203,11 @@ function openVoucherModal() {
 function _loadBookedSeatsAndOpenMap(eventName, eventDate, totalQty) {
     apiFetch(`/ghe/sukien/${currentEvent.maSuKien}`)
         .then(bookedSeats => {
-            // bookedSeats: [{soThuTu:"A1", khuVuc:"VIP", ...}, ...]
-            const bookedSet = new Set(bookedSeats.map(g => g.soThuTu));
+            // bookedSeats: [{ khuVuc:"A1", maVe:5, trangThai:"da_dat", ... }]
+            // Backend Ghe entity dùng field "khuVuc" (không phải "soThuTu")
+            const bookedSet = new Set(
+                bookedSeats.map(g => g.khuVuc).filter(Boolean)
+            );
             openSeatModal(eventName, eventDate, totalQty, bookedSet);
         })
         .catch(() => {
@@ -348,5 +353,3 @@ function confirmBuy() {
         if (btn) { btn.disabled = false; btn.textContent = "Thanh toán"; }
     });
 }
-
-

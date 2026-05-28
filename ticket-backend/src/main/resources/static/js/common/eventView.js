@@ -199,11 +199,11 @@ const EventView = {
                 <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:120px">
                     <div class="modal-ticket-price-tag">${formatPrice(ve.gia)}</div>
                     <div class="qty-control">
-                        <button class="qty-btn" onclick="${onChangeQty}(${ve.maVe},-1,${max})" ${dis}>−</button>
+                        <button class="qty-btn" id="qty-minus-${ve.maVe}" onclick="${onChangeQty}(${ve.maVe},-1,${max})" ${dis} disabled>−</button>
                         <input type="number" min="0" max="${max}" value="0"
                                class="qty-input" id="qty-${ve.maVe}" ${dis}
                                oninput="${onInputQty}(${ve.maVe},${max})">
-                        <button class="qty-btn" onclick="${onChangeQty}(${ve.maVe},1,${max})" ${dis}>+</button>
+                        <button class="qty-btn" id="qty-plus-${ve.maVe}" onclick="${onChangeQty}(${ve.maVe},1,${max})" ${dis}>+</button>
                     </div>
                 </div>
             </div>`;
@@ -213,6 +213,13 @@ const EventView = {
     syncQtyInput(maVe, value) {
         const input = document.getElementById(`qty-${maVe}`);
         if (input) input.value = value;
+    },
+
+    syncQtyButtons(maVe, qty, max) {
+        const btnMinus = document.getElementById(`qty-minus-${maVe}`);
+        const btnPlus  = document.getElementById(`qty-plus-${maVe}`);
+        if (btnMinus) btnMinus.disabled = qty <= 0;
+        if (btnPlus)  btnPlus.disabled  = qty >= max;
     },
 
     renderTotal(subtotal, discount) {

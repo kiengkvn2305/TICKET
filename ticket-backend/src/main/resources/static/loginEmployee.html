@@ -1010,7 +1010,7 @@
             var booked;
             if (Array.isArray(data)) {
               booked = new Set(data.map(function(item) {
-                return (typeof item === 'string') ? item : (item.maGhe || item.seatId || item.id || '');
+                return (typeof item === 'string') ? item : (item.khuVuc || '');
               }).filter(Boolean));
             } else {
               booked = new Set();
@@ -1143,7 +1143,7 @@
             var booked = new Set();
             if (Array.isArray(data)) {
               booked = new Set(data.map(function(item) {
-                return (typeof item === 'string') ? item : (item.maGhe || item.seatId || item.id || '');
+                return (typeof item === 'string') ? item : (item.khuVuc || '');
               }).filter(Boolean));
             }
             _fetchDiaDiemThenOpen(booked); // Chuyển sang bước lấy địa điểm

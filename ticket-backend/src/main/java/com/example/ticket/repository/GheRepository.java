@@ -21,7 +21,8 @@ public interface GheRepository extends JpaRepository<Ghe, Long> {
     /** Lấy ghế theo danh sách maHoaDon — dùng trong buildResponseList */
     @Query("SELECT g FROM Ghe g WHERE g.maHoaDon IN :maHoaDonList")
     List<Ghe> findByMaHoaDonIn(@Param("maHoaDonList") List<Long> maHoaDonList);
-        @Lock(LockModeType.PESSIMISTIC_WRITE)
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT g FROM Ghe g WHERE g.maGhe = :maGhe")
     Optional<Ghe> findByIdWithLock(@Param("maGhe") Long maGhe);
     /**
@@ -39,8 +40,10 @@ public interface GheRepository extends JpaRepository<Ghe, Long> {
           AND g.trangThai = 'da_dat'
         """)
     List<String> findBookedSeatsByMaSuKien(@Param("maSuKien") Long maSuKien);
+
     @Query("SELECT g FROM Ghe g WHERE g.maHoaDon = :maHoaDon ORDER BY g.khuVuc, g.maGhe")
     List<Ghe> findByMaHoaDon(@Param("maHoaDon") Long maHoaDon);
+    
     @Query("SELECT g FROM Ghe g WHERE g.maVe = :maVe AND g.maHoaDon = :maHoaDon")
     List<Ghe> findByMaVeAndMaHoaDon(@Param("maVe") Long maVe,
                                      @Param("maHoaDon") Long maHoaDon);
