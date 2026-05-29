@@ -125,7 +125,64 @@
 - Phần mềm quản lý source code: Git, GitHub    
 - Quản lý dự án: Google Sheet  
 - Hệ điều hành: Window
+
 ## GIAO DIỆN
+
 ## THAM KHẢO 
 - Source code: 
 - Website giới thiệu: 
+
+---
+
+## HƯỚNG DẪN KIỂM THỬ & TÀI LIỆU API (API REFERENCE)
+*Người đóng góp tài liệu và kiểm thử: **Nguyễn Đoàn Đức Hiếu***
+
+Dưới đây là danh sách các API chính và hướng dẫn sử dụng công cụ (như Postman hoặc cURL) để kiểm thử hệ thống Backend.
+
+### 1. API Địa Điểm (DiaDiem)
+Quản lý thông tin các địa điểm tổ chức sự kiện.
+* **Lấy danh sách tất cả địa điểm:**
+  - **Endpoint:** `GET /api/diadiem`
+  - **Mô tả:** Trả về danh sách tất cả địa điểm có trên hệ thống cùng sức chứa và loại sơ đồ ghế.
+  - **cURL:**
+    ```bash
+    curl -X GET http://localhost:8080/api/diadiem
+    ```
+* **Lấy chi tiết địa điểm:**
+  - **Endpoint:** `GET /api/diadiem/{maDiaDiem}`
+  - **cURL:**
+    ```bash
+    curl -X GET http://localhost:8080/api/diadiem/1
+    ```
+
+### 2. API Khuyến Mãi (Voucher)
+Quản lý các chương trình ưu đãi, giảm giá vé cho khách hàng.
+* **Tra cứu Voucher theo mã Code:**
+  - **Endpoint:** `GET /api/voucher/code/{maCode}`
+  - **cURL:**
+    ```bash
+    curl -X GET http://localhost:8080/api/voucher/code/GIAM50
+    ```
+* **Tạo mới một Voucher:**
+  - **Endpoint:** `POST /api/voucher`
+  - **Header:** `Content-Type: application/json`
+  - **Body (JSON):**
+    ```json
+    {
+      "maCode": "SUMMER2026",
+      "mucKhuyenMai": 15.0,
+      "soLuong": 100,
+      "danhSachSuKien": "1,2",
+      "ngayBatDau": "2026-06-01T00:00:00",
+      "ngayKetThuc": "2026-08-31T23:59:59",
+      "maTaiKhoan": 2
+    }
+    ```
+* **Áp dụng/Sử dụng Voucher:**
+  - **Endpoint:** `PATCH /api/voucher/{id}/use`
+  - **Mô tả:** Tự động tăng lượt sử dụng của Voucher lên 1 và tự động cập nhật trạng thái ngừng hoạt động (`inactive`) nếu đã hết lượt tối đa.
+  - **cURL:**
+    ```bash
+    curl -X PATCH http://localhost:8080/api/voucher/1/use
+    ```
+
