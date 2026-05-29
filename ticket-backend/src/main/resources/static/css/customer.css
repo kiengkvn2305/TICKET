@@ -72,12 +72,7 @@
   background: #f8f9fb;
   border-bottom: 2px solid #e8eaed;
   padding: 0 32px;
-  overflow-x: auto;
-  white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
 }
-.tab-nav::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 
 .tab-btn {
   background: none;

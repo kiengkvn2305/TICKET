@@ -66,18 +66,6 @@
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
-
-        <!-- ZXing (Zebra Crossing) for QR Code Generation -->
-        <dependency>
-            <groupId>com.google.zxing</groupId>
-            <artifactId>core</artifactId>
-            <version>3.5.2</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.zxing</groupId>
-            <artifactId>javase</artifactId>
-            <version>3.5.2</version>
-        </dependency>
     </dependencies>
 
     <build>
