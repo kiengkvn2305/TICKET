@@ -95,6 +95,10 @@ CREATE TABLE SUKIEN (
     MaCongTy NUMBER,
     TrangThai VARCHAR2(150),
     MaDiaDiem NUMBER,
+    CAU_HINH_GAMMA NUMBER,
+    NGAY_XA_HANG NUMBER,
+    NGAY_MO_BAN DATE,
+    DINH_GIA_DONG_BAT NUMBER(1) DEFAULT 1,
     CONSTRAINT fk_sk_dd FOREIGN KEY (MaDiaDiem) REFERENCES DIADIEM(MaDiaDiem),
     CONSTRAINT fk_sk_ct FOREIGN KEY (MaCongTy) REFERENCES NHATOCHUC(MaCongTy),
     CONSTRAINT CK_SUKIEN_TRANGTHAI CHECK (TrangThai IN ('Hoạt động','Ẩn','Vi phạm'))
@@ -126,6 +130,8 @@ CREATE TABLE VE (
     TenVe VARCHAR2(100),
     LoaiVe VARCHAR2(50),
     Gia NUMBER,
+    Gia_Goc NUMBER,
+    He_So_Nhan_Gia NUMBER DEFAULT 1.0,
     SoLuong NUMBER(10,0),
     DaBan NUMBER(10,0),
     TrangThai VARCHAR2(50),
@@ -263,17 +269,17 @@ INSERT INTO DIADIEM VALUES (DIADIEM_SEQ.NEXTVAL,'Trung tâm Hội nghị Quốc 
 -- =========================================================
 -- INSERT SUKIEN
 -- =========================================================
-INSERT INTO SUKIEN VALUES (SUKIEN_SEQ.NEXTVAL,'Sky Music Festival','Đêm nhạc EDM',TO_DATE('2026-06-10 18:00','YYYY-MM-DD HH24:MI'),TO_DATE('2026-06-10 23:00','YYYY-MM-DD HH24:MI'),1,'Hoạt động',1);
-INSERT INTO SUKIEN VALUES (SUKIEN_SEQ.NEXTVAL,'Live Concert 2026','Ca nhạc ngoài trời',TO_DATE('2026-07-20 19:00','YYYY-MM-DD HH24:MI'),TO_DATE('2026-07-20 22:30','YYYY-MM-DD HH24:MI'),2,'Hoạt động',2);
-INSERT INTO SUKIEN VALUES (SUKIEN_SEQ.NEXTVAL,'Acoustic Night','Đêm acoustic',TO_DATE('2026-08-05 18:30','YYYY-MM-DD HH24:MI'),TO_DATE('2026-08-05 21:30','YYYY-MM-DD HH24:MI'),1,'Ẩn',3);
+INSERT INTO SUKIEN (MaSuKien,TenSuKien,MoTa,ThoiGianBatDau,ThoiGianKetThuc,MaCongTy,TrangThai,MaDiaDiem,DINH_GIA_DONG_BAT) VALUES (SUKIEN_SEQ.NEXTVAL,'Sky Music Festival','Đêm nhạc EDM',TO_DATE('2026-06-10 18:00','YYYY-MM-DD HH24:MI'),TO_DATE('2026-06-10 23:00','YYYY-MM-DD HH24:MI'),1,'Hoạt động',1,1);
+INSERT INTO SUKIEN (MaSuKien,TenSuKien,MoTa,ThoiGianBatDau,ThoiGianKetThuc,MaCongTy,TrangThai,MaDiaDiem,DINH_GIA_DONG_BAT) VALUES (SUKIEN_SEQ.NEXTVAL,'Live Concert 2026','Ca nhạc ngoài trời',TO_DATE('2026-07-20 19:00','YYYY-MM-DD HH24:MI'),TO_DATE('2026-07-20 22:30','YYYY-MM-DD HH24:MI'),2,'Hoạt động',2,1);
+INSERT INTO SUKIEN (MaSuKien,TenSuKien,MoTa,ThoiGianBatDau,ThoiGianKetThuc,MaCongTy,TrangThai,MaDiaDiem,DINH_GIA_DONG_BAT) VALUES (SUKIEN_SEQ.NEXTVAL,'Acoustic Night','Đêm acoustic',TO_DATE('2026-08-05 18:30','YYYY-MM-DD HH24:MI'),TO_DATE('2026-08-05 21:30','YYYY-MM-DD HH24:MI'),1,'Ẩn',3,1);
 
 -- =========================================================
 -- INSERT VE
 -- =========================================================
-INSERT INTO VE VALUES (VE_SEQ.NEXTVAL,'Vé Thường Sky','Thường',500000,500,120,'available','Vé khu thường',1);
-INSERT INTO VE VALUES (VE_SEQ.NEXTVAL,'Vé VIP Sky','VIP',1500000,100,30,'available','Vé VIP gần sân khấu',1);
-INSERT INTO VE VALUES (VE_SEQ.NEXTVAL,'Vé Thường Live','Thường',400000,600,200,'available','Vé tiêu chuẩn',2);
-INSERT INTO VE VALUES (VE_SEQ.NEXTVAL,'Vé VIP Live','VIP',1200000,150,50,'available','Vé VIP',2);
+INSERT INTO VE (MaVe,TenVe,LoaiVe,Gia,Gia_Goc,He_So_Nhan_Gia,SoLuong,DaBan,TrangThai,MoTa,MaSuKien) VALUES (VE_SEQ.NEXTVAL,'Vé Thường Sky','Thường',500000,500000,1.0,500,120,'available','Vé khu thường',1);
+INSERT INTO VE (MaVe,TenVe,LoaiVe,Gia,Gia_Goc,He_So_Nhan_Gia,SoLuong,DaBan,TrangThai,MoTa,MaSuKien) VALUES (VE_SEQ.NEXTVAL,'Vé VIP Sky','VIP',1500000,1500000,1.0,100,30,'available','Vé VIP gần sân khấu',1);
+INSERT INTO VE (MaVe,TenVe,LoaiVe,Gia,Gia_Goc,He_So_Nhan_Gia,SoLuong,DaBan,TrangThai,MoTa,MaSuKien) VALUES (VE_SEQ.NEXTVAL,'Vé Thường Live','Thường',400000,400000,1.0,600,200,'available','Vé tiêu chuẩn',2);
+INSERT INTO VE (MaVe,TenVe,LoaiVe,Gia,Gia_Goc,He_So_Nhan_Gia,SoLuong,DaBan,TrangThai,MoTa,MaSuKien) VALUES (VE_SEQ.NEXTVAL,'Vé VIP Live','VIP',1200000,1200000,1.0,150,50,'available','Vé VIP',2);
 
 -- =========================================================
 -- INSERT VOUCHER
