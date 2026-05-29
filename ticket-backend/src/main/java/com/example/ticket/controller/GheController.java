@@ -78,7 +78,6 @@ public class GheController {
      *
      * PUT /api/ghe/huy-giu?maSuKien=5&khuVuc=A1&maTaiKhoan=123
      *
-     * Response: { khuVuc, maSuKien, maTaiKhoan, trangThai:"TRONG", ... }
      */
     @PutMapping("/huy-giu")
     public ResponseEntity<GheHoldResponse> huyGiuGhe(

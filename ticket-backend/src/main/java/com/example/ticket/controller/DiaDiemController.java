@@ -12,12 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.ticket.model.DiaDiem;
 import com.example.ticket.service.DiaDiemService;
 
-/**
- * Controller class to handle all API operations relating to locations (DiaDiem).
- * Provides endpoints for retrieving all registered locations or fetching location by ID.
- *
- * @author Nguyễn Đoàn Đức Hiếu
- */
 @RestController
 @RequestMapping("/api/diadiem")
 @CrossOrigin(origins = "*")

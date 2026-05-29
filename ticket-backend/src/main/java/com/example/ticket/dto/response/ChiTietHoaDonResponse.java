@@ -10,7 +10,7 @@ public class ChiTietHoaDonResponse {
     private int    soLuong;
     private String tenVe;       // thêm để frontend hiển thị
     private String loaiVe;      // thêm để frontend hiển thị
-    private List<GheInfo> gheList; // ✅ danh sách ghế kèm trạng thái
+    private List<GheInfo> gheList; // danh sách ghế kèm trạng thái
 
     // ── GheInfo inner class ──────────────────────────────
     public static class GheInfo {
