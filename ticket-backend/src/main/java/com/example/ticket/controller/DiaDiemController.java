@@ -12,6 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.ticket.model.DiaDiem;
 import com.example.ticket.service.DiaDiemService;
 
+/**
+ * Controller class to handle all API operations relating to locations (DiaDiem).
+ * Provides endpoints for retrieving all registered locations or fetching location by ID.
+ *
+ * @author Nguyễn Đoàn Đức Hiếu
+ */
 @RestController
 @RequestMapping("/api/diadiem")
 @CrossOrigin(origins = "*")
@@ -23,11 +29,22 @@ public class DiaDiemController {
         this.diaDiemService = diaDiemService;
     }
 
+    /**
+     * Get list of all locations in the system.
+     *
+     * @return list of DiaDiem objects wrapped in ResponseEntity
+     */
     @GetMapping
     public ResponseEntity<List<DiaDiem>> getAll() {
         return ResponseEntity.ok(diaDiemService.getAll());
     }
     
+    /**
+     * Fetch the details of a single location by its primary ID.
+     *
+     * @param maDiaDiem the unique ID of the location
+     * @return the DiaDiem object if found, or 404 Not Found response
+     */
     @GetMapping("/{maDiaDiem}")
     public ResponseEntity<DiaDiem> getById(@PathVariable Long maDiaDiem) {
         return diaDiemService.getById(maDiaDiem)
