@@ -523,21 +523,26 @@
     const zoneSeats = state.seats.filter(s => s.rowId === rowId && !s.booked);
     if (!zoneSeats.length) return;
     const selInZone = zoneSeats.filter(s => state.selected.has(s.id));
+    const maxForType = state.requiredByType[type] || 0;
+    const selForType = _getSelectedCountByType(type);
+    const total = state.selected.size;
+
     if (selInZone.length > 0) {
-      selInZone.forEach(s => state.selected.delete(s.id));
+      if (selForType < maxForType && total < state.required && selInZone.length < zoneSeats.length) {
+        const unselected = zoneSeats.find(s => !state.selected.has(s.id));
+        if (unselected) state.selected.add(unselected.id);
+      } else {
+        const lastSelected = selInZone[selInZone.length - 1];
+        state.selected.delete(lastSelected.id);
+      }
     } else {
-      const maxForType = state.requiredByType[type] || 0;
-      let selForType = _getSelectedCountByType(type);
-      let total = state.selected.size;
       if (selForType >= maxForType || total >= state.required) {
         document.getElementById('seatMsg').textContent =
           `Bạn chỉ được chọn ${maxForType} ghế ${type === 'vip' ? 'VIP' : 'Thường'}.`;
         return;
       }
-      for (const s of zoneSeats) {
-        if (selForType >= maxForType || total >= state.required) break;
-        state.selected.add(s.id); selForType++; total++;
-      }
+      const unselected = zoneSeats.find(s => !state.selected.has(s.id));
+      if (unselected) state.selected.add(unselected.id);
     }
     document.getElementById('seatMsg').textContent = '';
     renderRectMap();
@@ -685,19 +690,25 @@
     const zoneSeats = state.zones.filter(z => z.zoneId === zoneId && !z.booked);
     if (!zoneSeats.length) return;
     const selInZone = zoneSeats.filter(z => state.selected.has(z.id));
+    const maxForType = state.requiredByType[type] || 0;
+    const selForType = _getSelectedCountByType(type);
+    const total = state.selected.size;
+
     if (selInZone.length > 0) {
-      selInZone.forEach(z => state.selected.delete(z.id));
-    } else {
-      const maxForType = state.requiredByType[type] || 0;
-      let selForType = _getSelectedCountByType(type), total = state.selected.size;
-      for (const z of zoneSeats) {
-        if (selForType >= maxForType || total >= state.required) break;
-        state.selected.add(z.id); selForType++; total++;
+      if (selForType < maxForType && total < state.required && selInZone.length < zoneSeats.length) {
+        const unselected = zoneSeats.find(z => !state.selected.has(z.id));
+        if (unselected) state.selected.add(unselected.id);
+      } else {
+        const lastSelected = selInZone[selInZone.length - 1];
+        state.selected.delete(lastSelected.id);
       }
-      if (_getSelectedCountByType(type) === 0) {
-        document.getElementById('seatMsg').textContent = `Bạn chỉ được chọn ${maxForType} ghế ${type==='vip'?'VIP':'Thường'}.`;
+    } else {
+      if (selForType >= maxForType || total >= state.required) {
+        document.getElementById('seatMsg').textContent = `Bạn chỉ được chọn ${maxForType} ghế ${type === 'vip' ? 'VIP' : 'Thường'}.`;
         return;
       }
+      const unselected = zoneSeats.find(z => !state.selected.has(z.id));
+      if (unselected) state.selected.add(unselected.id);
     }
     document.getElementById('seatMsg').textContent = '';
     renderCircleMap();

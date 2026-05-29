@@ -27,26 +27,26 @@ body {
 .header {
   align-self: stretch;
   display: flex;
-  align-items: flex-start;
-  padding: 23px 16px 27px 19px;
+  align-items: center; /* Căn giữa hoàn hảo theo chiều dọc */
+  padding: 10px 24px; /* Giảm padding từ 23px/27px xuống 10px/24px giúp header gọn gàng */
   box-sizing: border-box;
   gap: 20px;
   top: 0;
-  z-index: 99;
+  z-index: 999; /* Đảm bảo nổi bật lên trên */
   position: sticky;
   background-color: var(--color-gainsboro);
   text-align: left;
-  font-size: 48px;
+  font-size: 32px; /* Thu nhỏ logo TICKET từ 48px xuống 32px */
   color: var(--color-black);
   font-family: var(--font-ingrid-darling);
 }
 
 .ticket-wrapper {
-  width: 244px;
+  width: 140px; /* Thu gọn chiều rộng logo để nhường chỗ cho ô tìm kiếm */
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding-top: 2px;
+  padding-top: 0;
   box-sizing: border-box;
   flex-shrink: 0;
 }
@@ -54,59 +54,70 @@ body {
 .ticket {
   position: relative;
   z-index: 1;
+  font-weight: 800;
+  letter-spacing: 1px;
 }
 
 .frame-parent {
-  height: 49px;
+  height: 38px; /* Giảm chiều cao tổng thể từ 49px xuống 38px */
   flex: 1;
   display: flex;
+  align-items: center; /* Căn giữa các phần tử tìm kiếm và nút */
   gap: 15px;
   max-width: 100%;
-  font-size: var(--fs-24);
+  font-size: 15px; /* Giảm kích thước chữ cơ sở từ 24px xuống 15px */
   font-family: var(--font-inter);
 }
 
 .bn-cn-tm-g-wrapper {
   display: flex;
   flex-direction: column;
-  padding-top: 10px;
+  padding-top: 0;
 }
 
 .bn-cn-tm {
   margin: 0;
   position: relative;
-  font-size: inherit;
-  font-weight: 400;
-  font-family: inherit;
+  font-size: 14px; /* Giảm cỡ chữ nhãn "Bạn cần tìm gì" xuống 14px */
+  font-weight: 600;
+  color: #333;
 }
 
 .search-area {
   width: 100%;
-  height: 44px;
+  height: 36px; /* Giảm chiều cao thanh tìm kiếm từ 44px xuống 36px */
   flex: 1;
   border: 1px solid var(--color-seagreen);
   border-radius: var(--br-8);
   outline: 0;
   background-color: var(--Miscellaneous-Keyboards-Glyphs-Secondary);
   box-sizing: border-box;
-  padding: 0 20px;
+  padding: 0 16px;
   min-width: 250px;
+  font-size: 14px;
 }
 
 /* =========================
-   LOGIN BUTTON
+   LOGIN BUTTON & DROPDOWN
 ========================= */
 
 .ng-nhp-ng-k-wrapper {
   cursor: pointer;
   border: 2px solid var(--color-seagreen);
-  padding: 10px 17px;
+  padding: 6px 16px; /* Giảm padding từ 10px/17px xuống 6px/16px */
   background-color: var(--color-mediumturquoise);
   border-radius: var(--br-8);
-  font-size: 18px;
+  font-size: 14px; /* Giảm cỡ chữ nút Đăng nhập từ 18px xuống 14px */
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.ng-nhp-ng-k-wrapper:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
 }
 
 /* =========================
@@ -122,12 +133,14 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 6px 14px; /* Giảm padding từ 8px xuống 6px cho nhỏ gọn */
   background: #3cdbd8;
   color: white;
   border: none;
   border-radius: 10px;
   cursor: pointer;
+  font-size: 14px; /* Cỡ chữ 14px */
+  font-weight: 600;
   transition: 0.2s;
 }
 

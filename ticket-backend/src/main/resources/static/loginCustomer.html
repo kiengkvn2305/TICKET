@@ -863,7 +863,7 @@
     });
   }
 
-  // Chọn/bỏ chọn toàn bộ ghế trong một khu (giống toggleZone của circle)
+  // Chọn/bỏ chọn ghế trong một khu (gia tăng/giảm từng ghế theo mỗi lần click)
   function toggleRectZone(rowId, type) {
     const state = window._seatState;
     // Chỉ lấy ghế chưa bị đặt
@@ -874,39 +874,29 @@
     }
 
     const selInZone = zoneSeats.filter(s => state.selected.has(s.id));
+    const maxForType = state.requiredByType[type] || 0;
+    const selForType = _getSelectedCountByType(type);
+    const total = state.selected.size;
 
     if (selInZone.length > 0) {
-      // Bỏ chọn toàn bộ khu
-      selInZone.forEach(s => state.selected.delete(s.id));
+      // Nếu chưa đạt quota và trong khu vẫn còn ghế trống thì chọn thêm 1 ghế
+      if (selForType < maxForType && total < state.required && selInZone.length < zoneSeats.length) {
+        const unselected = zoneSeats.find(s => !state.selected.has(s.id));
+        if (unselected) state.selected.add(unselected.id);
+      } else {
+        // Ngược lại, bỏ chọn 1 ghế cuối cùng đã chọn của khu này
+        const lastSelected = selInZone[selInZone.length - 1];
+        state.selected.delete(lastSelected.id);
+      }
     } else {
-      // Chọn ghế trong khu theo quota còn lại VÀ số ghế thực tế còn trống
-      const maxForType = state.requiredByType[type] || 0;
-      let selForType = _getSelectedCountByType(type);
-      let total = state.selected.size;
-
+      // Chưa chọn ghế nào trong khu: chọn thêm 1 ghế
       if (selForType >= maxForType || total >= state.required) {
         document.getElementById('seatMsg').textContent =
           `Bạn chỉ được chọn ${maxForType} ghế ${type === 'VIP' ? 'VIP' : 'Thường'}.`;
         return;
       }
-
-      // Số ghế có thể chọn thêm: lấy min của (quota còn lại) và (ghế trống còn lại trong khu)
-      const availableInZone = zoneSeats.length; // đã lọc !booked ở trên
-      const canPickFromQuota = Math.min(maxForType - selForType, state.required - total);
-      const canPick = Math.min(canPickFromQuota, availableInZone);
-
-      let picked = 0;
-      for (const s of zoneSeats) {
-        if (picked >= canPick) break;
-        state.selected.add(s.id);
-        picked++;
-      }
-
-      if (picked === 0) {
-        document.getElementById('seatMsg').textContent =
-          `Khu ${rowId} đã hết chỗ hoặc bạn đã đủ số vé cần chọn.`;
-        return;
-      }
+      const unselected = zoneSeats.find(s => !state.selected.has(s.id));
+      if (unselected) state.selected.add(unselected.id);
     }
 
     document.getElementById('seatMsg').textContent = '';
@@ -1135,39 +1125,29 @@
     }
 
     const selInZone = zoneSeats.filter(z => state.selected.has(z.id));
+    const maxForType = state.requiredByType[type] || 0;
+    const selForType = _getSelectedCountByType(type);
+    const total = state.selected.size;
 
     if (selInZone.length > 0) {
-      // Deselect all in zone
-      selInZone.forEach(z => state.selected.delete(z.id));
+      // Nếu chưa đạt quota và trong khu vẫn còn ghế trống thì chọn thêm 1 ghế
+      if (selForType < maxForType && total < state.required && selInZone.length < zoneSeats.length) {
+        const unselected = zoneSeats.find(z => !state.selected.has(z.id));
+        if (unselected) state.selected.add(unselected.id);
+      } else {
+        // Ngược lại, bỏ chọn 1 ghế cuối cùng đã chọn của khu này
+        const lastSelected = selInZone[selInZone.length - 1];
+        state.selected.delete(lastSelected.id);
+      }
     } else {
-      // Select up to remaining quota VÀ số ghế thực tế còn trống trong khu
-      const maxForType = state.requiredByType[type] || 0;
-      let selForType = _getSelectedCountByType(type);
-      let total = state.selected.size;
-
+      // Chưa chọn ghế nào trong khu: chọn thêm 1 ghế
       if (selForType >= maxForType || total >= state.required) {
         document.getElementById('seatMsg').textContent =
           `Bạn chỉ được chọn ${maxForType} ghế ${type === 'VIP' ? 'VIP' : 'Thường'}.`;
         return;
       }
-
-      // Số ghế có thể chọn: min của quota còn lại và ghế trống thực tế trong khu
-      const availableInZone = zoneSeats.length;
-      const canPickFromQuota = Math.min(maxForType - selForType, state.required - total);
-      const canPick = Math.min(canPickFromQuota, availableInZone);
-
-      let picked = 0;
-      for (const z of zoneSeats) {
-        if (picked >= canPick) break;
-        state.selected.add(z.id);
-        picked++;
-      }
-
-      if (picked === 0) {
-        document.getElementById('seatMsg').textContent =
-          `Khu ${zoneId} đã hết chỗ hoặc bạn đã đủ số vé cần chọn.`;
-        return;
-      }
+      const unselected = zoneSeats.find(z => !state.selected.has(z.id));
+      if (unselected) state.selected.add(unselected.id);
     }
 
     document.getElementById('seatMsg').textContent = '';

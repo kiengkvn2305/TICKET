@@ -1,27 +1,53 @@
 -- =========================================================
--- TICKET DATABASE — Oracle SQL
+-- TICKET DATABASE — Oracle SQL (Bug-Fixed & Optimized)
 -- =========================================================
 
 -- =========================================================
--- SEQUENCES
+-- 0. DỌN DẸP TOÀN BỘ DATABASE CŨ (DROP ALL TABLES & SEQUENCES)
+-- Đặt lên đầu để mỗi lần chạy lại script sẽ reset database sạch sẽ.
 -- =========================================================
-CREATE SEQUENCE TAIKHOAN_SEQ  START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE NHANVIEN_SEQ  START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE KHACHHANG_SEQ START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE NHATOCHUC_SEQ START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE SUKIEN_SEQ    START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE VE_SEQ        START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE VOUCHER_SEQ   START WITH 1 INCREMENT BY 1;  -- FIX 5: thiếu sequence này
-CREATE SEQUENCE HOADON_SEQ    START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE DIADIEM_SEQ   START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE GHE_SEQ       START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE THANHTOAN_SEQ START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE HOANVE_SEQ    START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE BAOCAO_SEQ    START WITH 1 INCREMENT BY 1;
+DECLARE
+   v_count NUMBER;
+BEGIN
+   -- Drop all foreign key constraints first to avoid dependency issues when dropping tables
+   FOR c IN (SELECT table_name, constraint_name FROM user_constraints WHERE constraint_type = 'R') LOOP
+      EXECUTE IMMEDIATE 'ALTER TABLE "' || c.table_name || '" DROP CONSTRAINT "' || c.constraint_name || '"';
+   END LOOP;
 
--- =========================
--- 1. TÀI KHOẢN
--- =========================
+   -- Drop tables
+   FOR t IN (SELECT table_name FROM user_tables) LOOP
+      EXECUTE IMMEDIATE 'DROP TABLE "' || t.table_name || '" CASCADE CONSTRAINTS';
+   END LOOP;
+
+   -- Drop sequences
+   FOR s IN (SELECT sequence_name FROM user_sequences) LOOP
+      EXECUTE IMMEDIATE 'DROP SEQUENCE "' || s.sequence_name || '"';
+   END LOOP;
+END;
+/
+
+-- =========================================================
+-- 1. SEQUENCES
+-- =========================================================
+CREATE SEQUENCE TAIKHOAN_SEQ  START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE NHANVIEN_SEQ  START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE KHACHHANG_SEQ START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE NHATOCHUC_SEQ START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE SUKIEN_SEQ    START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE VE_SEQ        START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE VOUCHER_SEQ   START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE HOADON_SEQ    START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE DIADIEM_SEQ   START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE GHE_SEQ       START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE THANHTOAN_SEQ START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE HOANVE_SEQ    START WITH 100 INCREMENT BY 1;
+CREATE SEQUENCE BAOCAO_SEQ    START WITH 100 INCREMENT BY 1;
+
+-- =========================================================
+-- 2. CREATE TABLES (Theo đúng thứ tự phụ thuộc khóa ngoại)
+-- =========================================================
+
+-- 2.1 TÀI KHOẢN (Không phụ thuộc bảng nào)
 CREATE TABLE TAIKHOAN (
     MaTaiKhoan      NUMBER PRIMARY KEY,
     LoaiTaiKhoan    VARCHAR2(50) NOT NULL,
@@ -30,10 +56,7 @@ CREATE TABLE TAIKHOAN (
     TrangThai       VARCHAR(255) DEFAULT 'ACTIVE'
 );
 
-
--- =========================
--- 2. KHÁCH HÀNG
--- =========================
+-- 2.2 KHÁCH HÀNG (Phụ thuộc TAIKHOAN)
 CREATE TABLE KHACHHANG (
     MaKhachHang     NUMBER PRIMARY KEY,
     TenKhachHang    VARCHAR2(100),
@@ -44,9 +67,7 @@ CREATE TABLE KHACHHANG (
         REFERENCES TAIKHOAN(MaTaiKhoan)
 );
 
--- =========================
--- 3. NHÂN VIÊN
--- =========================
+-- 2.3 NHÂN VIÊN (Phụ thuộc TAIKHOAN)
 CREATE TABLE NHANVIEN (
     MaNhanVien      NUMBER PRIMARY KEY,
     TenNhanVien     VARCHAR2(100),
@@ -58,9 +79,7 @@ CREATE TABLE NHANVIEN (
         REFERENCES TAIKHOAN(MaTaiKhoan)
 );
 
--- =========================
--- 4. NHÀ TỔ CHỨC
--- =========================
+-- 2.4 NHÀ TỔ CHỨC (Phụ thuộc TAIKHOAN)
 CREATE TABLE NHATOCHUC (
     MaCongTy            NUMBER PRIMARY KEY,
     TenCongTy           VARCHAR2(150),
@@ -74,31 +93,7 @@ CREATE TABLE NHATOCHUC (
         REFERENCES TAIKHOAN(MaTaiKhoan)
 );
 
--- =========================
--- 5. SỰ KIỆN
--- =========================
-CREATE TABLE SUKIEN (
-    MaSuKien            NUMBER PRIMARY KEY,
-    TenSuKien           VARCHAR2(150) UNIQUE,
-    MoTa                VARCHAR2(500),
-    ThoiGianBatDau      DATE,
-    ThoiGianKetThuc     DATE,
-    MaCongTy            NUMBER,
-    
-    TrangThai           VARCHAR(150),
-    MaDiaDiem            NUMBER,
-    
-    CONSTRAINT fk_sk_dd FOREIGN KEY (MaDiaDiem)
-        REFERENCES DIADIEM(MaDiaDiem),
-    CONSTRAINT fk_sk_ct FOREIGN KEY (MaCongTy)
-        REFERENCES NHATOCHUC(MaCongTy)
-);
-
-
-COMMIT;
--- =========================
--- 6. ĐỊA ĐIỂM
--- =========================
+-- 2.5 ĐỊA ĐIỂM (Không phụ thuộc bảng nào, phải tạo trước SUKIEN)
 CREATE TABLE DIADIEM (
     MaDiaDiem       NUMBER PRIMARY KEY,
     TenDiaDiem      VARCHAR2(100),
@@ -107,9 +102,24 @@ CREATE TABLE DIADIEM (
     LoaiSoDo        VARCHAR2(200)
 );
 
--- =========================
--- 7. VÉ
--- =========================
+-- 2.6 SỰ KIỆN (Phụ thuộc NHATOCHUC và DIADIEM)
+CREATE TABLE SUKIEN (
+    MaSuKien            NUMBER PRIMARY KEY,
+    TenSuKien           VARCHAR2(150) UNIQUE,
+    MoTa                VARCHAR2(500),
+    ThoiGianBatDau      DATE,
+    ThoiGianKetThuc     DATE,
+    MaCongTy            NUMBER,
+    TrangThai           VARCHAR(150),
+    MaDiaDiem           NUMBER,
+    
+    CONSTRAINT fk_sk_dd FOREIGN KEY (MaDiaDiem)
+        REFERENCES DIADIEM(MaDiaDiem),
+    CONSTRAINT fk_sk_ct FOREIGN KEY (MaCongTy)
+        REFERENCES NHATOCHUC(MaCongTy)
+);
+
+-- 2.7 VÉ (Phụ thuộc SUKIEN)
 CREATE TABLE VE (
     MaVe            NUMBER PRIMARY KEY,
     TenVe           VARCHAR2(100),
@@ -122,48 +132,10 @@ CREATE TABLE VE (
     MaSuKien        NUMBER,
     CONSTRAINT fk_ve_sk FOREIGN KEY (MaSuKien)
         REFERENCES SUKIEN(MaSuKien),
-
     CONSTRAINT CK_VE_LV CHECK(LoaiVe IN ('Thường', 'VIP'))
 );
 
--- =========================
--- 8. GHẾ
--- =========================
-CREATE TABLE GHE (
-    MaGhe           NUMBER PRIMARY KEY,
-    KhuVuc          VARCHAR2(50),
-    TrangThai       VARCHAR(50),
-    MaVe            NUMBER,
-    MaDiaDiem       NUMBER,
-    MaHoaDon        NUMBER,
-    CONSTRAINT fk_ghe_mv FOREIGN KEY (MaVe)
-        REFERENCES VE(MaVe),
-
-    CONSTRAINT fk_ghe_hd FOREIGN KEY (MaHoaDon)
-        REFERENCES HOADON(MaHoaDon),
-
-    CONSTRAINT fk_ghe_dd FOREIGN KEY (MaDiaDiem)
-        REFERENCES DIADIEM(MaDiaDiem)
-);
-
-DELETE FROM BAOCAO;
-DELETE FROM CHITIETHOADON;
-DELETE FROM THANHTOAN;
-DELETE FROM HOANVE;
-DELETE FROM GHE;
-DELETE FROM HOADON;
-DELETE FROM VE;
-COMMIT;
-DELETE FROM VOUCHER;
-DELETE FROM SUKIEN;
-DELETE FROM NHANVIEN;
-DELETE FROM KHACHHANG;
-DELETE FROM NHATOCHUC;
-DELETE FROM TAIKHOAN;
-
--- =========================
--- 9. VOUCHER
--- =========================
+-- 2.8 VOUCHER (Phụ thuộc NHATOCHUC)
 CREATE TABLE VOUCHER (
     MaVoucher       NUMBER PRIMARY KEY,
     MaCode          VARCHAR2(50),
@@ -179,9 +151,7 @@ CREATE TABLE VOUCHER (
         REFERENCES NHATOCHUC(MaCongTy)  
 );
 
--- =========================
--- 10. HÓA ĐƠN
--- =========================
+-- 2.9 HÓA ĐƠN (Phụ thuộc KHACHHANG, NHANVIEN, VOUCHER)
 CREATE TABLE HOADON (
     MaHoaDon        NUMBER PRIMARY KEY,
     NgayLap         DATE,
@@ -199,9 +169,23 @@ CREATE TABLE HOADON (
         REFERENCES VOUCHER(MaVoucher)
 );
 
--- =========================
--- 11. CHI TIẾT HÓA ĐƠN
--- =========================
+-- 2.10 GHẾ (Phụ thuộc VE, HOADON, DIADIEM)
+CREATE TABLE GHE (
+    MaGhe           NUMBER PRIMARY KEY,
+    KhuVuc          VARCHAR2(50),
+    TrangThai       VARCHAR(50),
+    MaVe            NUMBER,
+    MaDiaDiem       NUMBER,
+    MaHoaDon        NUMBER,
+    CONSTRAINT fk_ghe_mv FOREIGN KEY (MaVe)
+        REFERENCES VE(MaVe),
+    CONSTRAINT fk_ghe_hd FOREIGN KEY (MaHoaDon)
+        REFERENCES HOADON(MaHoaDon),
+    CONSTRAINT fk_ghe_dd FOREIGN KEY (MaDiaDiem)
+        REFERENCES DIADIEM(MaDiaDiem)
+);
+
+-- 2.11 CHI TIẾT HÓA ĐƠN (Phụ thuộc VE, HOADON)
 CREATE TABLE CHITIETHOADON (
     MaVe            NUMBER,
     MaHoaDon        NUMBER,
@@ -216,9 +200,7 @@ CREATE TABLE CHITIETHOADON (
         REFERENCES HOADON(MaHoaDon)
 );
 
--- =========================
--- 12. THANH TOÁN
--- =========================
+-- 2.12 THANH TOÁN (Phụ thuộc HOADON)
 CREATE TABLE THANHTOAN (
     MaThanhToan     NUMBER PRIMARY KEY,
     SoTien          NUMBER,
@@ -230,9 +212,7 @@ CREATE TABLE THANHTOAN (
         REFERENCES HOADON(MaHoaDon)
 );
 
--- =========================
--- 13. HOÀN VÉ
--- =========================
+-- 2.13 HOÀN VÉ (Phụ thuộc HOADON, GHE)
 CREATE TABLE HOANVE (
     MaHoanVe        NUMBER PRIMARY KEY,
     MaHoaDon        NUMBER,
@@ -241,12 +221,10 @@ CREATE TABLE HOANVE (
     LyDoHoan        VARCHAR2(255),
     TrangThaiHoan   VARCHAR2(50),
     CONSTRAINT fk_hv_hd FOREIGN KEY (MaHoaDon) REFERENCES HOADON(MaHoaDon),
-    CONSTRAINT fk_hv_ghe FOREIGN KEY (MaGhe)     REFERENCES Ghe(MaGhe)
+    CONSTRAINT fk_hv_ghe FOREIGN KEY (MaGhe)     REFERENCES GHE(MaGhe)
 );
 
--- =========================
--- 14. BÁO CÁO
--- =========================
+-- 2.14 BÁO CÁO (Phụ thuộc NHÂN VIÊN)
 CREATE TABLE BAOCAO (
     MaBaoCao        NUMBER PRIMARY KEY,
     DoanhThu        NUMBER,
@@ -257,45 +235,7 @@ CREATE TABLE BAOCAO (
     MaNhanVien      NUMBER,
     CONSTRAINT fk_bc_nv FOREIGN KEY (MaNhanVien)
         REFERENCES NHANVIEN(MaNhanVien)
-)
-
-//Có gì để xóa hết bảng cho nó dễ
-BEGIN
-   FOR t IN (
-      SELECT table_name
-      FROM user_tables
-   )
-   LOOP
-      EXECUTE IMMEDIATE
-         'DROP TABLE ' || t.table_name || ' CASCADE CONSTRAINTS';
-   END LOOP;
-END;
-/
-BEGIN
-   FOR s IN (
-      SELECT sequence_name
-      FROM user_sequences
-   )
-   LOOP
-      EXECUTE IMMEDIATE
-         'DROP SEQUENCE ' || s.sequence_name;
-   END LOOP;
-END;
-/
-
-ALTER TABLE GHE DROP COLUMN MAHOADON;
--- FK liên kết với HoaDon
-ALTER TABLE GHE ADD CONSTRAINT fk_ghe_hd
-    FOREIGN KEY (MaHoaDon) REFERENCES HOADON(MaHoaDon);
+);
 
 
-    
-----------Nháp--------------------------
-UPDATE SUKIEN
-SET TRANGTHAI = 'Đã tổ chức'
-WHERE TRANGTHAI = 'Đã kết thúc';
-commit;
-
-SELECT *
-FROM GHE
-WHERE MaHoaDon = 107;
+COMMIT;
