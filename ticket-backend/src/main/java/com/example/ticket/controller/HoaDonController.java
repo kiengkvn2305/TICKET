@@ -6,6 +6,8 @@ import com.example.ticket.dto.response.VeKhachHangResponse;
 import com.example.ticket.service.HoaDonService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.ticket.dto.request.CheckInRequest;
+import com.example.ticket.dto.response.CheckInResponse;
 
 import java.util.List;
 
@@ -83,6 +85,11 @@ public class HoaDonController {
     @PostMapping("/nhanvien/mua")
     public ResponseEntity<MuaVeResponse> muaVeNhanVien(@RequestBody MuaVeRequest request) {
         return ResponseEntity.ok(service.muaVeNhanVien(request));
+    }
+
+    @PostMapping("/checkin")
+    public ResponseEntity<CheckInResponse> checkIn(@RequestBody CheckInRequest request) {
+        return ResponseEntity.ok(service.checkIn(request));
     }
 
     // ── Tra cứu (giữ nguyên) ─────────────────────────────────────────────────

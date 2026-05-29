@@ -65,4 +65,6 @@ public interface GheRepository extends JpaRepository<Ghe, Long> {
                 "(SELECT MAVOUCHER FROM VOUCHER WHERE MACONGTY = :id))", 
         nativeQuery = true)
     void deleteByMaCongTy(@Param("id") Long id);
+
+    Optional<Ghe> findByQrToken(String qrToken);
 }

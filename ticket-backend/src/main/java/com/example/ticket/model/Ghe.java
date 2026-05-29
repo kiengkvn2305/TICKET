@@ -1,6 +1,12 @@
 package com.example.ticket.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "GHE")
@@ -24,6 +30,9 @@ public class Ghe {
     @Column(name = "MAHOADON")
     private Long maHoaDon;
 
+    @Column(name = "QR_TOKEN")
+    private String qrToken;
+
     public Long   getMaGhe()               { return maGhe; }
     public void   setMaGhe(Long v)         { this.maGhe = v; }
     public String getKhuVuc()              { return khuVuc; }
@@ -34,4 +43,6 @@ public class Ghe {
     public void   setMaVe(Long v)          { this.maVe = v; }
     public Long   getMaHoaDon()            { return maHoaDon; }
     public void   setMaHoaDon(Long v)      { this.maHoaDon = v; }
+    public String getQrToken()             { return qrToken; }
+    public void   setQrToken(String v)     { this.qrToken = v; }
 }

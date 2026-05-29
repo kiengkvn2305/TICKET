@@ -52,7 +52,21 @@
     <button class="tab-btn active" id="tab-events"    onclick="showTab('events')">🎪 Sự kiện</button>
     <button class="tab-btn"        id="tab-myTickets" onclick="showTab('myTickets')">🎫 Vé đã bán</button>
     <button class="tab-btn"        id="tab-kpi"       onclick="showTab('kpi')">📊 Báo cáo KPI</button>
+    <button class="tab-btn tab-btn-checkin" onclick="window.location.href='checkin.html'">📷 Quét mã QR vé</button>
   </div>
+
+  <style>
+    .tab-btn-checkin {
+      background: linear-gradient(135deg, #0d9488, #0f766e) !important;
+      color: #fff !important;
+      border-color: #0d9488 !important;
+      font-weight: 700 !important;
+    }
+    .tab-btn-checkin:hover {
+      background: linear-gradient(135deg, #0f766e, #0d5c57) !important;
+      box-shadow: 0 4px 16px rgba(13,148,136,.35);
+    }
+  </style>
 
   <!-- ===== MAIN CONTENT ===== -->
   <main class="main-content">

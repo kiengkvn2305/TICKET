@@ -552,20 +552,17 @@
         allGroupSeats.forEach(s => bookedSeats.add(s));
 
         const cards = tickets.flatMap(ve => {
-            const gheConLai  = (ve.gheList || []).filter(g => g.trangThai !== "da_hoan");
-            const soLuongXuat = gheConLai.length || ve.soLuong || 0;
-            if (soLuongXuat === 0) return [];
-            return Array.from({ length: soLuongXuat }, (_, i) => {
-                const ghe      = gheConLai[i] || null;
-                // khuVuc lưu chỉ là chữ cái đơn, ví dụ "A"
-                const mySeat   = ghe ? String(ghe.khuVuc || '').trim().toUpperCase() : null;
-                const mySeatSet = mySeat ? new Set([mySeat]) : new Set();
-                return _buildTicketCard(
-                    ve, group, i + 1, fmtDate, fmt,
-                    mySeat, mySeatSet, bookedSeats,
-                    ve.soLuong, soLuongXuat, loaiSoDo
-                );
-            });
+            const gheConLai = (ve.gheList || []).filter(g => g.trangThai !== "da_hoan");
+            if (gheConLai.length === 0) {
+                // Fallback: vé không có gheList (dữ liệu cũ) — xuất 1 tấm không có QR thật
+                return [_buildTicketCard(ve, group,
+                    { khuVuc: _formatSeatLabel(ve), qrToken: `NO-QR-${ve.maVe}` },
+                    fmtDate, fmt, bookedSeats, loaiSoDo)];
+            }
+            // Mỗi ghế = 1 tấm vé riêng với qrToken thật từ DB
+            return gheConLai.map(gheInfo =>
+                _buildTicketCard(ve, group, gheInfo, fmtDate, fmt, bookedSeats, loaiSoDo)
+            );
         }).join("");
 
         // Sơ đồ tổng quan: dùng tất cả khu trong hóa đơn
@@ -643,11 +640,12 @@ ${cards}
         win.document.close();
     };
 
-    /* ── BUILD 1 TẤM VÉ ─────────────────────────────────── */
-    function _buildTicketCard(ve, group, idx, fmtDate, fmt, seatLabel, mySeatSet, bookedSeats, soLuongGoc, soLuongXuat, loaiSoDo) {
-        const soLuong    = soLuongGoc || ve.soLuong || 0;
-        const xuat       = soLuongXuat || soLuong;
-        const ticketCode = `TK-${group.maHoaDon}-${ve.maVe}-${idx}`;
+    /* ── BUILD 1 TẤM VÉ (mỗi ghế = 1 tấm, QR là token thật từ DB) ── */
+    function _buildTicketCard(ve, group, gheInfo, fmtDate, fmt, bookedSeats, loaiSoDo) {
+        // gheInfo = { maGhe, khuVuc, trangThai, qrToken }
+        const qrToken   = gheInfo.qrToken || `NO-QR-${ve.maVe}`;
+        const seatLabel = String(gheInfo.khuVuc || '').trim().toUpperCase();
+        const mySeatSet = seatLabel ? new Set([seatLabel]) : new Set();
 
         const seatRow = seatLabel ? `
                     <div class="info-row">
@@ -660,14 +658,6 @@ ${cards}
                 <div class="seat-map-title">🗺️ Vị trí ghế của bạn</div>
                 ${_buildSeatMapHtmlRaw(mySeatSet, bookedSeats, loaiSoDo)}
             </div>` : "";
-
-        let vesoRow = "";
-        if (soLuong > 1) {
-            const veIdx  = idx - (soLuong - xuat);
-            const suffix = xuat < soLuong
-                ? ` <span style="font-size:.72rem;color:#888">(còn lại / ${soLuong} ban đầu)</span>` : "";
-            vesoRow = `<div class="info-row"><div class="info-label">Vé số</div><div class="info-value">${veIdx} / ${xuat}${suffix}</div></div>`;
-        }
 
         return `
         <div class="ticket-wrap">
@@ -698,18 +688,17 @@ ${cards}
                         <div class="info-label">Ngày mua</div>
                         <div class="info-value">${fmtDate(group.ngayMua)}</div>
                     </div>
-                    ${vesoRow}
                 </div>
                 <div class="ticket-qr">
-                    <div class="qr-box" id="qr-${ticketCode}"></div>
-                    <div class="ticket-id">${ticketCode}</div>
+                    <div class="qr-box" id="qr-${_esc(qrToken)}"></div>
+                    <div class="ticket-id" style="max-width:110px;word-break:break-all">${_escRaw(qrToken)}</div>
                 </div>
             </div>
             ${seatMapSection}
             <div class="ticket-footer">
                 <div>
                     <div class="price">${fmt(ve.gia)}</div>
-                    <div class="serial">HĐ #${group.maHoaDon} · Vé #${ve.maVe}</div>
+                    <div class="serial">HĐ #${group.maHoaDon} · Vé #${ve.maVe} · Ghế ${_escRaw(seatLabel || "—")}</div>
                 </div>
                 <span class="badge">✅ ĐÃ THANH TOÁN</span>
             </div>

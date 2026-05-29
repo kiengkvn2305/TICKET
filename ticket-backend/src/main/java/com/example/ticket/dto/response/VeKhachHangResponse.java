@@ -23,13 +23,18 @@ public class VeKhachHangResponse {
     private int          soLuongHoan;
     private List<String> gheDat;
     private Long         maSuKien;
-    private List<GheInfo> gheList; // ✅ thêm mới
+    private List<GheInfo> gheList; 
+
+
+    // getter/setter
+
 
     // ── GheInfo ──────────────────────────────────────────
     public static class GheInfo {
         private Long   maGhe;
         private String khuVuc;
         private String trangThai;
+        private String qrToken;   
 
         public Long   getMaGhe()             { return maGhe; }
         public void   setMaGhe(Long v)       { this.maGhe = v; }
@@ -37,6 +42,8 @@ public class VeKhachHangResponse {
         public void   setKhuVuc(String v)    { this.khuVuc = v; }
         public String getTrangThai()         { return trangThai; }
         public void   setTrangThai(String v) { this.trangThai = v; }
+        public String getQrToken() { return qrToken; }
+        public void setQrToken(String qrToken) { this.qrToken = qrToken; }
     }
 
     // ── getters / setters cũ giữ nguyên ──────────────────
@@ -76,4 +83,5 @@ public class VeKhachHangResponse {
     public void      setMaSuKien(Long v)            { this.maSuKien = v; }
     public List<GheInfo> getGheList()               { return gheList; } // ✅ thêm mới
     public void      setGheList(List<GheInfo> v)    { this.gheList = v; } // ✅ thêm mới
+
 }

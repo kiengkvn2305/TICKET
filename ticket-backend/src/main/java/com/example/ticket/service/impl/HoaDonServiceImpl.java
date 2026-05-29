@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -36,6 +37,8 @@ import com.example.ticket.repository.SuKienRepository;
 import com.example.ticket.repository.VeRepository;
 import com.example.ticket.repository.VoucherRepository;
 import com.example.ticket.service.HoaDonService;
+import com.example.ticket.dto.request.CheckInRequest;
+import com.example.ticket.dto.response.CheckInResponse;
 
 @Service
 @Transactional(readOnly = true)
@@ -96,6 +99,34 @@ public class HoaDonServiceImpl implements HoaDonService {
         return res;
     }
 
+    @Override
+    @Transactional
+    public CheckInResponse checkIn(CheckInRequest request) {
+
+        Ghe ghe = gheRepository.findByQrToken(request.getQrToken())
+                .orElseThrow(() -> new BadRequestException("QR không hợp lệ"));
+
+        if ("da_checkin".equals(ghe.getTrangThai())) {
+            throw new BadRequestException("Vé đã check-in trước đó");
+        }
+
+        if ("da_hoan".equals(ghe.getTrangThai())) {
+            throw new BadRequestException("Vé đã hoàn");
+        }
+
+        ghe.setTrangThai("da_checkin");
+        gheRepository.save(ghe);
+
+        Ve ve = veRepository.findById(ghe.getMaVe())
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy vé"));
+
+        CheckInResponse response = new CheckInResponse();
+        response.setMessage("Check-in thành công");
+        response.setTenVe(ve.getTenVe());
+        response.setKhuVuc(ghe.getKhuVuc());
+
+        return response;
+    }
     // =========================================================================
     // CORE
     // =========================================================================
@@ -234,6 +265,7 @@ public class HoaDonServiceImpl implements HoaDonService {
             ghe.setMaVe(gr.getMaVe());
             ghe.setMaHoaDon(saved.getMaHoaDon());
             ghe.setTrangThai("da_dat");
+            ghe.setQrToken(UUID.randomUUID().toString());
             gheRepository.save(ghe);
         }
 
@@ -372,6 +404,7 @@ public class HoaDonServiceImpl implements HoaDonService {
                     info.setMaGhe(g.getMaGhe());
                     info.setKhuVuc(g.getKhuVuc());
                     info.setTrangThai(g.getTrangThai());
+                    info.setQrToken(g.getQrToken());
                     return info;
                 }).toList());
             }

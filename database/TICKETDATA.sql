@@ -162,12 +162,12 @@ CREATE TABLE GHE (
     MaVe NUMBER,
     MaDiaDiem NUMBER,
     MaHoaDon NUMBER,
+    QR_Token VARCHAR2(255),
     CONSTRAINT fk_ghe_mv FOREIGN KEY (MaVe) REFERENCES VE(MaVe),
     CONSTRAINT fk_ghe_hd FOREIGN KEY (MaHoaDon) REFERENCES HOADON(MaHoaDon),
     CONSTRAINT fk_ghe_dd FOREIGN KEY (MaDiaDiem) REFERENCES DIADIEM(MaDiaDiem),
-    CONSTRAINT CK_GHE_TRANGTHAI CHECK (TrangThai IN ('da_dat','da_hoan'))
+    CONSTRAINT CK_GHE_TRANGTHAI CHECK (TrangThai IN ('da_dat','da_hoan', 'da_checkin'))
 );
-
 -- =========================
 -- 11. CHI TIẾT HÓA ĐƠN
 -- =========================
