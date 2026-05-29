@@ -91,10 +91,13 @@ public class HoaDonServiceImpl implements HoaDonService {
             throw new BadRequestException("maNhanVien là bắt buộc khi nhân viên bán vé tại quầy");
         MuaVeResponse res = thucHienMuaVe(request);
         // Nhân viên bán tại quầy → xác nhận thanh toán ngay, không cần pending
-        hoaDonRepository.findById(res.getMaHoaDon()).ifPresent(hd -> {
-            hd.setTrangThai("THANH_CONG");
-            hoaDonRepository.save(hd);
-        });
+        Long maHD = res.getMaHoaDon();
+        if (maHD != null) {
+            hoaDonRepository.findById(maHD).ifPresent(hd -> {
+                hd.setTrangThai("THANH_CONG");
+                hoaDonRepository.save(hd);
+            });
+        }
         res.setTrangThai("THANH_CONG");
         return res;
     }
@@ -117,7 +120,11 @@ public class HoaDonServiceImpl implements HoaDonService {
         ghe.setTrangThai("da_checkin");
         gheRepository.save(ghe);
 
-        Ve ve = veRepository.findById(ghe.getMaVe())
+        Long maVe = ghe.getMaVe();
+        if (maVe == null) {
+            throw new BadRequestException("Ghế không có mã vé hợp lệ");
+        }
+        Ve ve = veRepository.findById(maVe)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy vé"));
 
         CheckInResponse response = new CheckInResponse();
@@ -174,9 +181,11 @@ public class HoaDonServiceImpl implements HoaDonService {
             kh = khachHangRepository.save(new KhachHang());
         }
 
-        if (request.getMaNhanVien() != null
-                && !nhanVienRepository.existsById(request.getMaNhanVien()))
-            throw new NotFoundException("Không tìm thấy nhân viên ID: " + request.getMaNhanVien());
+        Long maNV = request.getMaNhanVien();
+        if (maNV != null) {
+            if (!nhanVienRepository.existsById(maNV))
+                throw new NotFoundException("Không tìm thấy nhân viên ID: " + maNV);
+        }
 
         List<Long> maVeList = request.getItems().stream()
                 .map(MuaVeRequest.ItemRequest::getMaVe).toList();
@@ -334,10 +343,15 @@ public class HoaDonServiceImpl implements HoaDonService {
         Map<Long, Ve> veMap = veRepository.findAllByIdWithLock(maVeList)
                 .stream().collect(Collectors.toMap(Ve::getMaVe, v -> v));
 
-        Map<Long, SuKien> skMap = suKienRepository
-                .findAllById(veMap.values().stream()
-                        .map(Ve::getMaSuKien).filter(Objects::nonNull).distinct().toList())
-                .stream().collect(Collectors.toMap(SuKien::getMaSuKien, s -> s));
+        List<Long> skIds = veMap.values().stream()
+                .map(Ve::getMaSuKien).filter(Objects::nonNull).distinct().toList();
+        Map<Long, SuKien> skMap;
+        if (skIds.isEmpty()) {
+            skMap = new HashMap<>();
+        } else {
+            skMap = suKienRepository.findAllById(skIds)
+                    .stream().collect(Collectors.toMap(SuKien::getMaSuKien, s -> s));
+        }
 
         // Ghế đã đặt: "maHoaDon_maVe" → list khuVuc
         List<Ghe> gheList = gheRepository.findByMaHoaDonIn(maHoaDonList);
@@ -369,7 +383,7 @@ public class HoaDonServiceImpl implements HoaDonService {
 
             // Đếm số ghế approved để tính soLuongHoan hiển thị
             if ("approved".equalsIgnoreCase(hv.getTrangThaiHoan()))
-                hoanVeCountMap.merge(key, 1, Integer::sum);
+                hoanVeCountMap.merge(key, 1, (oldVal, newVal) -> oldVal + newVal);
 
             // Ưu tiên trạng thái: pending > approved > rejected
             String existing = hoanVeStatusMap.get(key);

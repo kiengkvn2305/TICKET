@@ -4,7 +4,6 @@ import com.example.ticket.dto.response.BaoCaoKpiResponse;
 import com.example.ticket.dto.response.VeKhachHangResponse;
 import com.example.ticket.model.BaoCao;
 import com.example.ticket.repository.BaoCaoRepository;
-import com.example.ticket.repository.HoaDonRepository;
 import com.example.ticket.service.BaoCaoService;
 import com.example.ticket.service.HoaDonService;
 import org.springframework.stereotype.Service;
@@ -19,14 +18,11 @@ import java.util.stream.Collectors;
 public class BaoCaoServiceImpl implements BaoCaoService {
 
     private final BaoCaoRepository baoCaoRepo;
-    private final HoaDonRepository hoaDonRepo;
     private final HoaDonService    hoaDonService;
 
     public BaoCaoServiceImpl(BaoCaoRepository baoCaoRepo,
-                              HoaDonRepository hoaDonRepo,
                               HoaDonService hoaDonService) {
         this.baoCaoRepo   = baoCaoRepo;
-        this.hoaDonRepo   = hoaDonRepo;
         this.hoaDonService = hoaDonService;
     }
 

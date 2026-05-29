@@ -12,7 +12,6 @@ import com.example.ticket.repository.NhaToChucRepository;
 import com.example.ticket.repository.SuKienRepository;
 import com.example.ticket.repository.VoucherRepository;
 import com.example.ticket.service.VoucherService;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,12 +40,8 @@ public class VoucherServiceImpl implements VoucherService {
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy nhà tổ chức"));
     }
 
-    private SuKien findSuKien(Long maSuKien) {
-        return suKienRepository.findById(maSuKien)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy sự kiện"));
-    }
-
     private Voucher findVoucher(Long id) {
+        if (id == null) throw new NotFoundException("Không tìm thấy khuyến mãi với ID null");
         return voucherRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy khuyến mãi"));
     }
@@ -74,6 +69,7 @@ public class VoucherServiceImpl implements VoucherService {
     // ✅ Kiểm tra tất cả sự kiện thuộc công ty
     private void validateSuKienBelongToCompany(List<Long> ids, Long maCongTy) {
         for (Long id : ids) {
+            if (id == null) throw new NotFoundException("Không tìm thấy sự kiện null");
             SuKien sk = suKienRepository.findById(id)
                     .orElseThrow(() -> new NotFoundException("Không tìm thấy sự kiện #" + id));
             if (!maCongTy.equals(sk.getMaCongTy()))
@@ -98,9 +94,11 @@ public class VoucherServiceImpl implements VoucherService {
         // ✅ Load tên sự kiện từ danhSachSuKien
         if (v.getDanhSachSuKien() != null && !v.getDanhSachSuKien().isBlank()) {
             List<Long> ids = parseSuKienIds(v.getDanhSachSuKien());
-            List<String> tenList = suKienRepository.findAllById(ids)
-                    .stream().map(SuKien::getTenSuKien).toList();
-            r.setTenSuKienList(tenList);
+            if (!ids.isEmpty()) {
+                List<String> tenList = suKienRepository.findAllById(ids)
+                        .stream().map(SuKien::getTenSuKien).toList();
+                r.setTenSuKienList(tenList);
+            }
         }
         return r;
     }
@@ -231,12 +229,16 @@ public class VoucherServiceImpl implements VoucherService {
     @Override
     @Transactional
     public void delete(Long id) {
-        voucherRepository.delete(findVoucher(id));
+        Voucher v = findVoucher(id);
+        if (v != null) {
+            voucherRepository.delete(v);
+        }
     }
 
     @Override
     @Transactional
     public VoucherResponse useVoucher(Long id) {
+        if (id == null) throw new NotFoundException("Không tìm thấy voucher với ID null");
         Voucher v = voucherRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher"));
 

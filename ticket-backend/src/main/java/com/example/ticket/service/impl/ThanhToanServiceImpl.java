@@ -31,7 +31,8 @@ public class ThanhToanServiceImpl implements ThanhToanService {
     @Transactional
     public ThanhToanResponse create(ThanhToanRequest request) {
         // 1. Validate
-        if (request.getMaHoaDon() == null) {
+        Long maHD = request.getMaHoaDon();
+        if (maHD == null) {
             throw new BadRequestException("Thiếu maHoaDon");
         }
         if (request.getPhuongThuc() == null || request.getPhuongThuc().isBlank()) {
@@ -39,9 +40,9 @@ public class ThanhToanServiceImpl implements ThanhToanService {
         }
 
         // 2. Kiểm tra hóa đơn tồn tại
-        HoaDon hoaDon = hoaDonRepository.findById(request.getMaHoaDon())
+        HoaDon hoaDon = hoaDonRepository.findById(maHD)
                 .orElseThrow(() -> new NotFoundException(
-                    "Không tìm thấy hóa đơn ID: " + request.getMaHoaDon()));
+                    "Không tìm thấy hóa đơn ID: " + maHD));
 
         // 3. Tạo bản ghi ThanhToan
         ThanhToan tt = new ThanhToan();

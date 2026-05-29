@@ -52,9 +52,11 @@ public class HoanVeServiceImpl implements HoanVeService {
     @Override
     public List<HoanVeResponse> hoanVe(HoanVeRequest request) {
 
-        hoaDonRepository.findById(request.getMaHoaDon())
+        Long maHD = request.getMaHoaDon();
+        if (maHD == null) throw new BadRequestException("Mã hóa đơn không được null");
+        hoaDonRepository.findById(maHD)
                 .orElseThrow(() -> new NotFoundException(
-                        "Không tìm thấy hóa đơn #" + request.getMaHoaDon()));
+                        "Không tìm thấy hóa đơn #" + maHD));
 
         List<Long> maGheList = request.getMaGheList();
         if (maGheList == null || maGheList.isEmpty())
@@ -143,6 +145,7 @@ public class HoanVeServiceImpl implements HoanVeService {
                 && !HOAN_REJECTED.equalsIgnoreCase(trangThai))
             throw new BadRequestException("Trạng thái phải là 'approved' hoặc 'rejected'");
 
+        if (maHoanVe == null) throw new BadRequestException("Mã hoàn vé không được null");
         HoanVe hv = hoanVeRepository.findById(maHoanVe)
                 .orElseThrow(() -> new NotFoundException(
                         "Không tìm thấy yêu cầu hoàn #" + maHoanVe));
@@ -173,11 +176,20 @@ public class HoanVeServiceImpl implements HoanVeService {
     // ── Helper build response đầy đủ ─────────────────────────────────────────
 
     private HoanVeResponse buildFullResponse(HoanVe hv) {
-        Ghe       ghe = gheRepository.findById(hv.getMaGhe()).orElse(null);
-        Ve        ve  = ghe != null ? veRepository.findById(ghe.getMaVe()).orElse(null) : null;
-        SuKien    sk  = ve  != null ? suKienRepository.findById(ve.getMaSuKien()).orElse(null) : null;
-        HoaDon    hd  = hoaDonRepository.findById(hv.getMaHoaDon()).orElse(null);
-        KhachHang kh  = hd  != null ? khachHangRepository.findById(hd.getMaKhachHang()).orElse(null) : null;
+        Long maGhe = hv.getMaGhe();
+        Ghe ghe = maGhe != null ? gheRepository.findById(maGhe).orElse(null) : null;
+
+        Long maVe = ghe != null ? ghe.getMaVe() : null;
+        Ve ve = maVe != null ? veRepository.findById(maVe).orElse(null) : null;
+
+        Long maSuKien = ve != null ? ve.getMaSuKien() : null;
+        SuKien sk = maSuKien != null ? suKienRepository.findById(maSuKien).orElse(null) : null;
+
+        Long maHoaDon = hv.getMaHoaDon();
+        HoaDon hd = maHoaDon != null ? hoaDonRepository.findById(maHoaDon).orElse(null) : null;
+
+        Long maKhachHang = hd != null ? hd.getMaKhachHang() : null;
+        KhachHang kh = maKhachHang != null ? khachHangRepository.findById(maKhachHang).orElse(null) : null;
 
         HoanVeResponse r = new HoanVeResponse();
         r.setMaHoanVe(hv.getMaHoanVe());

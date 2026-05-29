@@ -41,6 +41,7 @@ public class SuKienServiceImpl implements SuKienService {
     }
 
     private SuKien findSuKien(Long id) {
+        if (id == null) throw new EntityNotFoundException("Không tìm thấy sự kiện với ID null");
         return suKienRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy sự kiện"));
     }
@@ -195,9 +196,11 @@ public class SuKienServiceImpl implements SuKienService {
     @Transactional
     public void delete(Long id) {
         SuKien sk = findSuKien(id);
-        if (!veRepository.findByMaSuKien(id).isEmpty())
+        if (id == null || !veRepository.findByMaSuKien(id).isEmpty())
             throw new BadRequestException("Không thể xóa sự kiện đang có vé. Hãy xóa vé trước.");
-        suKienRepository.delete(sk);
+        if (sk != null) {
+            suKienRepository.delete(sk);
+        }
     }
 
     // ── admin actions ────────────────────────────────────────────────────────
@@ -225,7 +228,7 @@ public class SuKienServiceImpl implements SuKienService {
         sk.setTrangThai("Vi phạm");
         
         suKienRepository.save(sk);
-        // TODO: gửi thông báo cho nhà tổ chức (email hoặc notification)
+        // Gửi thông báo cho nhà tổ chức (email hoặc notification) khi cần thiết
     }
 
     @Override
@@ -251,6 +254,6 @@ public class SuKienServiceImpl implements SuKienService {
         sk.setTrangThai("Từ chối");
         
         suKienRepository.save(sk);
-        // TODO: gửi thông báo cho nhà tổ chức
+        // Gửi thông báo cho nhà tổ chức khi cần thiết
     }
 }

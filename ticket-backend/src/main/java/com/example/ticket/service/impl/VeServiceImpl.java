@@ -46,11 +46,13 @@ public class VeServiceImpl implements VeService {
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private SuKien findSuKien(Long maSuKien) {
+        if (maSuKien == null) throw new EntityNotFoundException("Sự kiện không tồn tại với ID null");
         return suKienRepository.findById(maSuKien)
                 .orElseThrow(() -> new EntityNotFoundException("Sự kiện không tồn tại"));
     }
 
     private Ve findVe(Long id) {
+        if (id == null) throw new EntityNotFoundException("Không tìm thấy vé với ID null");
         return veRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy vé"));
     }
@@ -71,11 +73,12 @@ public class VeServiceImpl implements VeService {
      *   Thường = sucChua / 10 * 6   → seatsPerZone = Thuong / 4
      */
     private int tinhSoLuong(SuKien suKien, String loaiVe) {
-        if (suKien.getMaDiaDiem() == null) {
+        Long maDiaDiem = suKien.getMaDiaDiem();
+        if (maDiaDiem == null) {
             boolean isVip = loaiVe != null && loaiVe.toUpperCase().contains("VIP");
             return isVip ? 30 : 70;
         }
-        DiaDiem dd = diaDiemRepository.findById(suKien.getMaDiaDiem()).orElse(null);
+        DiaDiem dd = diaDiemRepository.findById(maDiaDiem).orElse(null);
         if (dd == null) {
             boolean isVip = loaiVe != null && loaiVe.toUpperCase().contains("VIP");
             return isVip ? 30 : 70;
@@ -122,6 +125,7 @@ public class VeServiceImpl implements VeService {
     public List<VeResponse> getAll() {
         List<Ve> ves = veRepository.findAll();
         List<Long> ids = ves.stream().map(Ve::getMaSuKien).distinct().toList();
+        if (ids.isEmpty()) return List.of();
         Map<Long, SuKien> skMap = suKienRepository.findAllById(ids)
                 .stream().collect(Collectors.toMap(SuKien::getMaSuKien, s -> s));
         return ves.stream()
@@ -132,7 +136,8 @@ public class VeServiceImpl implements VeService {
     @Override
     public VeResponse getById(Long id) {
         Ve ve = findVe(id);
-        SuKien sk = suKienRepository.findById(ve.getMaSuKien()).orElse(null);
+        Long maSuKien = ve.getMaSuKien();
+        SuKien sk = maSuKien != null ? suKienRepository.findById(maSuKien).orElse(null) : null;
         return mapToResponse(ve, sk);
     }
 
@@ -215,14 +220,18 @@ public class VeServiceImpl implements VeService {
         existing.setMoTa(request.getMoTa());
         // KHÔNG setDaBan, KHÔNG setSoLuong — số lượng cố định theo loại vé
 
-        SuKien sk = suKienRepository.findById(existing.getMaSuKien()).orElse(null);
+        Long maSuKien = existing.getMaSuKien();
+        SuKien sk = maSuKien != null ? suKienRepository.findById(maSuKien).orElse(null) : null;
         return mapToResponse(veRepository.save(existing), sk);
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
-        veRepository.delete(findVe(id));
+        Ve ve = findVe(id);
+        if (ve != null) {
+            veRepository.delete(ve);
+        }
     }
 
     @Override

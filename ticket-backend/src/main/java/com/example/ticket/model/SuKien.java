@@ -10,6 +10,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
+/**
+ * Bảng SUKIEN — thêm các cột cấu hình định giá động:
+ *  - cauHinhGamma   : Hệ số đột phá FOMO cho sự kiện này (ghi đè global default).
+ *  - ngayXaHang     : Ngưỡng ngày sát sự kiện kích hoạt Bậc Giải cứu.
+ *  - ngayMoBan      : Ngày bắt đầu mở bán vé (dùng tính T_total / T_passed).
+ *  - dinhGiaDongBat : false = tắt định giá động cho sự kiện này.
+ */
 @Entity
 @Table(name = "SUKIEN")
 public class SuKien {
@@ -46,7 +53,39 @@ public class SuKien {
     @Column(name = "TRANGTHAI")
     private String trangThai = "Hoạt động";
 
+    // ── Cấu hình Định giá Động ───────────────────────────────────────────────
+
+    /**
+     * Hệ số Gamma (γ) cho sự kiện này.
+     * null → dùng global default từ application.properties (pricing.gamma.default).
+     */
+    @Column(name = "CAU_HINH_GAMMA")
+    private Double cauHinhGamma;
+
+    /**
+     * Số ngày còn lại trước sự kiện để kích hoạt Bậc Giải cứu.
+     * null → dùng global default (pricing.clearance.days-before-event).
+     */
+    @Column(name = "NGAY_XA_HANG")
+    private Integer ngayXaHang;
+
+    /**
+     * Ngày bắt đầu mở bán vé — dùng để tính T_total và T_passed.
+     * Nếu null → mặc định dùng ngày tạo sự kiện.
+     */
+    @Column(name = "NGAY_MO_BAN")
+    private LocalDate ngayMoBan;
+
+    /**
+     * Bật/tắt định giá động riêng cho sự kiện này.
+     * Mặc định true — kế thừa global config pricing.enabled.
+     */
+    @Column(name = "DINH_GIA_DONG_BAT")
+    private Boolean dinhGiaDongBat = true;
+
     public SuKien() {}
+
+    // ── getters / setters ────────────────────────────────────────────────────
 
     public Long getMaSuKien() { return maSuKien; }
     public void setMaSuKien(Long maSuKien) { this.maSuKien = maSuKien; }
@@ -71,4 +110,16 @@ public class SuKien {
 
     public String getTrangThai() { return trangThai; }
     public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
+
+    public Double getCauHinhGamma() { return cauHinhGamma; }
+    public void setCauHinhGamma(Double cauHinhGamma) { this.cauHinhGamma = cauHinhGamma; }
+
+    public Integer getNgayXaHang() { return ngayXaHang; }
+    public void setNgayXaHang(Integer ngayXaHang) { this.ngayXaHang = ngayXaHang; }
+
+    public LocalDate getNgayMoBan() { return ngayMoBan; }
+    public void setNgayMoBan(LocalDate ngayMoBan) { this.ngayMoBan = ngayMoBan; }
+
+    public Boolean getDinhGiaDongBat() { return dinhGiaDongBat; }
+    public void setDinhGiaDongBat(Boolean dinhGiaDongBat) { this.dinhGiaDongBat = dinhGiaDongBat; }
 }

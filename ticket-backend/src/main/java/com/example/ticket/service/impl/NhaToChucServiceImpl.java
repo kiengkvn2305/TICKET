@@ -17,6 +17,7 @@ public class NhaToChucServiceImpl implements NhaToChucService {
 
     @Override
     public NhaToChuc getById(Long maCongTy) {
+        if (maCongTy == null) throw new NotFoundException("Không tìm thấy nhà tổ chức với mã null");
         return repo.findById(maCongTy)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy nhà tổ chức với mã: " + maCongTy));
     }

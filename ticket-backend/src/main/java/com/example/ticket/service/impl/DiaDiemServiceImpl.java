@@ -24,6 +24,7 @@ public class DiaDiemServiceImpl implements DiaDiemService {
 
     @Override
     public Optional<DiaDiem> getById(Long maDiaDiem) {
+        if (maDiaDiem == null) return Optional.empty();
         return diaDiemRepository.findById(maDiaDiem);
     }
 }

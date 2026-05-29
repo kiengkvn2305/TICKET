@@ -82,7 +82,7 @@ public class DoanhThuServiceImpl implements DoanhThuService {
                         Long maVe = gheToVeMap.get(hv.getMaGhe());
                         if (maVe == null) return;
                         String key = hv.getMaHoaDon() + "_" + maVe;
-                        hoanMap.merge(key, 1, Integer::sum);
+                        hoanMap.merge(key, 1, (oldVal, newVal) -> oldVal + newVal);
                     });
         }
 

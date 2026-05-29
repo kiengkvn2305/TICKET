@@ -67,6 +67,7 @@ public TaiKhoanServiceImpl(TaiKhoanRepository taiKhoanRepository,
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private TaiKhoan findTaiKhoan(Long id) {
+        if (id == null) throw new NotFoundException("Không tìm thấy tài khoản với ID null");
         return taiKhoanRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy tài khoản"));
     }
@@ -332,6 +333,7 @@ public TaiKhoanServiceImpl(TaiKhoanRepository taiKhoanRepository,
     @Override
     @Transactional
     public void block(Long id) {
+        if (id == null) throw new NotFoundException("Không tìm thấy tài khoản với ID null");
         TaiKhoan tk = taiKhoanRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy tài khoản #" + id));
         if ("Quản lý".equals(tk.getLoaiTaiKhoan()))
@@ -343,6 +345,7 @@ public TaiKhoanServiceImpl(TaiKhoanRepository taiKhoanRepository,
     @Override
     @Transactional
     public void unblock(Long id) {
+        if (id == null) throw new NotFoundException("Không tìm thấy tài khoản với ID null");
         TaiKhoan tk = taiKhoanRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy tài khoản #" + id));
         tk.setTrangThai("active");
@@ -352,6 +355,7 @@ public TaiKhoanServiceImpl(TaiKhoanRepository taiKhoanRepository,
     @Override
     @Transactional
     public void resetPassword(Long id, String matKhauMoi) {
+        if (id == null) throw new NotFoundException("Không tìm thấy tài khoản với ID null");
         if (matKhauMoi == null || matKhauMoi.isBlank())
             throw new BadRequestException("Mật khẩu mới không được để trống");
         TaiKhoan tk = taiKhoanRepository.findById(id)
@@ -363,6 +367,7 @@ public TaiKhoanServiceImpl(TaiKhoanRepository taiKhoanRepository,
     @Override
     @Transactional
     public void changeRole(Long id, String loaiTaiKhoan) {
+        if (id == null) throw new NotFoundException("Không tìm thấy tài khoản với ID null");
         if (loaiTaiKhoan == null || loaiTaiKhoan.isBlank())
             throw new BadRequestException("Loại tài khoản không hợp lệ");
         TaiKhoan tk = taiKhoanRepository.findById(id)
