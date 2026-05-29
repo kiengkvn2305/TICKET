@@ -8,6 +8,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Controller class to handle all API operations relating to vouchers.
+ * Provides endpoints for retrieving, creating, updating, deleting, and using vouchers.
+ *
+ * @author Nguyễn Đoàn Đức Hiếu
+ */
 @RestController
 @RequestMapping("/api/voucher")
 @CrossOrigin(origins = "*")
@@ -19,33 +25,61 @@ public class VoucherController {
         this.voucherService = voucherService;
     }
 
-    // Tra cứu voucher theo mã code — dùng cho frontend preview giảm giá
+    /**
+     * Look up voucher details by its unique string code.
+     * Used mainly for discount preview on the frontend application.
+     *
+     * @param maCode the unique code of the voucher
+     * @param maSuKien the ID of the event to check application for
+     * @return the details of the voucher wrapped in ResponseEntity
+     */
     @GetMapping("/code/{maCode}")
     public ResponseEntity<VoucherResponse> getByCode(@PathVariable String maCode) {
         return ResponseEntity.ok(voucherService.getByCode(maCode));
     }
 
-    // Lấy danh sách voucher theo nhà tổ chức (dùng maTaiKhoan làm key)
+    /**
+     * Get list of all vouchers created by a specific event organizer.
+     *
+     * @param maTaiKhoan the account ID of the event organizer
+     * @return list of matching VoucherResponse wrapped in ResponseEntity
+     */
     @GetMapping("/creator/{maTaiKhoan}")
     public ResponseEntity<List<VoucherResponse>> getByCreator(
             @PathVariable Long maTaiKhoan) {
         return ResponseEntity.ok(voucherService.getByCreator(maTaiKhoan));
     }
 
-    // Lấy chi tiết 1 voucher
+    /**
+     * Get details of a single voucher by its primary database identifier (ID).
+     *
+     * @param id the database ID of the voucher
+     * @return the details of the voucher wrapped in ResponseEntity
+     */
     @GetMapping("/{id}")
     public ResponseEntity<VoucherResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(voucherService.getById(id));
     }
 
-    // Tạo voucher mới
+    /**
+     * Create a new voucher for the system.
+     *
+     * @param request the request body containing voucher information
+     * @return the created VoucherResponse wrapped in ResponseEntity
+     */
     @PostMapping
     public ResponseEntity<VoucherResponse> create(
             @RequestBody VoucherRequest request) {
         return ResponseEntity.ok(voucherService.create(request));
     }
 
-    // Cập nhật voucher
+    /**
+     * Update an existing voucher.
+     *
+     * @param id the database ID of the voucher to update
+     * @param request the updated voucher details
+     * @return the updated VoucherResponse wrapped in ResponseEntity
+     */
     @PutMapping("/{id}")
     public ResponseEntity<VoucherResponse> update(
             @PathVariable Long id,
@@ -53,25 +87,50 @@ public class VoucherController {
         return ResponseEntity.ok(voucherService.update(id, request));
     }
 
-    // Xóa voucher
+    /**
+     * Delete a voucher from the database.
+     *
+     * @param id the database ID of the voucher to delete
+     * @return empty response body with HTTP Status 204 (No Content)
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         voucherService.delete(id);
         return ResponseEntity.noContent().build();
     }
     
+    /**
+     * Get all active vouchers applicable to a specific event ID.
+     * Primarily used to populate voucher selection dropdowns on the frontend.
+     *
+     * @param maSuKien the ID of the event
+     * @return list of applicable VoucherResponse wrapped in ResponseEntity
+     */
     @GetMapping("/sukien/{maSuKien}")
     public ResponseEntity<List<VoucherResponse>> getBySuKien(@PathVariable Long maSuKien) {
         return ResponseEntity.ok(voucherService.getBySuKien(maSuKien));
     }
 
+    /**
+     * Get a voucher by its code and verify if it can be applied to a specific event.
+     *
+     * @param maCode the unique code of the voucher
+     * @param maSuKien the ID of the event
+     * @return the matching VoucherResponse wrapped in ResponseEntity
+     */
     @GetMapping("/code/{maCode}/sukien/{maSuKien}")
     public ResponseEntity<VoucherResponse> getByCodeAndSuKien(
             @PathVariable String maCode, @PathVariable Long maSuKien) {
         return ResponseEntity.ok(voucherService.getByCodeAndSuKien(maCode, maSuKien));
     }
 
-    // Gọi khi khách hàng / nhân viên xác nhận dùng voucher
+    /**
+     * Increment usage of a voucher and update its active/inactive status if usage limits are met.
+     * Called when a customer or employee completes a checkout using the voucher.
+     *
+     * @param id the database ID of the voucher to use
+     * @return the updated VoucherResponse wrapped in ResponseEntity
+     */
     @PatchMapping("/{id}/use")
     public ResponseEntity<VoucherResponse> useVoucher(@PathVariable Long id) {
         return ResponseEntity.ok(voucherService.useVoucher(id));
